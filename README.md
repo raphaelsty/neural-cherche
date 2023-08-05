@@ -21,7 +21,7 @@ During the replication process, we have encountered a few deviations from the or
 ## Installation
 
 ```
-pip install
+pip install sparsembed
 ```
 
 ## Training
