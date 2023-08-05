@@ -1,5 +1,4 @@
 import string
-import typing
 
 import torch
 from transformers import AutoModelForMaskedLM, AutoTokenizer
@@ -111,12 +110,12 @@ class SparsEmbed(torch.nn.Module):
 
     def encode(
         self,
-        texts: typing.List[str],
+        texts: list[str],
         k: int,
         truncation: bool = True,
         padding: bool = True,
         **kwargs
-    ) -> typing.Dict[str, torch.Tensor]:
+    ) -> dict[str, torch.Tensor]:
         """Encode documents"""
         with torch.no_grad():
             return self(
@@ -149,7 +148,7 @@ class SparsEmbed(torch.nn.Module):
 
     def forward(
         self,
-        texts: typing.List[str],
+        texts: list[str],
         k: int,
         truncation: bool = True,
         padding: bool = True,
@@ -180,9 +179,7 @@ class SparsEmbed(torch.nn.Module):
             ),
         }
 
-    def _encode(
-        self, texts: typing.List[str], **kwargs
-    ) -> tuple[torch.Tensor, torch.Tensor]:
+    def _encode(self, texts: list[str], **kwargs) -> tuple[torch.Tensor, torch.Tensor]:
         """Encode sentences."""
         encoded_input = self.tokenizer.batch_encode_plus(
             texts, return_tensors="pt", **kwargs

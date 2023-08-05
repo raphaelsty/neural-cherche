@@ -5,8 +5,11 @@ from sparsembed.__version__ import __version__
 with open("README.md", "r", encoding="utf-8") as fh:
     long_description = fh.read()
 
-base_packages = []
-
+base_packages = [
+    "torch >= 1.13",
+    "tqdm >= 4.65",
+    "transformers >= 4.30.2",
+]
 
 setuptools.setup(
     name="sparsembed",
@@ -24,12 +27,10 @@ setuptools.setup(
         "information retrieval",
         "semantic search",
         "SparseEmbed",
-        "Google",
+        "Google Research",
     ],
     packages=setuptools.find_packages(),
     install_requires=base_packages,
-    extras_require={},
-    package_data={"sparsembed": ["data/scifact/*.json"]},
     classifiers=[
         "Programming Language :: Python :: 3",
         "License :: OSI Approved :: MIT License",
