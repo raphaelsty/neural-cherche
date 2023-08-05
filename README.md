@@ -3,16 +3,15 @@
   <p>Neural search</p>
 </div>
 
+This repository presents an unofficial replication of the research paper titled "[SparseEmbed: Learning Sparse Lexical Representations with Contextual Embeddings for Retrieval](https://research.google/pubs/pub52289/)" authored by Weize Kong, Jeffrey M. Dudek, Cheng Li, Mingyang Zhang, and Mike Bendersky, SIGIR 2023.
 
 **Note:** This project is currently a work in progress. 🔨🧹
 
-This repository presents an unofficial replication of the research paper titled "[SparseEmbed: Learning Sparse Lexical Representations with Contextual Embeddings for Retrieval](https://research.google/pubs/pub52289/)" authored by Weize Kong, Jeffrey M. Dudek, Cheng Li, Mingyang Zhang, and Mike Bendersky, SIGIR 2023.
-
 ## Overview
 
-This repository aims to replicate the findings of the SparseEmbed paper, focusing on learning both sparse lexical representations and contextual token level embeddings for retrieval tasks. We propose to fine-tune the model and then to retrieve documents from a set of queries.
+This repository aims to replicate the SparseEmbed model, focusing on learning both sparse lexical representations and contextual token level embeddings for retrieval tasks. 
 
-The `SparsEmbed` model is compatible with any MLM based model using the class `AutoModelForMaskedLM` from HuggingFace.
+The `SparsEmbed` model available here is compatible with any model compatible with the class `AutoModelForMaskedLM` from HuggingFace.
 
 ### Differences with the original paper
 
@@ -28,7 +27,7 @@ pip install sparsembed
 
 ## Training
 
-The following PyTorch code snippet illustrates the training loop designed to fine-tune the model:
+The following PyTorch code snippet illustrates the training loop to fine-tune the model:
 
 ```python
 from sparsembed import model, utils, losses
@@ -104,15 +103,14 @@ for queries, documents, labels in utils.iter(
     optimizer.zero_grad()
 ```
 
-This code segment encapsulates the iterative process of fine-tuning the model's parameters using a combination of cosine and Flops loss functions. Queries and documents are both a list of strings. Labels is a Torch tensor containing binary values of 0 or 1. A label of 0 indicates that the query is not relevant to the document, while a label of 1 signifies that the query is indeed relevant to the document. 
-
 ## Inference
 
-Upon successfully training our model, the next step involves initializing a retriever to facilitate the retrieval of the most accurate documents based on a given set of queries. The retrieval process is conducted through two main steps: adding documents and querying.
+Once we trained the model, we can initialize a `Retriever` to retrieve relevant documents given a query.
 
-1. **Adding Documents**: By invoking the `add` method, the retriever undertakes document encoding. It performs this task by generating a sparse matrix that encapsulates the contributions of sparsely activated tokens. This matrix is constructed using the weighted values of these tokens.
-
-2. **Querying**: When the `__call__` method is invoked, the retriever proceeds to encode the query. Similar to the document encoding phase, the retriever constructs a sparse matrix that represents the query. This matrix is then used in a dot product operation against the sparse matrices of the stored documents. After this initial retrieval, a re-ranking process takes place. This re-ranking is based on the contextual representations of activated tokens derived from both the queries and the documents. This is in accordance with the established SparseEmbed scoring formula.
+- It build a sparse matrix from sparse activations of documents.
+- It build a sparse matrix from sparse activations of queries.
+- It match relevant documents using dot product of both sparse matrix.
+- It re-rank documents based on contextual embbedings similarity score.
 
 ```python
 from sparsembed import retrieve
@@ -165,7 +163,3 @@ retriever(
 ## Evaluations
 
 Work in progress.
-
-## Acknowledgments
-
-I would like to express my gratitude to the authors of the SparseEmbed paper for their valuable contributions, which serve as the foundation for this replication attempt.
