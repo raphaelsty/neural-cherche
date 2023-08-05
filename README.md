@@ -64,7 +64,7 @@ dataset = [
 for queries, documents, labels in utils.iter(
     dataset,
     device=device,
-    epochs=20,
+    epochs=1,
     batch_size=batch_size,
     shuffle=True,
 ):
