@@ -1,6 +1,8 @@
 <div align="center">
-# SparsEmbed
+  <h1>SparsEmbed</h1>
+  <p>Neural search</p>
 </div>
+
 
 **Note:** This project is currently a work in progress. 🔨🧹
 
