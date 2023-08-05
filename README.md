@@ -10,7 +10,7 @@ This repository aims to replicate the findings of the SparseEmbed paper, focusin
 
 The `SparsEmbed` model is compatible with any MLM based model using the class `AutoModelForMaskedLM` from HuggingFace.
 
-### Differences from the original paper
+### Differences with the original paper
 
 1. **Loss Function:** We did not yet implement the distillation loss used in the paper. We have initially opted for a cosine loss like the one used in SentenceTransformer library. This decision was made to fine-tune the model from scratch, avoiding the use of a cross-encoder as a teacher. The distillation loss should be available soon.
 
