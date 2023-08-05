@@ -2,7 +2,7 @@
 
 **Note:** This project is currently a work in progress. 🔨🧹
 
-This repository presents an unofficial replication of the research paper titled "[SparseEmbed: Learning Sparse Lexical Representations with Contextual Embeddings for Retrieval](https://research.google/pubs/pub52289/)" authored by Weize Kong, Jeffrey M. Dudek, Cheng Li, Mingyang Zhang, and Mike Bendersky. The original paper was published at SIGIR 2023.
+This repository presents an unofficial replication of the research paper titled "[SparseEmbed: Learning Sparse Lexical Representations with Contextual Embeddings for Retrieval](https://research.google/pubs/pub52289/)" authored by Weize Kong, Jeffrey M. Dudek, Cheng Li, Mingyang Zhang, and Mike Bendersky, SIGIR 2023.
 
 ## Overview
 
