@@ -1,4 +1,6 @@
-# SparseEmbed 
+<div align="center">
+# SparsEmbed
+</div>
 
 **Note:** This project is currently a work in progress. 🔨🧹
 
