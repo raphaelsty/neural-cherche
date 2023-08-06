@@ -38,15 +38,6 @@ def iter(
     >>> for queries, documents, labels in utils.iter(
     ...         X,
     ...         device="cpu",
-    ...         epochs=10,
-    ...         batch_size=3,
-    ...         shuffle=False
-    ...     ):
-    ...     print(queries)
-
-    >>> for queries, documents, labels in utils.iter(
-    ...         X,
-    ...         device="cpu",
     ...         epochs=1,
     ...         batch_size=3,
     ...         shuffle=False
