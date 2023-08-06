@@ -34,7 +34,7 @@ from sparsembed import model, utils, losses
 from transformers import AutoModelForMaskedLM, AutoTokenizer
 import torch
 
-device = "cuda"  # cpu / cuda / mps
+device = "cuda"  # cpu / cuda
 batch_size = 32
 
 model = model.SparsEmbed(

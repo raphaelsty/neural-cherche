@@ -65,6 +65,9 @@ class SparsEmbed(torch.nn.Module):
      'is great sports good was big has are and wonderful sport huge nice of games '
      'a']
 
+    >>> queries_embeddings["activations"].shape
+    torch.Size([2, 96])
+
     References
     ----------
     1. [SparseEmbed: Learning Sparse Lexical Representations with Contextual Embeddings for Retrieval](https://dl.acm.org/doi/pdf/10.1145/3539618.3592065)
@@ -174,9 +177,7 @@ class SparsEmbed(torch.nn.Module):
         return {
             "embeddings": self.relu(self.linear(embeddings)),
             "sparse_activations": activations["sparse_activations"],
-            "activations": self._filter_activations(
-                activations["sparse_activations"], k=k
-            ),
+            "activations": activations["activations"],
         }
 
     def _encode(self, texts: list[str], **kwargs) -> tuple[torch.Tensor, torch.Tensor]:
@@ -227,18 +228,9 @@ class SparsEmbed(torch.nn.Module):
     ) -> list[torch.Tensor]:
         """Among the set of activations, select the ones with a score > 0."""
         scores, activations = torch.topk(input=sparse_activations, k=k, dim=-1)
-
-        filter_activations = []
-
-        for score, activation in zip(scores, activations):
-            new_activation = torch.index_select(
+        return [
+            torch.index_select(
                 activation, dim=-1, index=torch.nonzero(score, as_tuple=True)[0]
             )
-
-            if new_activation.shape[0] == 0:
-                filter_activations.append(activation)
-
-            else:
-                filter_activations.append(new_activation)
-
-        return filter_activations
+            for score, activation in zip(scores, activations)
+        ]
