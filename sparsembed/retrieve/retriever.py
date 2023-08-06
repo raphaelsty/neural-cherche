@@ -1,9 +1,7 @@
 import os
 
-import numpy as np
 import torch
 import tqdm
-from scipy import sparse
 
 from ..model import SparsEmbed
 
@@ -252,7 +250,7 @@ class Retriever:
         X: list[str],
         batch_size: int,
         k_token: int,
-    ) -> tuple[list, list, sparse.csc_matrix]:
+    ) -> tuple[list, list, torch.Tensor]:
         """Build a sparse matrix index."""
         index_embeddings, index_activations, sparse_activations = [], [], []
 
