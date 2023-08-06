@@ -38,8 +38,8 @@ device = "cuda"  # cpu / cuda
 batch_size = 32
 
 model = model.SparsEmbed(
-    model=AutoModelForMaskedLM.from_pretrained("distilbert-base-uncased").to(device),
-    tokenizer=AutoTokenizer.from_pretrained("distilbert-base-uncased"),
+    model=AutoModelForMaskedLM.from_pretrained("Luyu/co-condenser-marco").to(device),
+    tokenizer=AutoTokenizer.from_pretrained("Luyu/co-condenser-marco"),
     device=device,
 )
 
