@@ -2,6 +2,7 @@ import os
 
 import torch
 import tqdm
+import warnings
 
 from ..model import SparsEmbed
 
@@ -103,6 +104,7 @@ class Retriever:
         # Documents embeddings and activations store.
         self.documents_embeddings, self.documents_activations = [], []
         os.environ["TOKENIZERS_PARALLELISM"] = tokenizer_parallelism
+        warnings.filterwarnings('ignore', '.*Sparse CSR tensor support is in beta state.*')
 
     def add(
         self,
