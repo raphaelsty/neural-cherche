@@ -39,6 +39,7 @@ def _get_scores(
     queries_embeddings_index: torch.Tensor,
     documents_embeddings_index: torch.Tensor,
     intersections: torch.Tensor,
+    device: str,
     func,
 ) -> list:
     """Computes similarity scores between queries and documents based on activated tokens embeddings"""
@@ -52,6 +53,8 @@ def _get_scores(
                     [query_embeddings_index[token] for token in intersection], dim=0
                 )
             )
+            if len(intersection) > 0
+            else torch.tensor(0.0, device=device)
             for query_embeddings_index, document_embeddings_index, intersection in zip(
                 queries_embeddings_index, documents_embeddings_index, intersections
             )
@@ -65,6 +68,7 @@ def scores(
     queries_embeddings: torch.Tensor,
     documents_activations: torch.Tensor,
     documents_embeddings: torch.Tensor,
+    device: str,
     func=torch.mean,
 ) -> list:
     """Computes score between queries and documents intersected activated tokens.
@@ -111,6 +115,8 @@ def scores(
     ...     queries_embeddings=queries_embeddings["embeddings"],
     ...     documents_activations=documents_embeddings["activations"],
     ...     documents_embeddings=documents_embeddings["embeddings"],
+    ...     func=torch.sum, # torch.sum is dedicated to training
+    ...     device="cpu",
     ... )
 
     """
@@ -132,4 +138,5 @@ def scores(
         documents_embeddings_index=documents_embeddings_index,
         intersections=intersections,
         func=func,
+        device=device,
     )

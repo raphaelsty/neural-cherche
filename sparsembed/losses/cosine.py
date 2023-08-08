@@ -41,6 +41,7 @@ class Cosine(torch.nn.Module):
     ...     queries_embeddings=queries_embeddings["embeddings"],
     ...     documents_activations=documents_embeddings["activations"],
     ...     documents_embeddings=documents_embeddings["embeddings"],
+    ...     device="cpu",
     ... )
 
     >>> cosine_loss = losses.Cosine()

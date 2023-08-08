@@ -47,7 +47,7 @@ class Retriever:
     ... ]
     >>> retriever = retriever.add(
     ...     documents=documents,
-    ...     k_token=256,
+    ...     k_token=32,
     ...     batch_size=24
     ... )
 
@@ -57,31 +57,31 @@ class Retriever:
     ... ]
     >>> retriever = retriever.add(
     ...     documents=documents,
-    ...     k_token=256,
+    ...     k_token=32,
     ...     batch_size=24
     ... )
 
-    >>> print(retriever(["Food", "Sports", "Cinema", "Music", "Hello World"], k_token=96))
-    [[{'id': 0, 'similarity': 1.4686675071716309},
-      {'id': 1, 'similarity': 1.345913052558899},
-      {'id': 3, 'similarity': 1.304019808769226},
-      {'id': 2, 'similarity': 1.1579231023788452}],
-     [{'id': 1, 'similarity': 7.0373148918151855},
-      {'id': 3, 'similarity': 3.528376817703247},
-      {'id': 2, 'similarity': 2.4535036087036133},
-      {'id': 0, 'similarity': 1.7893059253692627}],
-     [{'id': 2, 'similarity': 2.3167333602905273},
-      {'id': 3, 'similarity': 2.2312183380126953},
-      {'id': 1, 'similarity': 2.0195937156677246},
-      {'id': 0, 'similarity': 1.2890148162841797}],
-     [{'id': 3, 'similarity': 2.4722704887390137},
-      {'id': 2, 'similarity': 1.8648046255111694},
-      {'id': 1, 'similarity': 1.732576608657837},
-      {'id': 0, 'similarity': 1.3416467905044556}],
-     [{'id': 3, 'similarity': 3.7778899669647217},
-      {'id': 2, 'similarity': 3.198120355606079},
-      {'id': 1, 'similarity': 3.1253902912139893},
-      {'id': 0, 'similarity': 2.458303451538086}]]
+    >>> print(retriever(["Food", "Sports", "Cinema", "Music", "Hello World"], k_token=32))
+    [[{'id': 3, 'similarity': 0.5633876323699951},
+      {'id': 2, 'similarity': 0.4271728992462158},
+      {'id': 1, 'similarity': 0.4205787181854248},
+      {'id': 0, 'similarity': 0.3673652410507202}],
+     [{'id': 1, 'similarity': 1.547836184501648},
+      {'id': 3, 'similarity': 0.7415981888771057},
+      {'id': 2, 'similarity': 0.6557919979095459},
+      {'id': 0, 'similarity': 0.5385637879371643}],
+     [{'id': 3, 'similarity': 0.5051844716072083},
+      {'id': 2, 'similarity': 0.48867619037628174},
+      {'id': 1, 'similarity': 0.3863832950592041},
+      {'id': 0, 'similarity': 0.2812037169933319}],
+     [{'id': 3, 'similarity': 0.9398075938224792},
+      {'id': 1, 'similarity': 0.595514178276062},
+      {'id': 2, 'similarity': 0.5711489319801331},
+      {'id': 0, 'similarity': 0.46095147728919983}],
+     [{'id': 2, 'similarity': 1.3963655233383179},
+      {'id': 3, 'similarity': 1.2879667282104492},
+      {'id': 1, 'similarity': 1.229896068572998},
+      {'id': 0, 'similarity': 1.2129783630371094}]]
 
     """
 
@@ -104,7 +104,9 @@ class Retriever:
         # Documents embeddings and activations store.
         self.documents_embeddings, self.documents_activations = [], []
         os.environ["TOKENIZERS_PARALLELISM"] = tokenizer_parallelism
-        warnings.filterwarnings('ignore', '.*Sparse CSR tensor support is in beta state.*')
+        warnings.filterwarnings(
+            "ignore", ".*Sparse CSR tensor support is in beta state.*"
+        )
 
     def add(
         self,
@@ -316,8 +318,8 @@ class Retriever:
         uniques, counts = combined.unique(return_counts=True, sorted=False)
         return uniques[counts > 1].tolist()
 
-    @staticmethod
     def _get_scores(
+        self,
         queries_embeddings: list[torch.Tensor],
         documents_embeddings: list[list[torch.Tensor]],
         intersections: list[torch.Tensor],
@@ -337,6 +339,8 @@ class Retriever:
                                 dim=0,
                             )
                         )
+                        if len(intersection) > 0
+                        else torch.tensor(0.0, device=self.model.device)
                         for intersection, document_embddings in zip(
                             query_intersections, query_documents_embddings
                         )

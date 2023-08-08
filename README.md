@@ -47,7 +47,7 @@ model = model.to(device)
 
 optimizer = torch.optim.AdamW(
     filter(lambda p: p.requires_grad, model.parameters()),
-    lr=2e-6,
+    lr=2e-5,
 )
 
 flops_loss = losses.Flops()
@@ -69,15 +69,16 @@ for queries, documents, labels in utils.iter(
     batch_size=batch_size,
     shuffle=True,
 ):
-    queries_embeddings = model(queries, k=96)
+    queries_embeddings = model(queries, k=32)
 
-    documents_embeddings = model(documents, k=256)
+    documents_embeddings = model(documents, k=32)
 
     scores = utils.scores(
         queries_activations=queries_embeddings["activations"],
         queries_embeddings=queries_embeddings["embeddings"],
         documents_activations=documents_embeddings["activations"],
         documents_embeddings=documents_embeddings["embeddings"],
+        device=device,
     )
 
     loss = cosine_loss.dense(
@@ -137,7 +138,7 @@ retriever = retrieve.Retriever(
 
 retriever = retriever.add(
     documents=documents,
-    k_token=64,
+    k_token=32, # Number of tokens to activate.
     batch_size=3,
 )
 
@@ -146,7 +147,8 @@ retriever(
         "Apple", 
         "Banana",
     ], 
-    k_sparse=64, 
+    k_sparse=20, # Number of documents to retrieve.
+    k_token=32, # Number of tokens to activate.
     batch_size=3
 )
 ```
