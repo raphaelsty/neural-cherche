@@ -63,6 +63,9 @@ def evaluate(
 
     >>> from transformers import AutoModelForMaskedLM, AutoTokenizer
     >>> from sparsembed import model, retrieve, utils
+    >>> import torch
+
+    >>> _ = torch.manual_seed(42)
 
     >>> device = "cpu"
 
@@ -87,7 +90,7 @@ def evaluate(
     ...     batch_size=1
     ... )
 
-    >>> utils.evaluate(
+    >>> scores = utils.evaluate(
     ...     retriever=retriever,
     ...     batch_size=1,
     ...     qrels=qrels,
@@ -95,6 +98,9 @@ def evaluate(
     ...     k=30,
     ...     metrics=["map", "ndcg@10", "ndcg@100", "recall@10", "recall@100"]
     ... )
+
+    >>> scores
+    {'map': 0.0016666666666666668, 'ndcg@10': 0.002103099178571525, 'ndcg@100': 0.002103099178571525, 'recall@10': 0.0033333333333333335, 'recall@100': 0.0033333333333333335}
 
     """
     from ranx import Qrels, Run, evaluate

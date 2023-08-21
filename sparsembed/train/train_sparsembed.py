@@ -41,6 +41,8 @@ def train_sparsembed(
     >>> from sparsembed import model, utils, train
     >>> import torch
 
+    >>> _ = torch.manual_seed(42)
+
     >>> device = "mps"
 
     >>> model = model.SparsEmbed(
@@ -73,7 +75,9 @@ def train_sparsembed(
     ...         in_batch_negatives=True,
     ...     )
 
-    >>> {'dense': tensor(4.9316, device='mps:0', grad_fn=<MeanBackward0>), 'ranking': tensor(3456.6538, device='mps:0', grad_fn=<MeanBackward0>), 'flops': tensor(796.2637, device='mps:0', grad_fn=<SumBackward1>)}
+    >>> loss
+    {'dense': tensor(19.4581, device='mps:0', grad_fn=<MeanBackward0>), 'sparse': tensor(3475.2351, device='mps:0', grad_fn=<MeanBackward0>), 'flops': tensor(795.3960, device='mps:0', grad_fn=<SumBackward1>)}
+
     """
 
     anchor_activations = model(
@@ -127,6 +131,6 @@ def train_sparsembed(
 
     return {
         "dense": dense_ranking_loss,
-        "ranking": sparse_ranking_loss,
+        "sparse": sparse_ranking_loss,
         "flops": flops_loss,
     }

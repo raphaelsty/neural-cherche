@@ -47,7 +47,19 @@ from transformers import AutoModelForMaskedLM, AutoTokenizer
 model = model.Splade(
     model=AutoModelForMaskedLM.from_pretrained("distilbert-base-uncased").to(device),
     tokenizer=AutoTokenizer.from_pretrained("distilbert-base-uncased"),
-    device=device
+    device=device,
+)
+```
+
+```python
+from transformers import AutoModelForMaskedLM, AutoTokenizer
+
+model = model.SparsEmbed(
+    model=AutoModelForMaskedLM.from_pretrained("distilbert-base-uncased").to(device),
+    tokenizer=AutoTokenizer.from_pretrained("distilbert-base-uncased"),
+    embedding_size=64,
+    k_tokens=96,
+    device=device,
 )
 ```
 

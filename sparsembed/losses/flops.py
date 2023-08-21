@@ -11,6 +11,9 @@ class Flops(torch.nn.Module):
     >>> from transformers import AutoModelForMaskedLM, AutoTokenizer
     >>> from sparsembed import model, utils, losses
     >>> from pprint import pprint as print
+    >>> import torch
+
+    >>> _ = torch.manual_seed(42)
 
     >>> device = "mps"
 
@@ -37,7 +40,7 @@ class Flops(torch.nn.Module):
     ...     positive_activations=positive_activations["sparse_activations"],
     ...     negative_activations=negative_activations["sparse_activations"],
     ... )
-    tensor(1838.6599, device='mps:0')
+    tensor(1880.5656, device='mps:0')
 
     References
     ----------

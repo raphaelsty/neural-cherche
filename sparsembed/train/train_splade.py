@@ -38,6 +38,8 @@ def train_splade(
     >>> from sparsembed import model, utils, train
     >>> import torch
 
+    >>> _ = torch.manual_seed(42)
+
     >>> device = "mps"
 
     >>> model = model.Splade(
@@ -71,7 +73,7 @@ def train_splade(
     ...     )
 
     >>> loss
-    {'ranking': tensor(307.2816, device='mps:0', grad_fn=<MeanBackward0>), 'flops': tensor(75.3216, device='mps:0', grad_fn=<SumBackward1>)}
+    {'sparse': tensor(5443.0615, device='mps:0', grad_fn=<MeanBackward0>), 'flops': tensor(1319.7771, device='mps:0', grad_fn=<SumBackward1>)}
 
     """
 
@@ -108,4 +110,4 @@ def train_splade(
     optimizer.step()
     optimizer.zero_grad()
 
-    return {"ranking": ranking_loss, "flops": flops_loss}
+    return {"sparse": ranking_loss, "flops": flops_loss}

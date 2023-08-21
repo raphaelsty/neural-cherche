@@ -17,10 +17,8 @@ class SparsEmbed(Splade):
         HuggingFace Tokenizer.
     model
         HuggingFace AutoModelForMaskedLM.
-    k_query
-        Number of activated terms to retrieve for queries.
-    k_documents
-        Number of activated terms to retrieve for documents.
+    k_tokens
+        Number of activated terms to retrieve.
     embedding_size
         Size of the embeddings in output of SparsEmbed model.
 
