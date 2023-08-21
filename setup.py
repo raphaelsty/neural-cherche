@@ -11,7 +11,7 @@ base_packages = [
     "transformers >= 4.30.2",
 ]
 
-eval = ["ranx >= 0.3.16", "faiss-beir >= 2.0.0"]
+eval = ["ranx >= 0.3.16", "beir >= 2.0.0"]
 
 setuptools.setup(
     name="sparsembed",
