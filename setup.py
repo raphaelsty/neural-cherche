@@ -11,10 +11,12 @@ base_packages = [
     "transformers >= 4.30.2",
 ]
 
+eval = ["ranx >= 0.3.16", "faiss-beir >= 2.0.0"]
+
 setuptools.setup(
     name="sparsembed",
     version=f"{__version__}",
-    license="MIT",
+    license="",
     author="Raphael Sourty",
     author_email="raphael.sourty@gmail.com",
     description="Sparse Embeddings for Neural Search.",
@@ -28,9 +30,13 @@ setuptools.setup(
         "semantic search",
         "SparseEmbed",
         "Google Research",
+        "SPLADE",
     ],
     packages=setuptools.find_packages(),
     install_requires=base_packages,
+    extras_require={
+        "eval": base_packages + eval,
+    },
     classifiers=[
         "Programming Language :: Python :: 3",
         "License :: OSI Approved :: MIT License",

@@ -1,3 +1,4 @@
 from .sparsembed import SparsEmbed
+from .splade import Splade
 
-__all__ = ["SpareEmbed"]
+__all__ = ["SparsEmbed", "Splade"]

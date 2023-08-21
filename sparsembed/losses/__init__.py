@@ -1,4 +1,4 @@
-from .cosine import Cosine
 from .flops import Flops
+from .ranking import Ranking
 
-__all__ = ["Flops", "Cosine"]
+__all__ = ["Flops", "Ranking"]

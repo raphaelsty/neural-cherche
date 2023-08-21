@@ -1,15 +1,15 @@
 import os
+import warnings
 
 import torch
 import tqdm
-import warnings
 
 from ..model import SparsEmbed
 
-__all__ = ["Retriever"]
+__all__ = ["SparsEmbedRetriever"]
 
 
-class Retriever:
+class SparsEmbedRetriever:
     """Retriever class.
 
     Parameters
@@ -36,52 +36,32 @@ class Retriever:
     ...     model=AutoModelForMaskedLM.from_pretrained("distilbert-base-uncased").to(device),
     ...     tokenizer=AutoTokenizer.from_pretrained("distilbert-base-uncased"),
     ...     device=device,
-    ...     embedding_size=3,
+    ...     embedding_size=64,
+    ...     k_tokens=96,
     ... )
 
-    >>> retriever = retrieve.Retriever(key="id", on="document", model=model)
+    >>> retriever = retrieve.SparsEmbedRetriever(key="id", on="document", model=model)
 
     >>> documents = [
-    ...     {"id": 0, "document": "Food is good."},
-    ...     {"id": 1, "document": "Sports is great."},
+    ...     {"id": 0, "document": "Food"},
+    ...     {"id": 1, "document": "Sports"},
+    ...     {"id": 2, "document": "Cinema"},
     ... ]
     >>> retriever = retriever.add(
     ...     documents=documents,
-    ...     k_token=32,
-    ...     batch_size=24
+    ...     batch_size=1
     ... )
 
-    >>> documents = [
-    ...     {"id": 2, "document": "Cinema is great."},
-    ...     {"id": 3, "document": "Music is amazing."},
-    ... ]
-    >>> retriever = retriever.add(
-    ...     documents=documents,
-    ...     k_token=32,
-    ...     batch_size=24
-    ... )
-
-    >>> print(retriever(["Food", "Sports", "Cinema", "Music", "Hello World"], k_token=32))
-    [[{'id': 3, 'similarity': 0.5633876323699951},
-      {'id': 2, 'similarity': 0.4271728992462158},
-      {'id': 1, 'similarity': 0.4205787181854248},
-      {'id': 0, 'similarity': 0.3673652410507202}],
-     [{'id': 1, 'similarity': 1.547836184501648},
-      {'id': 3, 'similarity': 0.7415981888771057},
-      {'id': 2, 'similarity': 0.6557919979095459},
-      {'id': 0, 'similarity': 0.5385637879371643}],
-     [{'id': 3, 'similarity': 0.5051844716072083},
-      {'id': 2, 'similarity': 0.48867619037628174},
-      {'id': 1, 'similarity': 0.3863832950592041},
-      {'id': 0, 'similarity': 0.2812037169933319}],
-     [{'id': 3, 'similarity': 0.9398075938224792},
-      {'id': 1, 'similarity': 0.595514178276062},
-      {'id': 2, 'similarity': 0.5711489319801331},
-      {'id': 0, 'similarity': 0.46095147728919983}],
-     [{'id': 2, 'similarity': 1.3963655233383179},
-      {'id': 3, 'similarity': 1.2879667282104492},
-      {'id': 1, 'similarity': 1.229896068572998},
-      {'id': 0, 'similarity': 1.2129783630371094}]]
+    >>> print(retriever(["Food", "Sports", "Cinema"], batch_size=32))
+    [[{'id': 0, 'similarity': 201.47901916503906},
+      {'id': 1, 'similarity': 107.03492736816406},
+      {'id': 2, 'similarity': 106.74536895751953}],
+     [{'id': 1, 'similarity': 252.70684814453125},
+      {'id': 2, 'similarity': 125.91816711425781},
+      {'id': 0, 'similarity': 107.03492736816406}],
+     [{'id': 2, 'similarity': 205.38475036621094},
+      {'id': 1, 'similarity': 125.91813659667969},
+      {'id': 0, 'similarity': 106.745361328125}]]
 
     """
 
@@ -111,9 +91,8 @@ class Retriever:
     def add(
         self,
         documents: list,
-        k_token: int = 256,
         batch_size: int = 32,
-    ) -> "Retriever":
+    ) -> "SparsEmbedRetriever":
         """Add new documents to the retriever.
 
         Computes documents embeddings and activations and update the sparse matrix.
@@ -122,8 +101,6 @@ class Retriever:
         ----------
         documents
             Documents to add.
-        k_token
-            Number of tokens to activate.
         batch_size
             Batch size.
         """
@@ -136,7 +113,6 @@ class Retriever:
                 " ".join([document[field] for field in self.on])
                 for document in documents
             ],
-            k_token=k_token,
             batch_size=batch_size,
         )
 
@@ -162,9 +138,9 @@ class Retriever:
     def __call__(
         self,
         q: list[str],
-        k_sparse: int = 100,
-        k_token: int = 96,
+        k: int = 100,
         batch_size: int = 3,
+        **kwargs,
     ) -> list:
         """Retrieve documents.
 
@@ -174,8 +150,6 @@ class Retriever:
             Queries.
         k_sparse
             Number of documents to retrieve.
-        k_token
-            Number of tokens to activate.
         """
         (
             queries_embeddings,
@@ -183,14 +157,14 @@ class Retriever:
             sparse_matrix,
         ) = self._build_index(
             X=[q] if isinstance(q, str) else q,
-            k_token=k_token,
             batch_size=batch_size,
+            **kwargs,
         )
 
         sparse_scores = (sparse_matrix @ self.sparse_matrix).to_dense()
 
-        _, sparse_matchs = torch.topk(
-            input=sparse_scores, k=min(k_sparse, len(self.documents_keys)), dim=-1
+        sparse_scores, sparse_matchs = torch.topk(
+            input=sparse_scores, k=min(k, len(self.documents_keys)), dim=-1
         )
 
         sparse_matchs_idx = sparse_matchs.tolist()
@@ -214,11 +188,13 @@ class Retriever:
         )
 
         return self._rank(
-            dense_scores=dense_scores, sparse_matchs=sparse_matchs, k_sparse=k_sparse
+            dense_scores=dense_scores,
+            sparse_matchs=sparse_matchs,
+            k_dense=k,
         )
 
     def _rank(
-        self, dense_scores: torch.Tensor, sparse_matchs: torch.Tensor, k_sparse: int
+        self, dense_scores: torch.Tensor, sparse_matchs: torch.Tensor, k_dense: int
     ) -> list:
         """Rank documents by scores.
 
@@ -230,7 +206,7 @@ class Retriever:
             Documents matchs.
         """
         dense_scores, dense_matchs = torch.topk(
-            input=dense_scores, k=min(k_sparse, len(self.documents_keys)), dim=-1
+            input=dense_scores, k=min(k_dense, len(self.documents_keys)), dim=-1
         )
 
         dense_scores = dense_scores.tolist()
@@ -253,13 +229,13 @@ class Retriever:
         self,
         X: list[str],
         batch_size: int,
-        k_token: int,
+        **kwargs,
     ) -> tuple[list, list, torch.Tensor]:
         """Build a sparse matrix index."""
         index_embeddings, index_activations, sparse_activations = [], [], []
 
         for batch in self._to_batch(X, batch_size=batch_size):
-            batch_embeddings = self.model.encode(batch, k=k_token)
+            batch_embeddings = self.model.encode(batch, **kwargs)
 
             sparse_activations.append(
                 batch_embeddings["sparse_activations"].to_sparse()
@@ -323,7 +299,7 @@ class Retriever:
         queries_embeddings: list[torch.Tensor],
         documents_embeddings: list[list[torch.Tensor]],
         intersections: list[torch.Tensor],
-    ) -> list:
+    ) -> torch.Tensor:
         """Computes similarity scores between queries and documents with activated tokens embeddings."""
         return torch.stack(
             [

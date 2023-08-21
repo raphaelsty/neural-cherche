@@ -9,44 +9,35 @@ class Flops(torch.nn.Module):
     Example
     -------
     >>> from transformers import AutoModelForMaskedLM, AutoTokenizer
-    >>> from sparsembed import model, losses
-    >>> import torch
+    >>> from sparsembed import model, utils, losses
+    >>> from pprint import pprint as print
 
-    >>> _ = torch.manual_seed(42)
+    >>> device = "mps"
 
-    >>> model = model.SparsEmbed(
-    ...     model=AutoModelForMaskedLM.from_pretrained("distilbert-base-uncased"),
+    >>> model = model.Splade(
+    ...     model=AutoModelForMaskedLM.from_pretrained("distilbert-base-uncased").to(device),
     ...     tokenizer=AutoTokenizer.from_pretrained("distilbert-base-uncased"),
+    ...     device=device
     ... )
 
-    >>> anchor_queries_embeddings = model.encode(
-    ...     ["Paris", "Toulouse"],
-    ...     k=64
+    >>> anchor_activations = model.encode(
+    ...     ["Sports", "Music"],
     ... )
 
-    >>> positive_documents_embeddings = model.encode(
-    ...     ["France", "France"],
-    ...     k=64
+    >>> positive_activations = model.encode(
+    ...    ["Sports", "Music"],
     ... )
 
-    >>> negative_documents_embeddings = model.encode(
-    ...     ["Canada", "Espagne"],
-    ...     k=64
+    >>> negative_activations = model.encode(
+    ...    ["Cinema", "Movie"],
     ... )
 
-    >>> flops = losses.Flops()
-
-    >>> loss = flops(
-    ...     sparse_activations = anchor_queries_embeddings["sparse_activations"]
+    >>> losses.Flops()(
+    ...     anchor_activations=anchor_activations["sparse_activations"],
+    ...     positive_activations=positive_activations["sparse_activations"],
+    ...     negative_activations=negative_activations["sparse_activations"],
     ... )
-
-    >>> loss += flops(
-    ...     sparse_activations = torch.cat([
-    ...         positive_documents_embeddings["sparse_activations"],
-    ...         negative_documents_embeddings["sparse_activations"],
-    ...     ], dim=0)
-    ... )
-
+    tensor(1838.6599, device='mps:0')
 
     References
     ----------
@@ -60,7 +51,12 @@ class Flops(torch.nn.Module):
 
     def __call__(
         self,
-        sparse_activations: torch.Tensor,
+        anchor_activations: torch.Tensor,
+        positive_activations: torch.Tensor,
+        negative_activations: torch.Tensor,
     ) -> torch.Tensor:
         """Loss which tend to reduce sparse activation."""
-        return torch.sum(torch.mean(sparse_activations, dim=0) ** 2, dim=0)
+        activations = torch.cat(
+            [anchor_activations, positive_activations, negative_activations], dim=0
+        )
+        return torch.sum(torch.mean(torch.abs(activations), dim=0) ** 2, dim=0)
