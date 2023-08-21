@@ -57,6 +57,8 @@ def train_splade(
     ...     ("Sports", "Music", "Cinema"),
     ... ]
 
+    >>> flops_scheduler = losses.FlopsScheduler()
+
     >>> for anchor, positive, negative in utils.iter(
     ...         X,
     ...         epochs=3,
@@ -69,12 +71,12 @@ def train_splade(
     ...         anchor=anchor,
     ...         positive=positive,
     ...         negative=negative,
-    ...         flops_loss_weight=1e-4,
+    ...         flops_loss_weight=flops_scheduler(),
     ...         in_batch_negatives=True,
     ...     )
 
     >>> loss
-    {'sparse': tensor(5443.0615, device='mps:0', grad_fn=<MeanBackward0>), 'flops': tensor(1319.7771, device='mps:0', grad_fn=<SumBackward1>)}
+    {'sparse': tensor(1582.0349, device='mps:0', grad_fn=<MeanBackward0>), 'flops': tensor(384.5024, device='mps:0', grad_fn=<SumBackward1>)}
 
     """
 

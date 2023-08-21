@@ -1,6 +1,24 @@
 import torch
 
-__all__ = ["Flops"]
+__all__ = ["Flops", "FlopsScheduler"]
+
+
+class FlopsScheduler:
+    """Flops scheduler."""
+
+    def __init__(self, weight: float = 3e-5, steps: int = 10000):
+        self._weight = weight
+        self.weight = 0
+        self.steps = steps
+        self.step = 0
+
+    def __call__(self):
+        if self.step >= self.steps:
+            pass
+        else:
+            self.step += 1
+            self.weight = self._weight * (self.step / self.steps) ** 2
+        return self.weight
 
 
 class Flops(torch.nn.Module):

@@ -83,6 +83,8 @@ model = model.Splade(
 
 optimizer = torch.optim.Adam(model.parameters(), lr=1e-5)
 
+flops_scheduler = losses.FlopsScheduler(weight=3e-5, steps=10_000)
+
 X = [
     ("anchor 1", "positive 1", "negative 1"),
     ("anchor 2", "positive 2", "negative 2"),
@@ -101,7 +103,7 @@ for anchor, positive, negative in utils.iter(
             anchor=anchor,
             positive=positive,
             negative=negative,
-            flops_loss_weight=1e-5,
+            flops_loss_weight=flops_scheduler(),
             in_batch_negatives=True,
         )
 
@@ -151,6 +153,8 @@ model = model.SparsEmbed(
 
 optimizer = torch.optim.Adam(model.parameters(), lr=1e-5)
 
+flops_scheduler = losses.FlopsScheduler(weight=3e-5, steps=10_000)
+
 X = [
     ("anchor 1", "positive 1", "negative 1"),
     ("anchor 2", "positive 2", "negative 2"),
@@ -170,7 +174,7 @@ for anchor, positive, negative in utils.iter(
             anchor=anchor,
             positive=positive,
             negative=negative,
-            flops_loss_weight=1e-5,
+            flops_loss_weight=flops_scheduler(),
             sparse_loss_weight=0.1,
             in_batch_negatives=True,
         )

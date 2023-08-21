@@ -61,6 +61,8 @@ def train_sparsembed(
     ...     ("Sports", "Music", "Cinema"),
     ... ]
 
+    >>> flops_scheduler = losses.FlopsScheduler()
+
     >>> for anchor, positive, negative in utils.iter(
     ...         X,
     ...         epochs=3,
@@ -74,12 +76,12 @@ def train_sparsembed(
     ...         anchor=anchor,
     ...         positive=positive,
     ...         negative=negative,
-    ...         flops_loss_weight=1e-4,
+    ...         flops_loss_weight=flops_scheduler(),
     ...         in_batch_negatives=True,
     ...     )
 
     >>> loss
-    {'dense': tensor(19.4581, device='mps:0', grad_fn=<MeanBackward0>), 'sparse': tensor(3475.2351, device='mps:0', grad_fn=<MeanBackward0>), 'flops': tensor(795.3960, device='mps:0', grad_fn=<SumBackward1>)}
+        {'sparse': tensor(1582.0349, device='mps:0', grad_fn=<MeanBackward0>), 'flops': tensor(384.5024, device='mps:0', grad_fn=<SumBackward1>)}
 
     """
 

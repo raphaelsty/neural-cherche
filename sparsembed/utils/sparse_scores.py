@@ -56,7 +56,7 @@ def sparse_scores(
     ...     in_batch_negatives=True,
     ... )
     {'positive_scores': tensor([2534.6953, 1837.8191], device='mps:0', grad_fn=<SumBackward1>), 'negative_scores': tensor([5551.6245, 5350.7241], device='mps:0', grad_fn=<AddBackward0>)}
-    
+
     """
     positive_scores = torch.sum(anchor_activations * positive_activations, axis=1)
     negative_scores = torch.sum(anchor_activations * negative_activations, axis=1)

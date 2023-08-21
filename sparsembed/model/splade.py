@@ -155,7 +155,7 @@ class Splade(torch.nn.Module):
     def _get_activation(self, logits: torch.Tensor) -> dict[str, torch.Tensor]:
         """Returns activated tokens."""
         return {
-            "sparse_activations": torch.log1p(self.relu(logits)).sum(axis=1),
+            "sparse_activations": torch.amax(torch.log1p(self.relu(logits)), dim=1),
         }
 
     def _filter_activations(

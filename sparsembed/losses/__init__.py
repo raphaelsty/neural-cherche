@@ -1,4 +1,4 @@
-from .flops import Flops
+from .flops import Flops, FlopsScheduler
 from .ranking import Ranking
 
-__all__ = ["Flops", "Ranking"]
+__all__ = ["Flops", "FlopsScheduler", "Ranking"]
