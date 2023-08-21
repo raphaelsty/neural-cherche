@@ -69,7 +69,7 @@ The following PyTorch code snippet illustrates the training loop to fine-tune Sp
 
 ```python
 from transformers import AutoModelForMaskedLM, AutoTokenizer
-from sparsembed import model, utils, train, retrieve
+from sparsembed import model, utils, train, retrieve, losses
 import torch
 
 device = "cuda" # cpu
@@ -138,7 +138,7 @@ The following PyTorch code snippet illustrates the training loop to fine-tune Sp
 
 ```python
 from transformers import AutoModelForMaskedLM, AutoTokenizer
-from sparsembed import model, utils, train, retrieve
+from sparsembed import model, utils, train, retrieve, losses
 import torch
 
 device = "cuda" # cpu
