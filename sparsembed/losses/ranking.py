@@ -20,15 +20,15 @@ class Ranking(torch.nn.Module):
     ...     device=device
     ... )
 
-    >>> queries_activations = model.encode(
+    >>> queries_activations = model(
     ...     ["Sports", "Music"],
     ... )
 
-    >>> positive_activations = model.encode(
+    >>> positive_activations = model(
     ...    ["Sports", "Music"],
     ... )
 
-    >>> negative_activations = model.encode(
+    >>> negative_activations = model(
     ...    ["Cinema", "Movie"],
     ... )
 
@@ -40,7 +40,7 @@ class Ranking(torch.nn.Module):
     ... )
 
     >>> losses.Ranking()(**scores)
-    tensor(3264.9170, device='mps:0')
+    tensor(3264.9170, device='mps:0', grad_fn=<MeanBackward0>)
 
     References
     ----------

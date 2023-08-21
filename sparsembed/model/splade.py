@@ -73,16 +73,18 @@ class Splade(torch.nn.Module):
         truncation: bool = True,
         padding: bool = True,
         max_length: int = 256,
+        k_tokens: int = 256,
         **kwargs
     ) -> dict[str, torch.Tensor]:
         """Encode documents"""
         with torch.no_grad():
             return self(
                 texts=texts,
+                k_tokens=k_tokens,
                 truncation=truncation,
                 padding=padding,
                 max_length=max_length,
-                **kwargs
+                **kwargs,
             )
 
     def decode(
@@ -114,6 +116,7 @@ class Splade(torch.nn.Module):
         texts: list[str],
         truncation: bool = True,
         padding: bool = True,
+        k_tokens: int = None,
         max_length: int = 256,
         **kwargs
     ) -> dict[str, torch.Tensor]:
@@ -128,6 +131,12 @@ class Splade(torch.nn.Module):
         logits, _ = self._encode(texts=texts, **kwargs)
 
         activations = self._get_activation(logits=logits)
+
+        if k_tokens is not None:
+            activations = self._update_activations(
+                **activations,
+                k_tokens=k_tokens,
+            )
 
         return {"sparse_activations": activations["sparse_activations"]}
 
@@ -160,3 +169,19 @@ class Splade(torch.nn.Module):
             )
             for score, activation in zip(scores, activations)
         ]
+
+    def _update_activations(
+        self, sparse_activations: torch.Tensor, k_tokens: int
+    ) -> torch.Tensor:
+        """Returns activated tokens."""
+        activations = torch.topk(input=sparse_activations, k=k_tokens, dim=1).indices
+
+        # Set value of max sparse_activations which are not in top k to 0.
+        sparse_activations = sparse_activations * torch.zeros(
+            (sparse_activations.shape[0], sparse_activations.shape[1]), dtype=int
+        ).to(self.device).scatter_(dim=1, index=activations.long(), value=1)
+
+        return {
+            "activations": activations,
+            "sparse_activations": sparse_activations,
+        }

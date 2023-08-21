@@ -11,10 +11,12 @@ def train_sparsembed(
     anchor: list[str],
     positive: list[str],
     negative: list[str],
+    k_tokens: int = 96,
     flops_loss_weight: float = 1e-4,
     sparse_loss_weight: float = 0.1,
     dense_loss_weight: float = 1.0,
     in_batch_negatives: bool = True,
+    **kwargs,
 ):
     """Compute the ranking loss and the flops loss for a single step.
 
@@ -68,6 +70,7 @@ def train_sparsembed(
     ...     loss = train.train_sparsembed(
     ...         model=model,
     ...         optimizer=optimizer,
+    ...         k_tokens=96,
     ...         anchor=anchor,
     ...         positive=positive,
     ...         negative=negative,
@@ -82,14 +85,20 @@ def train_sparsembed(
 
     anchor_activations = model(
         anchor,
+        k_tokens=k_tokens,
+        **kwargs,
     )
 
     positive_activations = model(
         positive,
+        k_tokens=k_tokens,
+        **kwargs,
     )
 
     negative_activations = model(
         negative,
+        k_tokens=k_tokens,
+        **kwargs,
     )
 
     sparse_scores = utils.sparse_scores(

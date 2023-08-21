@@ -115,7 +115,8 @@ retriever = retrieve.SpladeRetriever(
 
 retriever = retriever.add(
     documents=documents,
-    batch_size=batch_size
+    batch_size=batch_size,
+    k_tokens=96,
 )
 
 utils.evaluate(
@@ -124,6 +125,7 @@ utils.evaluate(
     qrels=qrels,
     queries=queries,
     k=100,
+    k_tokens=96,
     metrics=["map", "ndcg@10", "ndcg@10", "recall@10", "hits@10"]
 )
 ```
@@ -164,6 +166,7 @@ for anchor, positive, negative in utils.iter(
         loss = train.train_sparsembed(
             model=model,
             optimizer=optimizer,
+            k_tokens=96,
             anchor=anchor,
             positive=positive,
             negative=negative,
@@ -182,6 +185,7 @@ retriever = retrieve.SparsEmbedRetriever(
 
 retriever = retriever.add(
     documents=documents,
+    k_tokens=96,
     batch_size=batch_size
 )
 
@@ -191,6 +195,7 @@ utils.evaluate(
     qrels=qrels,
     queries=queries,
     k=100,
+    k_tokens=96,
     metrics=["map", "ndcg@10", "ndcg@10", "recall@10", "hits@10"]
 )
 ```

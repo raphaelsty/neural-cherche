@@ -146,19 +146,21 @@ def dense_scores(
     >>> model = model.SparsEmbed(
     ...     model=AutoModelForMaskedLM.from_pretrained("distilbert-base-uncased"),
     ...     tokenizer=AutoTokenizer.from_pretrained("distilbert-base-uncased"),
-    ...     k_tokens=96,
     ... )
 
     >>> anchor_embeddings = model(
     ...     ["Paris", "Toulouse"],
+    ...     k_tokens=96,
     ... )
 
     >>> positive_embeddings = model(
     ...    ["Paris", "Toulouse"],
+    ...    k_tokens=96,
     ... )
 
     >>> negative_embeddings = model(
     ...    ["Toulouse", "Paris"],
+    ...    k_tokens=96,
     ... )
 
     >>> scores = utils.dense_scores(

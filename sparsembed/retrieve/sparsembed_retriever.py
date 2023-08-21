@@ -37,7 +37,6 @@ class SparsEmbedRetriever:
     ...     tokenizer=AutoTokenizer.from_pretrained("distilbert-base-uncased"),
     ...     device=device,
     ...     embedding_size=64,
-    ...     k_tokens=96,
     ... )
 
     >>> retriever = retrieve.SparsEmbedRetriever(key="id", on="document", model=model)
@@ -49,10 +48,11 @@ class SparsEmbedRetriever:
     ... ]
     >>> retriever = retriever.add(
     ...     documents=documents,
+    ...     k_tokens=96,
     ...     batch_size=32
     ... )
 
-    >>> print(retriever(["Food", "Sports", "Cinema"], batch_size=32))
+    >>> print(retriever(["Food", "Sports", "Cinema"], k_tokens=96, batch_size=32))
     [[{'id': 0, 'similarity': 201.47900390625},
       {'id': 1, 'similarity': 107.03492736816406},
       {'id': 2, 'similarity': 106.745361328125}],
@@ -92,6 +92,7 @@ class SparsEmbedRetriever:
         self,
         documents: list,
         batch_size: int = 32,
+        k_tokens: int = 96,
     ) -> "SparsEmbedRetriever":
         """Add new documents to the retriever.
 
@@ -111,6 +112,7 @@ class SparsEmbedRetriever:
                 sparse_matrix,
             ) = self._build_index(
                 X=[" ".join([document[field] for field in self.on]) for document in X],
+                k_tokens=k_tokens,
             )
 
             self.documents_embeddings.extend(documents_embeddings)
@@ -137,6 +139,7 @@ class SparsEmbedRetriever:
         q: list[str],
         k: int = 100,
         batch_size: int = 64,
+        k_tokens: int = 96,
         **kwargs,
     ) -> list:
         """Retrieve documents.
@@ -160,6 +163,7 @@ class SparsEmbedRetriever:
                 sparse_matrix,
             ) = self._build_index(
                 X=X,
+                k_tokens=k_tokens,
                 **kwargs,
             )
 
@@ -232,11 +236,12 @@ class SparsEmbedRetriever:
     def _build_index(
         self,
         X: list[str],
+        k_tokens: int,
         **kwargs,
     ) -> tuple[list, list, torch.Tensor]:
         """Build a sparse matrix index."""
         index_embeddings, index_activations, sparse_activations = [], [], []
-        batch_embeddings = self.model.encode(X, **kwargs)
+        batch_embeddings = self.model.encode(X, k_tokens, **kwargs)
         sparse_activations.append(batch_embeddings["sparse_activations"].to_sparse())
 
         for activations, activations_idx, embeddings in zip(

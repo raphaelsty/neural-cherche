@@ -47,19 +47,20 @@ class SpladeRetriever:
     ... ]
     >>> retriever = retriever.add(
     ...     documents=documents,
-    ...     batch_size=32
+    ...     k_tokens=256,
+    ...     batch_size=32,
     ... )
 
-    >>> print(retriever(["Food", "Sports", "Cinema"], batch_size=32))
-    [[{'id': 0, 'similarity': 2005.170654296875},
-      {'id': 1, 'similarity': 1866.706787109375},
-      {'id': 2, 'similarity': 1690.8975830078125}],
-     [{'id': 1, 'similarity': 2534.69189453125},
-      {'id': 2, 'similarity': 1875.5216064453125},
-      {'id': 0, 'similarity': 1866.706787109375}],
-     [{'id': 2, 'similarity': 1934.9764404296875},
-      {'id': 1, 'similarity': 1875.5216064453125},
-      {'id': 0, 'similarity': 1690.8975830078125}]]
+    >>> print(retriever(["Food", "Sports", "Cinema"],  k_tokens=256, batch_size=32))
+    [[{'id': 0, 'similarity': 1394.095947265625},
+      {'id': 1, 'similarity': 1282.78125},
+      {'id': 2, 'similarity': 1224.9775390625}],
+     [{'id': 1, 'similarity': 1629.0340576171875},
+      {'id': 2, 'similarity': 1314.5303955078125},
+      {'id': 0, 'similarity': 1282.78125}],
+     [{'id': 2, 'similarity': 1465.7626953125},
+      {'id': 1, 'similarity': 1314.5303955078125},
+      {'id': 0, 'similarity': 1224.9775390625}]]
 
     """
 
@@ -90,6 +91,7 @@ class SpladeRetriever:
         self,
         documents: list,
         batch_size: int = 32,
+        k_tokens: int = 256,
         **kwargs,
     ) -> "SpladeRetriever":
         """Add new documents to the retriever.
@@ -107,6 +109,7 @@ class SpladeRetriever:
         for X in self._to_batch(documents, batch_size=batch_size):
             sparse_matrix = self._build_index(
                 X=[" ".join([document[field] for field in self.on]) for document in X],
+                k_tokens=k_tokens,
                 **kwargs,
             )
 
@@ -131,6 +134,7 @@ class SpladeRetriever:
         q: list[str],
         k: int = 100,
         batch_size: int = 3,
+        k_tokens: int = 256,
         **kwargs,
     ) -> list:
         """Retrieve documents.
@@ -149,6 +153,7 @@ class SpladeRetriever:
         for X in self._to_batch(q, batch_size=batch_size):
             sparse_matrix = self._build_index(
                 X=X,
+                k_tokens=k_tokens,
                 **kwargs,
             )
 
@@ -192,10 +197,11 @@ class SpladeRetriever:
     def _build_index(
         self,
         X: list[str],
+        k_tokens: int,
         **kwargs,
     ) -> tuple[list, list, torch.Tensor]:
         """Build a sparse matrix index."""
-        batch_embeddings = self.model.encode(X, **kwargs)
+        batch_embeddings = self.model.encode(X, k_tokens=k_tokens, **kwargs)
         return batch_embeddings["sparse_activations"].to_sparse()
 
     @staticmethod

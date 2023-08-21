@@ -41,7 +41,8 @@ def evaluate(
     batch_size: int,
     qrels: dict,
     queries: list[str],
-    k: int = 30,
+    k: int = 100,
+    k_tokens: int = 96,
     metrics: list = [],
 ) -> dict:
     """Evaluation.
@@ -87,7 +88,8 @@ def evaluate(
 
     >>> retriever = retriever.add(
     ...     documents=documents,
-    ...     batch_size=1
+    ...     batch_size=1,
+    ...     k_tokens=96,
     ... )
 
     >>> scores = utils.evaluate(
@@ -100,8 +102,8 @@ def evaluate(
     ... )
 
     >>> scores
-    {'map': 0.0016666666666666668, 'ndcg@10': 0.002103099178571525, 'ndcg@100': 0.002103099178571525, 'recall@10': 0.0033333333333333335, 'recall@100': 0.0033333333333333335}
-
+    {'map': 0.0033333333333333335, 'ndcg@10': 0.0033333333333333335, 'ndcg@100': 0.0033333333333333335, 'recall@10': 0.0033333333333333335, 'recall@100': 0.0033333333333333335}
+    
     """
     from ranx import Qrels, Run, evaluate
 
@@ -109,7 +111,8 @@ def evaluate(
 
     matchs = retriever(
         q=list(queries.values()),
-        k=30,
+        k=k,
+        k_tokens=k_tokens,
         batch_size=batch_size,
     )
 

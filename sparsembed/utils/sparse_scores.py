@@ -37,15 +37,15 @@ def sparse_scores(
     ...     device=device
     ... )
 
-    >>> queries_activations = model.encode(
+    >>> queries_activations = model(
     ...     ["Sports", "Music"],
     ... )
 
-    >>> positive_activations = model.encode(
+    >>> positive_activations = model(
     ...    ["Sports", "Music"],
     ... )
 
-    >>> negative_activations = model.encode(
+    >>> negative_activations = model(
     ...    ["Cinema", "Movie"],
     ... )
 
@@ -55,8 +55,8 @@ def sparse_scores(
     ...     negative_activations=negative_activations["sparse_activations"],
     ...     in_batch_negatives=True,
     ... )
-    {'positive_scores': tensor([2534.6953, 1837.8191], device='mps:0'), 'negative_scores': tensor([5551.6245, 5350.7241], device='mps:0')}
-
+    {'positive_scores': tensor([2534.6953, 1837.8191], device='mps:0', grad_fn=<SumBackward1>), 'negative_scores': tensor([5551.6245, 5350.7241], device='mps:0', grad_fn=<AddBackward0>)}
+    
     """
     positive_scores = torch.sum(anchor_activations * positive_activations, axis=1)
     negative_scores = torch.sum(anchor_activations * negative_activations, axis=1)

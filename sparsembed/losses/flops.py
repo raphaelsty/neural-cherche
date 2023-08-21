@@ -23,15 +23,15 @@ class Flops(torch.nn.Module):
     ...     device=device
     ... )
 
-    >>> anchor_activations = model.encode(
+    >>> anchor_activations = model(
     ...     ["Sports", "Music"],
     ... )
 
-    >>> positive_activations = model.encode(
+    >>> positive_activations = model(
     ...    ["Sports", "Music"],
     ... )
 
-    >>> negative_activations = model.encode(
+    >>> negative_activations = model(
     ...    ["Cinema", "Movie"],
     ... )
 
@@ -40,7 +40,7 @@ class Flops(torch.nn.Module):
     ...     positive_activations=positive_activations["sparse_activations"],
     ...     negative_activations=negative_activations["sparse_activations"],
     ... )
-    tensor(1880.5656, device='mps:0')
+    tensor(1880.5656, device='mps:0', grad_fn=<SumBackward1>)
 
     References
     ----------

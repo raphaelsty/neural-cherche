@@ -31,16 +31,17 @@ class SparsEmbed(Splade):
     >>> model = model.SparsEmbed(
     ...     model=AutoModelForMaskedLM.from_pretrained("distilbert-base-uncased").to(device),
     ...     tokenizer=AutoTokenizer.from_pretrained("distilbert-base-uncased"),
-    ...     k_tokens=96,
     ...     device=device,
     ... )
 
     >>> queries_embeddings = model.encode(
     ...     ["Sports", "Music"],
+    ...     k_tokens=96,
     ... )
 
     >>> documents_embeddings = model.encode(
     ...    ["Music is great.", "Sports is great."],
+    ...     k_tokens=96,
     ... )
 
     >>> query_expanded = model.decode(
@@ -70,7 +71,6 @@ class SparsEmbed(Splade):
         self,
         tokenizer: AutoTokenizer,
         model: AutoModelForMaskedLM,
-        k_tokens: int = 96,
         embedding_size: int = 64,
         device: str = None,
     ) -> None:
@@ -78,7 +78,6 @@ class SparsEmbed(Splade):
             tokenizer=tokenizer, model=model, device=device
         )
 
-        self.k_tokens = k_tokens
         self.embedding_size = embedding_size
 
         self.softmax = torch.nn.Softmax(dim=2).to(self.device)
@@ -95,6 +94,7 @@ class SparsEmbed(Splade):
     def encode(
         self,
         texts: list[str],
+        k_tokens: int = 96,
         truncation: bool = True,
         padding: bool = True,
         max_length: int = 256,
@@ -104,6 +104,7 @@ class SparsEmbed(Splade):
         with torch.no_grad():
             return self(
                 texts=texts,
+                k_tokens=k_tokens,
                 truncation=truncation,
                 padding=padding,
                 max_length=max_length,
@@ -113,6 +114,7 @@ class SparsEmbed(Splade):
     def forward(
         self,
         texts: list[str],
+        k_tokens: int = 96,
         truncation: bool = True,
         padding: bool = True,
         max_length: int = 256,
@@ -130,7 +132,7 @@ class SparsEmbed(Splade):
 
         activations = self._update_activations(
             **self._get_activation(logits=logits),
-            k_tokens=self.k_tokens,
+            k_tokens=k_tokens,
         )
 
         attention = self._get_attention(
@@ -147,22 +149,6 @@ class SparsEmbed(Splade):
             "embeddings": self.relu(self.linear(embeddings)),
             "sparse_activations": activations["sparse_activations"],
             "activations": activations["activations"],
-        }
-
-    def _update_activations(
-        self, sparse_activations: torch.Tensor, k_tokens: int
-    ) -> torch.Tensor:
-        """Returns activated tokens."""
-        activations = torch.topk(input=sparse_activations, k=k_tokens, dim=1).indices
-
-        # Set value of max sparse_activations which are not in top k to 0.
-        sparse_activations = sparse_activations * torch.zeros(
-            (sparse_activations.shape[0], sparse_activations.shape[1]), dtype=int
-        ).to(self.device).scatter_(dim=1, index=activations.long(), value=1)
-
-        return {
-            "activations": activations,
-            "sparse_activations": sparse_activations,
         }
 
     def _get_attention(
