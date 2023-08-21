@@ -72,9 +72,8 @@ from transformers import AutoModelForMaskedLM, AutoTokenizer
 from sparsembed import model, utils, train, retrieve
 import torch
 
-device = "cpu" # cuda
-
-batch_size = 3
+device = "cuda" # cpu
+batch_size = 8
 
 model = model.Splade(
     model=AutoModelForMaskedLM.from_pretrained("distilbert-base-uncased").to(device),
@@ -121,7 +120,7 @@ retriever = retriever.add(
 
 utils.evaluate(
     retriever=retriever,
-    batch_size=1,
+    batch_size=batch_size,
     qrels=qrels,
     queries=queries,
     k=100,
@@ -138,9 +137,9 @@ from transformers import AutoModelForMaskedLM, AutoTokenizer
 from sparsembed import model, utils, train, retrieve
 import torch
 
-device = "cpu" # cuda
+device = "cuda" # cpu
 
-batch_size = 3
+batch_size = 8
 
 model = model.SparsEmbed(
     model=AutoModelForMaskedLM.from_pretrained("distilbert-base-uncased").to(device),
@@ -188,7 +187,7 @@ retriever = retriever.add(
 
 utils.evaluate(
     retriever=retriever,
-    batch_size=1,
+    batch_size=batch_size,
     qrels=qrels,
     queries=queries,
     k=100,

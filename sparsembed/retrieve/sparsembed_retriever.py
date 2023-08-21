@@ -49,18 +49,18 @@ class SparsEmbedRetriever:
     ... ]
     >>> retriever = retriever.add(
     ...     documents=documents,
-    ...     batch_size=1
+    ...     batch_size=32
     ... )
 
     >>> print(retriever(["Food", "Sports", "Cinema"], batch_size=32))
-    [[{'id': 0, 'similarity': 201.47901916503906},
+    [[{'id': 0, 'similarity': 201.47900390625},
       {'id': 1, 'similarity': 107.03492736816406},
-      {'id': 2, 'similarity': 106.74536895751953}],
-     [{'id': 1, 'similarity': 252.70684814453125},
-      {'id': 2, 'similarity': 125.91816711425781},
+      {'id': 2, 'similarity': 106.745361328125}],
+     [{'id': 1, 'similarity': 252.70689392089844},
+      {'id': 2, 'similarity': 125.91815948486328},
       {'id': 0, 'similarity': 107.03492736816406}],
-     [{'id': 2, 'similarity': 205.38475036621094},
-      {'id': 1, 'similarity': 125.91813659667969},
+     [{'id': 2, 'similarity': 205.3847198486328},
+      {'id': 1, 'similarity': 125.91815948486328},
       {'id': 0, 'similarity': 106.745361328125}]]
 
     """
@@ -104,34 +104,31 @@ class SparsEmbedRetriever:
         batch_size
             Batch size.
         """
-        (
-            documents_embeddings,
-            documents_activations,
-            sparse_matrix,
-        ) = self._build_index(
-            X=[
-                " ".join([document[field] for field in self.on])
-                for document in documents
-            ],
-            batch_size=batch_size,
-        )
+        for X in self._to_batch(documents, batch_size=batch_size):
+            (
+                documents_embeddings,
+                documents_activations,
+                sparse_matrix,
+            ) = self._build_index(
+                X=[" ".join([document[field] for field in self.on]) for document in X],
+            )
 
-        self.documents_embeddings.extend(documents_embeddings)
-        self.documents_activations.extend(documents_activations)
+            self.documents_embeddings.extend(documents_embeddings)
+            self.documents_activations.extend(documents_activations)
 
-        self.sparse_matrix = (
-            sparse_matrix.T
-            if self.sparse_matrix is None
-            else torch.cat([self.sparse_matrix.to_sparse(), sparse_matrix.T], dim=1)
-        )
+            self.sparse_matrix = (
+                sparse_matrix.T
+                if self.sparse_matrix is None
+                else torch.cat([self.sparse_matrix.to_sparse(), sparse_matrix.T], dim=1)
+            )
 
-        self.documents_keys = {
-            **self.documents_keys,
-            **{
-                len(self.documents_keys) + index: document[self.key]
-                for index, document in enumerate(documents)
-            },
-        }
+            self.documents_keys = {
+                **self.documents_keys,
+                **{
+                    len(self.documents_keys) + index: document[self.key]
+                    for index, document in enumerate(X)
+                },
+            }
 
         return self
 
@@ -139,7 +136,7 @@ class SparsEmbedRetriever:
         self,
         q: list[str],
         k: int = 100,
-        batch_size: int = 3,
+        batch_size: int = 64,
         **kwargs,
     ) -> list:
         """Retrieve documents.
@@ -151,47 +148,54 @@ class SparsEmbedRetriever:
         k_sparse
             Number of documents to retrieve.
         """
-        (
-            queries_embeddings,
-            queries_activations,
-            sparse_matrix,
-        ) = self._build_index(
-            X=[q] if isinstance(q, str) else q,
-            batch_size=batch_size,
-            **kwargs,
-        )
 
-        sparse_scores = (sparse_matrix @ self.sparse_matrix).to_dense()
+        q = [q] if isinstance(q, str) else q
 
-        sparse_scores, sparse_matchs = torch.topk(
-            input=sparse_scores, k=min(k, len(self.documents_keys)), dim=-1
-        )
+        ranked = []
 
-        sparse_matchs_idx = sparse_matchs.tolist()
+        for X in self._to_batch(q, batch_size=batch_size):
+            (
+                queries_embeddings,
+                queries_activations,
+                sparse_matrix,
+            ) = self._build_index(
+                X=X,
+                **kwargs,
+            )
 
-        # Intersections between queries and documents activated tokens.
-        intersections = self._get_intersection(
-            queries_activations=queries_activations,
-            documents_activations=[
-                [self.documents_activations[document] for document in query_matchs]
-                for query_matchs in sparse_matchs_idx
-            ],
-        )
+            sparse_scores = (sparse_matrix @ self.sparse_matrix).to_dense()
 
-        dense_scores = self._get_scores(
-            queries_embeddings=queries_embeddings,
-            documents_embeddings=[
-                [self.documents_embeddings[document] for document in match]
-                for match in sparse_matchs_idx
-            ],
-            intersections=intersections,
-        )
+            sparse_scores, sparse_matchs = torch.topk(
+                input=sparse_scores, k=min(k, len(self.documents_keys)), dim=-1
+            )
 
-        return self._rank(
-            dense_scores=dense_scores,
-            sparse_matchs=sparse_matchs,
-            k_dense=k,
-        )
+            sparse_matchs_idx = sparse_matchs.tolist()
+
+            # Intersections between queries and documents activated tokens.
+            intersections = self._get_intersection(
+                queries_activations=queries_activations,
+                documents_activations=[
+                    [self.documents_activations[document] for document in query_matchs]
+                    for query_matchs in sparse_matchs_idx
+                ],
+            )
+
+            dense_scores = self._get_scores(
+                queries_embeddings=queries_embeddings,
+                documents_embeddings=[
+                    [self.documents_embeddings[document] for document in match]
+                    for match in sparse_matchs_idx
+                ],
+                intersections=intersections,
+            )
+
+            ranked += self._rank(
+                dense_scores=dense_scores,
+                sparse_matchs=sparse_matchs,
+                k_dense=k,
+            )
+
+        return ranked
 
     def _rank(
         self, dense_scores: torch.Tensor, sparse_matchs: torch.Tensor, k_dense: int
@@ -228,31 +232,25 @@ class SparsEmbedRetriever:
     def _build_index(
         self,
         X: list[str],
-        batch_size: int,
         **kwargs,
     ) -> tuple[list, list, torch.Tensor]:
         """Build a sparse matrix index."""
         index_embeddings, index_activations, sparse_activations = [], [], []
+        batch_embeddings = self.model.encode(X, **kwargs)
+        sparse_activations.append(batch_embeddings["sparse_activations"].to_sparse())
 
-        for batch in self._to_batch(X, batch_size=batch_size):
-            batch_embeddings = self.model.encode(batch, **kwargs)
-
-            sparse_activations.append(
-                batch_embeddings["sparse_activations"].to_sparse()
+        for activations, activations_idx, embeddings in zip(
+            batch_embeddings["activations"],
+            batch_embeddings["activations"].detach().cpu().tolist(),
+            batch_embeddings["embeddings"],
+        ):
+            index_activations.append(activations)
+            index_embeddings.append(
+                {
+                    token: embedding
+                    for token, embedding in zip(activations_idx, embeddings)
+                }
             )
-
-            for activations, activations_idx, embeddings in zip(
-                batch_embeddings["activations"],
-                batch_embeddings["activations"].detach().cpu().tolist(),
-                batch_embeddings["embeddings"],
-            ):
-                index_activations.append(activations)
-                index_embeddings.append(
-                    {
-                        token: embedding
-                        for token, embedding in zip(activations_idx, embeddings)
-                    }
-                )
 
         return (
             index_embeddings,

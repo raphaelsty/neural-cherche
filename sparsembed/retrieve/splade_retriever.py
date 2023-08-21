@@ -47,18 +47,18 @@ class SpladeRetriever:
     ... ]
     >>> retriever = retriever.add(
     ...     documents=documents,
-    ...     batch_size=1
+    ...     batch_size=32
     ... )
 
     >>> print(retriever(["Food", "Sports", "Cinema"], batch_size=32))
-    [[{'id': 0, 'similarity': 2005.1702880859375},
+    [[{'id': 0, 'similarity': 2005.170654296875},
       {'id': 1, 'similarity': 1866.706787109375},
-      {'id': 2, 'similarity': 1690.898681640625}],
-     [{'id': 1, 'similarity': 2534.69140625},
-      {'id': 2, 'similarity': 1875.5230712890625},
-      {'id': 0, 'similarity': 1866.70654296875}],
-     [{'id': 2, 'similarity': 1934.9771728515625},
-      {'id': 1, 'similarity': 1875.521484375},
+      {'id': 2, 'similarity': 1690.8975830078125}],
+     [{'id': 1, 'similarity': 2534.69189453125},
+      {'id': 2, 'similarity': 1875.5216064453125},
+      {'id': 0, 'similarity': 1866.706787109375}],
+     [{'id': 2, 'similarity': 1934.9764404296875},
+      {'id': 1, 'similarity': 1875.5216064453125},
       {'id': 0, 'similarity': 1690.8975830078125}]]
 
     """
@@ -103,28 +103,26 @@ class SpladeRetriever:
         batch_size
             Batch size.
         """
-        sparse_matrix = self._build_index(
-            X=[
-                " ".join([document[field] for field in self.on])
-                for document in documents
-            ],
-            batch_size=batch_size,
-            **kwargs,
-        )
 
-        self.sparse_matrix = (
-            sparse_matrix.T
-            if self.sparse_matrix is None
-            else torch.cat([self.sparse_matrix.to_sparse(), sparse_matrix.T], dim=1)
-        )
+        for X in self._to_batch(documents, batch_size=batch_size):
+            sparse_matrix = self._build_index(
+                X=[" ".join([document[field] for field in self.on]) for document in X],
+                **kwargs,
+            )
 
-        self.documents_keys = {
-            **self.documents_keys,
-            **{
-                len(self.documents_keys) + index: document[self.key]
-                for index, document in enumerate(documents)
-            },
-        }
+            self.sparse_matrix = (
+                sparse_matrix.T
+                if self.sparse_matrix is None
+                else torch.cat([self.sparse_matrix.to_sparse(), sparse_matrix.T], dim=1)
+            )
+
+            self.documents_keys = {
+                **self.documents_keys,
+                **{
+                    len(self.documents_keys) + index: document[self.key]
+                    for index, document in enumerate(X)
+                },
+            }
 
         return self
 
@@ -144,18 +142,24 @@ class SpladeRetriever:
         k_sparse
             Number of documents to retrieve.
         """
-        sparse_matrix = self._build_index(
-            X=[q] if isinstance(q, str) else q,
-            batch_size=batch_size,
-            **kwargs,
-        )
+        q = [q] if isinstance(q, str) else q
 
-        sparse_scores = (sparse_matrix @ self.sparse_matrix).to_dense()
+        ranked = []
 
-        return self._rank(
-            sparse_scores=sparse_scores,
-            k=k,
-        )
+        for X in self._to_batch(q, batch_size=batch_size):
+            sparse_matrix = self._build_index(
+                X=X,
+                **kwargs,
+            )
+
+            sparse_scores = (sparse_matrix @ self.sparse_matrix).to_dense()
+
+            ranked += self._rank(
+                sparse_scores=sparse_scores,
+                k=k,
+            )
+
+        return ranked
 
     def _rank(self, sparse_scores: torch.Tensor, k: int) -> list:
         """Rank documents by scores.
@@ -188,20 +192,11 @@ class SpladeRetriever:
     def _build_index(
         self,
         X: list[str],
-        batch_size: int,
         **kwargs,
     ) -> tuple[list, list, torch.Tensor]:
         """Build a sparse matrix index."""
-        sparse_activations = []
-
-        for batch in self._to_batch(X, batch_size=batch_size):
-            batch_embeddings = self.model.encode(batch, **kwargs)
-
-            sparse_activations.append(
-                batch_embeddings["sparse_activations"].to_sparse()
-            )
-
-        return torch.cat(sparse_activations)
+        batch_embeddings = self.model.encode(X, **kwargs)
+        return batch_embeddings["sparse_activations"].to_sparse()
 
     @staticmethod
     def _to_batch(X: list, batch_size: int) -> list:
