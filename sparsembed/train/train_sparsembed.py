@@ -15,7 +15,7 @@ def train_sparsembed(
     flops_loss_weight: float = 1e-4,
     sparse_loss_weight: float = 0.1,
     dense_loss_weight: float = 1.0,
-    in_batch_negatives: bool = True,
+    in_batch_negatives: bool = False,
     **kwargs,
 ):
     """Compute the ranking loss and the flops loss for a single step.
@@ -53,7 +53,7 @@ def train_sparsembed(
     ...     device=device
     ... )
 
-    >>> optimizer = torch.optim.Adam(model.parameters(), lr=1e-5)
+    >>> optimizer = torch.optim.AdamW(model.parameters(), lr=1e-6)
 
     >>> X = [
     ...     ("Sports", "Music", "Cinema"),
@@ -76,12 +76,13 @@ def train_sparsembed(
     ...         anchor=anchor,
     ...         positive=positive,
     ...         negative=negative,
-    ...         flops_loss_weight=flops_scheduler(),
-    ...         in_batch_negatives=True,
+    ...         flops_loss_weight=flops_scheduler.get(),
+    ...         in_batch_negatives=False,
     ...     )
+    ...     flops_scheduler.step()
 
     >>> loss
-        {'sparse': tensor(1582.0349, device='mps:0', grad_fn=<MeanBackward0>), 'flops': tensor(384.5024, device='mps:0', grad_fn=<SumBackward1>)}
+    {'dense': tensor(1., device='mps:0', grad_fn=<ClampBackward1>), 'sparse': tensor(0.0101, device='mps:0', grad_fn=<ClampBackward1>), 'flops': tensor(157.9349, device='mps:0', grad_fn=<AbsBackward0>)}
 
     """
 

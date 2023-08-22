@@ -52,15 +52,15 @@ class SpladeRetriever:
     ... )
 
     >>> print(retriever(["Food", "Sports", "Cinema"],  k_tokens=256, batch_size=32))
-    [[{'id': 0, 'similarity': 1394.095947265625},
-      {'id': 1, 'similarity': 1282.78125},
-      {'id': 2, 'similarity': 1224.9775390625}],
-     [{'id': 1, 'similarity': 1629.0340576171875},
-      {'id': 2, 'similarity': 1314.5303955078125},
-      {'id': 0, 'similarity': 1282.78125}],
-     [{'id': 2, 'similarity': 1465.7626953125},
-      {'id': 1, 'similarity': 1314.5303955078125},
-      {'id': 0, 'similarity': 1224.9775390625}]]
+    [[{'id': 0, 'similarity': 422.4058532714844},
+      {'id': 2, 'similarity': 239.1786651611328},
+      {'id': 1, 'similarity': 237.7996826171875}],
+     [{'id': 1, 'similarity': 473.9842224121094},
+      {'id': 0, 'similarity': 237.7996826171875},
+      {'id': 2, 'similarity': 231.45362854003906}],
+     [{'id': 2, 'similarity': 382.86102294921875},
+      {'id': 0, 'similarity': 239.1786651611328},
+      {'id': 1, 'similarity': 231.45362854003906}]]
 
     """
 

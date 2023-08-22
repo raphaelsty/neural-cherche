@@ -40,7 +40,7 @@ class Ranking(torch.nn.Module):
     ... )
 
     >>> losses.Ranking()(**scores)
-    tensor(3264.9170, device='mps:0', grad_fn=<MeanBackward0>)
+    tensor(1., device='mps:0', grad_fn=<ClampBackward1>)
 
     References
     ----------
@@ -66,8 +66,10 @@ class Ranking(torch.nn.Module):
             dim=1,
         )
 
-        return torch.index_select(
+        loss = torch.index_select(
             input=-self.log_softmax(scores),
             dim=1,
             index=torch.zeros(1, dtype=torch.int64).to(scores.device),
         ).mean()
+
+        return torch.clip(loss, min=0.0, max=1.0)

@@ -4,20 +4,28 @@ __all__ = ["Flops", "FlopsScheduler"]
 
 
 class FlopsScheduler:
-    """Flops scheduler."""
+    """Flops scheduler.
+
+    References
+    ----------
+    1. [MINIMIZING FLOPS TO LEARN EFFICIENT SPARSE REPRESENTATIONS](https://arxiv.org/pdf/2004.05665.pdf)
+    2. [SPLADE: Sparse Lexical and Expansion Model for First Stage Ranking](https://arxiv.org/pdf/2107.05720.pdf)
+    """
 
     def __init__(self, weight: float = 3e-5, steps: int = 10000):
         self._weight = weight
         self.weight = 0
         self.steps = steps
-        self.step = 0
+        self._step = 0
 
-    def __call__(self):
-        if self.step >= self.steps:
+    def step(self) -> None:
+        if self._step >= self.steps:
             pass
         else:
-            self.step += 1
-            self.weight = self._weight * (self.step / self.steps) ** 2
+            self._step += 1
+            self.weight = self._weight * (self._step / self.steps) ** 2
+
+    def get(self):
         return self.weight
 
 
@@ -58,7 +66,7 @@ class Flops(torch.nn.Module):
     ...     positive_activations=positive_activations["sparse_activations"],
     ...     negative_activations=negative_activations["sparse_activations"],
     ... )
-    tensor(1880.5656, device='mps:0', grad_fn=<SumBackward1>)
+    tensor(643.0182, device='mps:0', grad_fn=<AbsBackward0>)
 
     References
     ----------
@@ -75,9 +83,12 @@ class Flops(torch.nn.Module):
         anchor_activations: torch.Tensor,
         positive_activations: torch.Tensor,
         negative_activations: torch.Tensor,
+        threshold: float = 10.0,
     ) -> torch.Tensor:
         """Loss which tend to reduce sparse activation."""
         activations = torch.cat(
             [anchor_activations, positive_activations, negative_activations], dim=0
         )
-        return torch.sum(torch.mean(torch.abs(activations), dim=0) ** 2, dim=0)
+        return torch.abs(
+            threshold - torch.sum(torch.mean(torch.abs(activations), dim=0) ** 2, dim=0)
+        )

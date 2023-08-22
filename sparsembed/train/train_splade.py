@@ -11,7 +11,7 @@ def train_splade(
     negative: list[str],
     flops_loss_weight: float = 1e-4,
     sparse_loss_weight: float = 1.0,
-    in_batch_negatives: bool = True,
+    in_batch_negatives: bool = False,
     **kwargs,
 ):
     """Compute the ranking loss and the flops loss for a single step.
@@ -49,7 +49,7 @@ def train_splade(
     ...     device=device
     ... )
 
-    >>> optimizer = torch.optim.Adam(model.parameters(), lr=1e-5)
+    >>> optimizer = torch.optim.AdamW(model.parameters(), lr=1e-6)
 
     >>> X = [
     ...     ("Sports", "Music", "Cinema"),
@@ -71,12 +71,13 @@ def train_splade(
     ...         anchor=anchor,
     ...         positive=positive,
     ...         negative=negative,
-    ...         flops_loss_weight=flops_scheduler(),
-    ...         in_batch_negatives=True,
+    ...         flops_loss_weight=flops_scheduler.get(),
+    ...         in_batch_negatives=False,
     ...     )
+    ...     flops_scheduler.step()
 
     >>> loss
-    {'sparse': tensor(1582.0349, device='mps:0', grad_fn=<MeanBackward0>), 'flops': tensor(384.5024, device='mps:0', grad_fn=<SumBackward1>)}
+    {'sparse': tensor(0., device='mps:0', grad_fn=<ClampBackward1>), 'flops': tensor(670.9949, device='mps:0', grad_fn=<AbsBackward0>)}
 
     """
 
@@ -102,7 +103,7 @@ def train_splade(
         in_batch_negatives=in_batch_negatives,
     )
 
-    ranking_loss = losses.Ranking()(**scores)
+    sparse_loss = losses.Ranking()(**scores)
 
     flops_loss = losses.Flops()(
         anchor_activations=anchor_activations["sparse_activations"],
@@ -110,10 +111,10 @@ def train_splade(
         negative_activations=negative_activations["sparse_activations"],
     )
 
-    loss = sparse_loss_weight * ranking_loss + flops_loss_weight * flops_loss
+    loss = sparse_loss_weight * sparse_loss + flops_loss_weight * flops_loss
 
     loss.backward()
     optimizer.step()
     optimizer.zero_grad()
 
-    return {"sparse": ranking_loss, "flops": flops_loss}
+    return {"sparse": sparse_loss, "flops": flops_loss}

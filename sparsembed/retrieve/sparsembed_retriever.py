@@ -53,16 +53,16 @@ class SparsEmbedRetriever:
     ... )
 
     >>> print(retriever(["Food", "Sports", "Cinema"], k_tokens=96, batch_size=32))
-    [[{'id': 0, 'similarity': 201.47900390625},
-      {'id': 1, 'similarity': 107.03492736816406},
-      {'id': 2, 'similarity': 106.745361328125}],
-     [{'id': 1, 'similarity': 252.70689392089844},
-      {'id': 2, 'similarity': 125.91815948486328},
-      {'id': 0, 'similarity': 107.03492736816406}],
-     [{'id': 2, 'similarity': 205.3847198486328},
-      {'id': 1, 'similarity': 125.91815948486328},
-      {'id': 0, 'similarity': 106.745361328125}]]
-
+    [[{'id': 0, 'similarity': 317.099365234375},
+      {'id': 2, 'similarity': 83.53012084960938},
+      {'id': 1, 'similarity': 74.39786529541016}],
+     [{'id': 1, 'similarity': 430.7840576171875},
+      {'id': 2, 'similarity': 88.93757629394531},
+      {'id': 0, 'similarity': 74.39787292480469}],
+     [{'id': 2, 'similarity': 290.1988220214844},
+      {'id': 1, 'similarity': 88.93758392333984},
+      {'id': 0, 'similarity': 83.53012084960938}]]
+    
     """
 
     def __init__(

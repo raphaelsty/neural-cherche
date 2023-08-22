@@ -93,6 +93,7 @@ class Splade(torch.nn.Module):
         clean_up_tokenization_spaces: bool = False,
         skip_special_tokens: bool = True,
         k_tokens: int = 96,
+        **kwargs,
     ) -> list[str]:
         """Decode activated tokens ids where activated value > 0."""
         activations = self._filter_activations(
