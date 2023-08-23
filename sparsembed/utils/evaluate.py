@@ -1,5 +1,3 @@
-from ..model import SparsEmbed
-
 __all__ = ["evaluate", "load_beir"]
 
 
@@ -37,7 +35,7 @@ def load_beir(dataset_name: str, split: str = "test") -> tuple[list, list, dict]
 
 
 def evaluate(
-    retriever: SparsEmbed,
+    retriever,
     batch_size: int,
     qrels: dict,
     queries: list[str],

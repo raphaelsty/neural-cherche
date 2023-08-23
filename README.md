@@ -31,7 +31,7 @@ pip install "sparsembed[eval]"
 
 ### Splade
 
-We can initialize a Splade Retriever directly from the `splade_v2_max` checkpoint available on HuggingFace. Retrievers are based on PyTorch sparse matrixes, stored in memory and accelerated with GPU. We can reduce the number of activated tokens via the `n_tokens` parameter in order to reduce the memory usage of those sparse matrixes. 
+We can initialize a Splade Retriever directly from the `splade_v2_max` checkpoint available on HuggingFace. Retrievers are based on PyTorch sparse matrices, stored in memory and accelerated with GPU. We can reduce the number of activated tokens via the `n_tokens` parameter in order to reduce the memory usage of those sparse matrices. 
 
 ```python
 from sparsembed import model, retrieve
@@ -83,7 +83,7 @@ retriever(
 )
 ```
 
-```
+```python
 [[{'id': 0, 'similarity': 11.481657981872559},
   {'id': 2, 'similarity': 11.294965744018555},
   {'id': 1, 'similarity': 10.059721946716309}],
@@ -241,6 +241,10 @@ for anchor, positive, negative in utils.iter(
         scheduler.step()
         flops_scheduler.step()
 
+# Save the model.
+model.save_pretrained("checkpoint")
+
+# Beir benchmark for evaluation.
 documents, queries, qrels = utils.load_beir("scifact", split="test")
 
 retriever = retrieve.SpladeRetriever(
@@ -263,6 +267,19 @@ utils.evaluate(
     k=100,
     k_tokens=96,
     metrics=["map", "ndcg@10", "ndcg@10", "recall@10", "hits@10"]
+)
+```
+
+After having saved the model with `save_pretrained`, we can load the checkpoint using:
+
+```python
+from sparsembed import model
+
+device = "cuda"
+
+model = model.Splade(
+    model_name_or_path="checkpoint",
+    device=device,
 )
 ```
 
@@ -321,6 +338,10 @@ for anchor, positive, negative in utils.iter(
         scheduler.step()
         flops_scheduler.step()
 
+# Save the model.
+model.save_pretrained("checkpoint")
+
+# Beir benchmark for evaluation.
 documents, queries, qrels = utils.load_beir("scifact", split="test")
 
 retriever = retrieve.SparsEmbedRetriever(
@@ -346,7 +367,40 @@ utils.evaluate(
 )
 ```
 
+After having saved the model with `save_pretrained`, we can load the checkpoint using:
+
+```python
+from sparsembed import model
+
+device = "cuda"
+
+model = model.SparsEmbed(
+    model_name_or_path="checkpoint",
+    device=device,
+)
+```
+
 ## Utils
+
+We can get the activated tokens / embeddings of a sentence with:
+
+```python
+model.encode(["deep learning, information retrieval, sparse models"])
+```
+
+We can evaluate similarities between pairs of queries and documents without the use of a retriever: 
+
+```python
+model.scores(
+    queries=["Query A", "Query B"], 
+    documents=["Document A", "Document B"],
+    batch_size=32,
+)
+```
+
+```python
+tensor([5.1449, 9.1194])
+```
 
 Wen can visualize activated tokens:
 
@@ -354,6 +408,10 @@ Wen can visualize activated tokens:
 model.decode(**model.encode(["deep learning, information retrieval, sparse models"]))
 ```
 
-```
+```python
 ['deep sparse model retrieval information models depth fuzzy learning dense poor memory recall processing reading lacy include remember knowledge training heavy retrieve guide vague type small learn data']
-``````
+```
+
+## Benchmarks
+
+Work in progress.

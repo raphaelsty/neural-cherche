@@ -1,5 +1,9 @@
+import os
+
 import torch
 from transformers import AutoModelForMaskedLM, AutoTokenizer
+
+from .. import utils
 
 __all__ = ["SparseEmbed"]
 
@@ -25,6 +29,9 @@ class SparsEmbed(Splade):
     >>> from transformers import AutoModelForMaskedLM, AutoTokenizer
     >>> from sparsembed import model
     >>> from pprint import pprint as print
+    >>> import torch
+
+    >>> _ = torch.manual_seed(42)
 
     >>> device = "mps"
 
@@ -32,6 +39,7 @@ class SparsEmbed(Splade):
     ...     model=AutoModelForMaskedLM.from_pretrained("distilbert-base-uncased").to(device),
     ...     tokenizer=AutoTokenizer.from_pretrained("distilbert-base-uncased"),
     ...     device=device,
+    ...     embedding_size=32,
     ... )
 
     >>> queries_embeddings = model.encode(
@@ -59,7 +67,31 @@ class SparsEmbed(Splade):
     torch.Size([2, 30522])
 
     >>> queries_embeddings["embeddings"].shape
-    torch.Size([2, 96, 64])
+    torch.Size([2, 96, 32])
+
+    >>> model.scores(
+    ...     queries=["Sports", "Music"], 
+    ...     documents=["Sports is great.", "Music is great."],
+    ...     batch_size=1,
+    ... )
+    tensor([78.8720, 24.5763], device='mps:0')
+
+    >>> _ = model.save_pretrained("checkpoint")
+
+    >>> from sparsembed import model
+
+    >>> model = model.SparsEmbed(
+    ...     model_name_or_path="checkpoint",
+    ...     device=device,
+    ... )
+
+    >>> queries_embeddings = model.encode(
+    ...     ["Sports", "Music"],
+    ...     k_tokens=96,
+    ... )
+
+    >>> queries_embeddings["embeddings"].shape
+    torch.Size([2, 96, 32])
 
     References
     ----------
@@ -69,47 +101,38 @@ class SparsEmbed(Splade):
 
     def __init__(
         self,
-        tokenizer: AutoTokenizer,
-        model: AutoModelForMaskedLM,
+        model_name_or_path: str = None,
+        tokenizer: AutoTokenizer = None,
+        model: AutoModelForMaskedLM = None,
         embedding_size: int = 64,
         device: str = None,
     ) -> None:
         super(SparsEmbed, self).__init__(
-            tokenizer=tokenizer, model=model, device=device
+            model_name_or_path=model_name_or_path,
+            tokenizer=tokenizer,
+            model=model,
+            device=device,
         )
 
         self.embedding_size = embedding_size
 
         self.softmax = torch.nn.Softmax(dim=2).to(self.device)
 
-        # Input embedding size:
-        with torch.no_grad():
-            _, embeddings = self._encode(texts=["test"])
-            in_features = embeddings.shape[2]
+        if model_name_or_path is not None:
+            linear = torch.load(os.path.join(model_name_or_path, "linear.pt"))
+            self.embedding_size = linear["weight"].shape[0]
+            in_features = linear["weight"].shape[1]
+        else:
+            with torch.no_grad():
+                _, embeddings = self._encode(texts=["test"])
+                in_features = embeddings.shape[2]
 
         self.linear = torch.nn.Linear(
-            in_features=in_features, out_features=embedding_size, bias=False
+            in_features=in_features, out_features=self.embedding_size, bias=False
         ).to(self.device)
 
-    def encode(
-        self,
-        texts: list[str],
-        k_tokens: int = 96,
-        truncation: bool = True,
-        padding: bool = True,
-        max_length: int = 256,
-        **kwargs
-    ) -> dict[str, torch.Tensor]:
-        """Encode documents"""
-        with torch.no_grad():
-            return self(
-                texts=texts,
-                k_tokens=k_tokens,
-                truncation=truncation,
-                padding=padding,
-                max_length=max_length,
-                **kwargs,
-            )
+        if model_name_or_path is not None:
+            self.linear.load_state_dict(linear)
 
     def forward(
         self,
@@ -118,7 +141,7 @@ class SparsEmbed(Splade):
         truncation: bool = True,
         padding: bool = True,
         max_length: int = 256,
-        **kwargs
+        **kwargs,
     ) -> dict[str, torch.Tensor]:
         """Pytorch forward method."""
         kwargs = {
@@ -166,3 +189,57 @@ class SparsEmbed(Splade):
         )
 
         return self.softmax(attention.transpose(1, 2))
+
+    def save_pretrained(self, path: str):
+        """Save model the model."""
+        self.model.save_pretrained(path)
+        self.tokenizer.save_pretrained(path)
+        torch.save(self.linear.state_dict(), os.path.join(path, "linear.pt"))
+        return self
+
+    def scores(
+        self,
+        queries: list[str],
+        documents: list[str],
+        k_tokens: int = 96,
+        batch_size: int = 32,
+        truncation: bool = True,
+        padding: bool = True,
+        max_length: int = 256,
+        **kwargs,
+    ) -> torch.Tensor:
+        """Compute similarity scores between queries and documents."""
+        dense_scores = []
+
+        for batch_queries, batch_documents in zip(
+            utils.batchify(X=queries, batch_size=batch_size, desc="Computing scores."),
+            utils.batchify(X=documents, batch_size=batch_size, tqdm_bar=False),
+        ):
+            queries_embeddings = self.encode(
+                batch_queries,
+                k_tokens=k_tokens,
+                truncation=truncation,
+                padding=padding,
+                max_length=max_length,
+                **kwargs,
+            )
+
+            documents_embeddings = self.encode(
+                batch_documents,
+                k_tokens=k_tokens,
+                truncation=truncation,
+                padding=padding,
+                max_length=max_length,
+                **kwargs,
+            )
+
+            dense_scores.append(
+                utils.pairs_dense_scores(
+                    queries_activations=queries_embeddings["activations"],
+                    documents_activations=documents_embeddings["activations"],
+                    queries_embeddings=queries_embeddings["embeddings"],
+                    documents_embeddings=documents_embeddings["embeddings"],
+                )
+            )
+
+        return torch.cat(dense_scores, dim=0)

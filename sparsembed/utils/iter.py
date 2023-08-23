@@ -3,7 +3,25 @@ import random
 
 import tqdm
 
-__all__ = ["iter"]
+__all__ = ["batchify", "iter"]
+
+
+def batchify(
+    X: list[str], batch_size: int, desc: str = "", tqdm_bar: bool = True
+) -> list:
+    os.environ["TOKENIZERS_PARALLELISM"] = "false"
+    batchs = [X[pos : pos + batch_size] for pos in range(0, len(X), batch_size)]
+
+    if tqdm_bar:
+        for batch in tqdm.tqdm(
+            batchs,
+            position=0,
+            total=1 + len(X) // batch_size,
+            desc=desc,
+        ):
+            yield batch
+    else:
+        yield from batchs
 
 
 def iter(
@@ -49,18 +67,10 @@ def iter(
     ['🍌', '🍏']
 
     """
-    os.environ["TOKENIZERS_PARALLELISM"] = "false"
-
     for epoch in range(epochs):
         if shuffle:
             random.shuffle(X)
-
-        for batch in tqdm.tqdm(
-            [X[pos : pos + batch_size] for pos in range(0, len(X), batch_size)],
-            position=0,
-            total=1 + len(X) // batch_size,
-            desc=f"Epoch {epoch}",
-        ):
+        for batch in batchify(X=X, batch_size=batch_size, desc=f"Epoch {epoch}"):
             yield [sample[0] for sample in batch], [sample[1] for sample in batch], [
                 sample[2] for sample in batch
             ]

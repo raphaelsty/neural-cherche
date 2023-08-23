@@ -3,6 +3,8 @@ import string
 import torch
 from transformers import AutoModelForMaskedLM, AutoTokenizer
 
+from .. import utils
+
 __all__ = ["Splade"]
 
 
@@ -41,6 +43,25 @@ class Splade(torch.nn.Module):
     >>> queries_activations["sparse_activations"].shape
     torch.Size([2, 30522])
 
+    >>> model.scores(
+    ...     queries=["Sports", "Music"],
+    ...     documents=["Sports is great.", "Music is great."],
+    ...     batch_size=1
+    ... )
+    tensor([301.4348, 214.5452], device='mps:0')
+
+    >>> _ = model.save_pretrained("checkpoint")
+
+    >>> from sparsembed import model
+
+    >>> model = model.Splade(
+    ...     model_name_or_path="checkpoint",
+    ...     device=device,
+    ... )
+
+    >>> queries_activations["sparse_activations"].shape
+    torch.Size([2, 30522])
+
     References
     ----------
     1. [SPLADE: Sparse Lexical and Expansion Model for First Stage Ranking](https://arxiv.org/abs/2107.05720)
@@ -49,13 +70,12 @@ class Splade(torch.nn.Module):
 
     def __init__(
         self,
-        tokenizer: AutoTokenizer,
-        model: AutoModelForMaskedLM,
+        model_name_or_path: str = None,
+        tokenizer: AutoTokenizer = None,
+        model: AutoModelForMaskedLM = None,
         device: str = None,
     ) -> None:
         super(Splade, self).__init__()
-        self.tokenizer = tokenizer
-        self.model = model
 
         if device is not None:
             self.device = device
@@ -63,6 +83,17 @@ class Splade(torch.nn.Module):
             self.device = "cuda"
         else:
             self.device = "cpu"
+
+        if model_name_or_path is not None:
+            self.model = AutoModelForMaskedLM.from_pretrained(model_name_or_path).to(
+                self.device
+            )
+            self.tokenizer = AutoTokenizer.from_pretrained(
+                model_name_or_path, device=self.device
+            )
+        else:
+            self.tokenizer = tokenizer
+            self.model = model
 
         self.model.config.output_hidden_states = True
         self.relu = torch.nn.ReLU().to(self.device)
@@ -74,7 +105,7 @@ class Splade(torch.nn.Module):
         padding: bool = True,
         max_length: int = 256,
         k_tokens: int = 256,
-        **kwargs
+        **kwargs,
     ) -> dict[str, torch.Tensor]:
         """Encode documents"""
         with torch.no_grad():
@@ -119,7 +150,7 @@ class Splade(torch.nn.Module):
         padding: bool = True,
         k_tokens: int = None,
         max_length: int = 256,
-        **kwargs
+        **kwargs,
     ) -> dict[str, torch.Tensor]:
         """Pytorch forward method."""
         kwargs = {
@@ -186,3 +217,55 @@ class Splade(torch.nn.Module):
             "activations": activations,
             "sparse_activations": sparse_activations,
         }
+
+    def save_pretrained(self, path: str):
+        """Save model the model."""
+        self.model.save_pretrained(path)
+        self.tokenizer.save_pretrained(path)
+        return self
+
+    def scores(
+        self,
+        queries: list[str],
+        documents: list[str],
+        batch_size: int = 32,
+        k_tokens: int = 256,
+        truncation: bool = True,
+        padding: bool = True,
+        max_length: int = 256,
+        **kwargs,
+    ) -> torch.Tensor:
+        """Compute similarity scores between queries and documents."""
+        sparse_scores = []
+
+        for batch_queries, batch_documents in zip(
+            utils.batchify(X=queries, batch_size=batch_size, desc="Computing scores."),
+            utils.batchify(X=documents, batch_size=batch_size, tqdm_bar=False),
+        ):
+            queries_embeddings = self.encode(
+                batch_queries,
+                k_tokens=k_tokens,
+                truncation=truncation,
+                padding=padding,
+                max_length=max_length,
+                **kwargs,
+            )
+
+            documents_embeddings = self.encode(
+                batch_documents,
+                k_tokens=k_tokens,
+                truncation=truncation,
+                padding=padding,
+                max_length=max_length,
+                **kwargs,
+            )
+
+            sparse_scores.append(
+                torch.sum(
+                    queries_embeddings["sparse_activations"]
+                    * documents_embeddings["sparse_activations"],
+                    axis=1,
+                )
+            )
+
+        return torch.cat(sparse_scores, dim=0)

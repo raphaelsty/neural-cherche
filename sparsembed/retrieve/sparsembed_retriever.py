@@ -62,7 +62,7 @@ class SparsEmbedRetriever:
      [{'id': 2, 'similarity': 290.1988220214844},
       {'id': 1, 'similarity': 88.93758392333984},
       {'id': 0, 'similarity': 83.53012084960938}]]
-    
+
     """
 
     def __init__(
@@ -241,7 +241,7 @@ class SparsEmbedRetriever:
     ) -> tuple[list, list, torch.Tensor]:
         """Build a sparse matrix index."""
         index_embeddings, index_activations, sparse_activations = [], [], []
-        batch_embeddings = self.model.encode(X, k_tokens, **kwargs)
+        batch_embeddings = self.model.encode(X, k_tokens=k_tokens, **kwargs)
         sparse_activations.append(batch_embeddings["sparse_activations"].to_sparse())
 
         for activations, activations_idx, embeddings in zip(

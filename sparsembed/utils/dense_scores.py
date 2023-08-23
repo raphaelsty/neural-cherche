@@ -1,6 +1,6 @@
 import torch
 
-__all__ = ["dense_scores"]
+__all__ = ["dense_scores", "pairs_dense_scores"]
 
 
 def _build_index(activations: torch.Tensor, embeddings: torch.Tensor) -> dict:
@@ -206,4 +206,50 @@ def dense_scores(
         positive_intersections=positive_intersections,
         negative_intersections=negative_intersections,
         func=func,
+    )
+
+
+def pairs_dense_scores(
+    queries_activations: torch.Tensor,
+    documents_activations: torch.Tensor,
+    queries_embeddings: torch.Tensor,
+    documents_embeddings: torch.Tensor,
+):
+    """Scores pairs of queries and documents based on activated tokens."""
+    queries_embeddings_index = _build_index(
+        activations=queries_activations, embeddings=queries_embeddings
+    )
+
+    documents_embeddings_index = _build_index(
+        activations=documents_activations, embeddings=documents_embeddings
+    )
+
+    intersections = _get_intersection(
+        queries_activations=queries_activations,
+        documents_activations=documents_activations,
+    )
+
+    scores = []
+
+    for (
+        query_embeddings_index,
+        document_embedding_index,
+        intersection,
+    ) in zip(queries_embeddings_index, documents_embeddings_index, intersections):
+        scores.append(
+            torch.sum(
+                torch.stack(
+                    [query_embeddings_index[token] for token in intersection],
+                    dim=0,
+                )
+                * torch.stack(
+                    [document_embedding_index[token] for token in intersection],
+                    dim=0,
+                )
+            )
+        )
+
+    return torch.stack(
+        scores,
+        dim=0,
     )
