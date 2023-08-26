@@ -37,7 +37,7 @@ We can initialize a Splade Retriever directly from the `splade_v2_max` checkpoin
 from sparsembed import model, retrieve
 from transformers import AutoModelForMaskedLM, AutoTokenizer
 
-device = "cpu"
+device = "cuda" # cpu
 
 batch_size = 10
 
@@ -100,7 +100,7 @@ We can also initialize a retriever dedicated to SparseEmbed model. The checkpoin
 from sparsembed import model, retrieve
 from transformers import AutoModelForMaskedLM, AutoTokenizer
 
-device = "cpu"
+device = "cuda" # cpu
 
 batch_size = 10
 

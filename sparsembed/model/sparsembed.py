@@ -70,7 +70,7 @@ class SparsEmbed(Splade):
     torch.Size([2, 96, 32])
 
     >>> model.scores(
-    ...     queries=["Sports", "Music"], 
+    ...     queries=["Sports", "Music"],
     ...     documents=["Sports is great.", "Music is great."],
     ...     batch_size=1,
     ... )

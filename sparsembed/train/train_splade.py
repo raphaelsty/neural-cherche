@@ -12,6 +12,7 @@ def train_splade(
     flops_loss_weight: float = 1e-4,
     sparse_loss_weight: float = 1.0,
     in_batch_negatives: bool = False,
+    threshold_flops: float = 10,
     **kwargs,
 ):
     """Compute the ranking loss and the flops loss for a single step.
@@ -109,6 +110,7 @@ def train_splade(
         anchor_activations=anchor_activations["sparse_activations"],
         positive_activations=positive_activations["sparse_activations"],
         negative_activations=negative_activations["sparse_activations"],
+        threshold=threshold_flops,
     )
 
     loss = sparse_loss_weight * sparse_loss + flops_loss_weight * flops_loss

@@ -11,11 +11,12 @@ def train_sparsembed(
     anchor: list[str],
     positive: list[str],
     negative: list[str],
-    k_tokens: int = 96,
+    k_tokens: int = 256,
     flops_loss_weight: float = 1e-4,
     sparse_loss_weight: float = 0.1,
     dense_loss_weight: float = 1.0,
     in_batch_negatives: bool = False,
+    threshold_flops: float = 10,
     **kwargs,
 ):
     """Compute the ranking loss and the flops loss for a single step.
@@ -34,8 +35,14 @@ def train_sparsembed(
         Negative.
     flops_loss_weight
         Flops loss weight. Defaults to 1e-4.
+    sparse_loss_weight
+        Sparse loss weight. Defaults to 0.1.
+    dense_loss_weight
+        Dense loss weight. Defaults to 1.0.
     in_batch_negatives
         Whether to use in batch negatives or not. Defaults to True.
+    threshold_flops
+        Threshold margin for the flops loss. Defaults to 10.
 
     Examples
     --------
@@ -121,15 +128,22 @@ def train_sparsembed(
         func=torch.sum,
     )
 
+    if (
+        dense_scores["positive_scores"] is None
+        or dense_scores["negative_scores"] is None
+    ):
+        dense_ranking_loss = torch.tensor(0.0, device=model.device)
+    else:
+        dense_ranking_loss = losses.Ranking()(**dense_scores)
+
     sparse_ranking_loss = losses.Ranking()(**sparse_scores)
 
     flops_loss = losses.Flops()(
         anchor_activations=anchor_activations["sparse_activations"],
         positive_activations=positive_activations["sparse_activations"],
         negative_activations=negative_activations["sparse_activations"],
+        threshold=threshold_flops,
     )
-
-    dense_ranking_loss = losses.Ranking()(**dense_scores)
 
     loss = (
         dense_loss_weight * dense_ranking_loss

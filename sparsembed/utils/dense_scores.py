@@ -59,7 +59,7 @@ def _get_scores(
         positive_intersections,
         negative_intersections,
     ):
-        if len(positive_intersections) > 0 and len(negative_intersections) > 0:
+        if len(positive_intersection) > 0 and len(negative_intersection) > 0:
             positive_scores.append(
                 func(
                     torch.stack(
@@ -102,11 +102,15 @@ def _get_scores(
         "positive_scores": torch.stack(
             positive_scores,
             dim=0,
-        ),
+        )
+        if len(positive_scores) > 0
+        else None,
         "negative_scores": torch.stack(
             negative_scores,
             dim=0,
-        ),
+        )
+        if len(negative_scores) > 0
+        else None,
     }
 
 
@@ -236,18 +240,22 @@ def pairs_dense_scores(
         document_embedding_index,
         intersection,
     ) in zip(queries_embeddings_index, documents_embeddings_index, intersections):
-        scores.append(
-            torch.sum(
-                torch.stack(
-                    [query_embeddings_index[token] for token in intersection],
-                    dim=0,
-                )
-                * torch.stack(
-                    [document_embedding_index[token] for token in intersection],
-                    dim=0,
+        if len(intersection) > 0:
+            scores.append(
+                torch.sum(
+                    torch.stack(
+                        [query_embeddings_index[token] for token in intersection],
+                        dim=0,
+                    )
+                    * torch.stack(
+                        [document_embedding_index[token] for token in intersection],
+                        dim=0,
+                    )
                 )
             )
-        )
+
+        else:
+            scores.append(torch.tensor(0.0, device=queries_activations.device))
 
     return torch.stack(
         scores,
