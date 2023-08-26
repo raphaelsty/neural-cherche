@@ -412,6 +412,27 @@ model.decode(**model.encode(["deep learning, information retrieval, sparse model
 ['deep sparse model retrieval information models depth fuzzy learning dense poor memory recall processing reading lacy include remember knowledge training heavy retrieve guide vague type small learn data']
 ```
 
+We can save the model and load it back.
+
+```python
+model.save_pretrained("checkpoint")
+
+
+from sparsembed import model
+model = model.SparsEmbed(
+    model_name_or_path="checkpoint",
+    device=device
+)
+
+# or 
+
+from sparsembed import model
+model = model.Splade(
+    model_name_or_path="checkpoint",
+    device=device
+)
+```
+
 ## Benchmarks
 
 Work in progress.
