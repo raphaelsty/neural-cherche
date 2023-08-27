@@ -432,6 +432,14 @@ model = model.Splade(
 ```
 
 ## Evaluation
+
+We uploaded custom pre-trained models available on the HuggingFace hub:
+
+- raphaelsty/distilbert-splade
+- raphaelsty/distilbert-sparsembed
+- raphaelsty/splade-max
+- raphaelsty/sparsembed-max
+
 <style type="text/css">
 .tg  {border-collapse:collapse;border-spacing:0;}
 .tg td{border-color:black;border-style:solid;border-width:1px;font-family:Arial, sans-serif;font-size:14px;
