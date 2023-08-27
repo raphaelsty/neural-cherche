@@ -440,24 +440,6 @@ We uploaded custom pre-trained models available on the HuggingFace hub:
 - raphaelsty/splade-max
 - raphaelsty/sparsembed-max
 
-<style type="text/css">
-.tg  {border-collapse:collapse;border-spacing:0;}
-.tg td{border-color:black;border-style:solid;border-width:1px;font-family:Arial, sans-serif;font-size:14px;
-  overflow:hidden;padding:10px 5px;word-break:normal;}
-.tg th{border-color:black;border-style:solid;border-width:1px;font-family:Arial, sans-serif;font-size:14px;
-  font-weight:normal;overflow:hidden;padding:10px 5px;word-break:normal;}
-.tg .tg-baqh{text-align:center;vertical-align:top}
-.tg .tg-7r3q{background-color:rgba(130, 130, 130, 0.08);border-color:inherit;color:#000000;font-weight:bold;text-align:center;
-  vertical-align:middle}
-.tg .tg-c4ze{color:#000000;font-weight:bold;text-align:center;vertical-align:middle}
-.tg .tg-59ps{background-color:rgba(130, 130, 130, 0.08);color:#000000;text-align:center;vertical-align:top}
-.tg .tg-f8tx{color:#000000;text-align:center;vertical-align:top}
-.tg .tg-en8h{background-color:rgba(130, 130, 130, 0.08);color:#000000;font-weight:bold;text-align:center;vertical-align:middle}
-.tg .tg-1pye{color:#000000;font-weight:bold;text-align:center;vertical-align:top}
-.tg .tg-vpkt{border-color:inherit;color:#000000;font-weight:bold;text-align:center;vertical-align:top}
-.tg .tg-amwm{font-weight:bold;text-align:center;vertical-align:top}
-.tg .tg-o1k1{background-color:rgba(130, 130, 130, 0.08);color:#000000;font-weight:bold;text-align:center;vertical-align:top}
-</style>
 <table class="tg">
 <thead>
   <tr>
