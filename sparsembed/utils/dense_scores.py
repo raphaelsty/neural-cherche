@@ -142,12 +142,12 @@ def dense_scores(
     Example
     ----------
     >>> from transformers import AutoModelForMaskedLM, AutoTokenizer
-    >>> from sparsembed import model, utils
+    >>> from sparsembed import models, utils
     >>> import torch
 
     >>> _ = torch.manual_seed(42)
 
-    >>> model = model.SparsEmbed(
+    >>> model = models.SparsEmbed(
     ...     model=AutoModelForMaskedLM.from_pretrained("distilbert-base-uncased"),
     ...     tokenizer=AutoTokenizer.from_pretrained("distilbert-base-uncased"),
     ... )

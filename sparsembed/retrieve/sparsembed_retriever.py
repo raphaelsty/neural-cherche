@@ -4,7 +4,7 @@ import warnings
 import torch
 import tqdm
 
-from ..model import SparsEmbed
+from ..models import SparsEmbed
 
 __all__ = ["SparsEmbedRetriever"]
 
@@ -24,7 +24,7 @@ class SparsEmbedRetriever:
     Example
     -------
     >>> from transformers import AutoModelForMaskedLM, AutoTokenizer
-    >>> from sparsembed import model, retrieve
+    >>> from sparsembed import models, retrieve
     >>> from pprint import pprint as print
     >>> import torch
 
@@ -32,7 +32,7 @@ class SparsEmbedRetriever:
 
     >>> device = "cpu"
 
-    >>> model = model.SparsEmbed(
+    >>> model = models.SparsEmbed(
     ...     model=AutoModelForMaskedLM.from_pretrained("distilbert-base-uncased").to(device),
     ...     tokenizer=AutoTokenizer.from_pretrained("distilbert-base-uncased"),
     ...     device=device,

@@ -4,7 +4,7 @@ import warnings
 import torch
 import tqdm
 
-from ..model import Splade
+from ..models import Splade
 
 __all__ = ["SpladeRetriever"]
 
@@ -24,7 +24,7 @@ class SpladeRetriever:
     Example
     -------
     >>> from transformers import AutoModelForMaskedLM, AutoTokenizer
-    >>> from sparsembed import model, retrieve
+    >>> from sparsembed import models, retrieve
     >>> from pprint import pprint as print
     >>> import torch
 
@@ -32,7 +32,7 @@ class SpladeRetriever:
 
     >>> device = "cpu"
 
-    >>> model = model.Splade(
+    >>> model = models.Splade(
     ...     model=AutoModelForMaskedLM.from_pretrained("distilbert-base-uncased").to(device),
     ...     tokenizer=AutoTokenizer.from_pretrained("distilbert-base-uncased"),
     ...     device=device,

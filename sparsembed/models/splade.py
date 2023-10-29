@@ -4,11 +4,12 @@ import torch
 from transformers import AutoModelForMaskedLM, AutoTokenizer
 
 from .. import utils
+from .base import Base
 
 __all__ = ["Splade"]
 
 
-class Splade(torch.nn.Module):
+class Splade(Base):
     """SpladeV1 model.
 
     Parameters
@@ -17,19 +18,19 @@ class Splade(torch.nn.Module):
         HuggingFace Tokenizer.
     model
         HuggingFace AutoModelForMaskedLM.
+    kwargs
+        Additional parameters to the SentenceTransformer model.
 
     Example
     -------
     >>> from transformers import AutoModelForMaskedLM, AutoTokenizer
-    >>> from sparsembed import model
-    >>> from pprint import pprint as print
+    >>> from sparsembed import models
 
     >>> device = "mps"
 
-    >>> model = model.Splade(
-    ...     model=AutoModelForMaskedLM.from_pretrained("distilbert-base-uncased").to(device),
-    ...     tokenizer=AutoTokenizer.from_pretrained("distilbert-base-uncased"),
-    ...     device=device
+    >>> model = models.Splade(
+    ...     model_name_or_path="distilbert-base-uncased",
+    ...     device=device,
     ... )
 
     >>> queries_activations = model.encode(
@@ -48,13 +49,11 @@ class Splade(torch.nn.Module):
     ...     documents=["Sports is great.", "Music is great."],
     ...     batch_size=1
     ... )
-    tensor([301.4348, 214.5452], device='mps:0')
+    tensor([301.4348, 214.5453], device='mps:0')
 
     >>> _ = model.save_pretrained("checkpoint")
 
-    >>> from sparsembed import model
-
-    >>> model = model.Splade(
+    >>> model = models.Splade(
     ...     model_name_or_path="checkpoint",
     ...     device=device,
     ... )
@@ -71,31 +70,15 @@ class Splade(torch.nn.Module):
     def __init__(
         self,
         model_name_or_path: str = None,
-        tokenizer: AutoTokenizer = None,
-        model: AutoModelForMaskedLM = None,
         device: str = None,
+        **kwargs,
     ) -> None:
-        super(Splade, self).__init__()
+        super(Splade, self).__init__(
+            model_name_or_path=model_name_or_path,
+            device=device,
+            **kwargs,
+        )
 
-        if device is not None:
-            self.device = device
-        elif torch.cuda.is_available():
-            self.device = "cuda"
-        else:
-            self.device = "cpu"
-
-        if model_name_or_path is not None:
-            self.model = AutoModelForMaskedLM.from_pretrained(model_name_or_path).to(
-                self.device
-            )
-            self.tokenizer = AutoTokenizer.from_pretrained(
-                model_name_or_path, device=self.device
-            )
-        else:
-            self.tokenizer = tokenizer
-            self.model = model
-
-        self.model.config.output_hidden_states = True
         self.relu = torch.nn.ReLU().to(self.device)
 
     def encode(
@@ -107,7 +90,21 @@ class Splade(torch.nn.Module):
         k_tokens: int = 256,
         **kwargs,
     ) -> dict[str, torch.Tensor]:
-        """Encode documents"""
+        """Encode documents
+
+        Parameters
+        ----------
+        texts
+            List of documents to encode.
+        truncation
+            Whether to truncate the documents.
+        padding
+            Whether to pad the documents.
+        max_length
+            Maximum length of the documents.
+        k_tokens
+            Number of tokens to keep.
+        """
         with torch.no_grad():
             return self(
                 texts=texts,
@@ -126,7 +123,19 @@ class Splade(torch.nn.Module):
         k_tokens: int = 96,
         **kwargs,
     ) -> list[str]:
-        """Decode activated tokens ids where activated value > 0."""
+        """Decode activated tokens ids where activated value > 0.
+
+        Parameters
+        ----------
+        sparse_activations
+            Activated tokens.
+        clean_up_tokenization_spaces
+            Whether to clean up the tokenization spaces.
+        skip_special_tokens
+            Whether to skip special tokens.
+        k_tokens
+            Number of tokens to keep.
+        """
         activations = self._filter_activations(
             sparse_activations=sparse_activations, k_tokens=k_tokens
         )
@@ -152,7 +161,21 @@ class Splade(torch.nn.Module):
         max_length: int = 256,
         **kwargs,
     ) -> dict[str, torch.Tensor]:
-        """Pytorch forward method."""
+        """Pytorch forward method.
+
+        Parameters
+        ----------
+        texts
+            List of documents to encode.
+        truncation
+            Whether to truncate the documents.
+        padding
+            Whether to pad the documents.
+        k_tokens
+            Number of tokens to keep.
+        max_length
+            Maximum length of the documents.
+        """
         kwargs = {
             "truncation": truncation,
             "padding": padding,
@@ -172,17 +195,63 @@ class Splade(torch.nn.Module):
 
         return {"sparse_activations": activations["sparse_activations"]}
 
-    def _encode(self, texts: list[str], **kwargs) -> tuple[torch.Tensor, torch.Tensor]:
-        """Encode sentences."""
-        encoded_input = self.tokenizer.batch_encode_plus(
-            texts, return_tensors="pt", **kwargs
-        )
-        if self.device != "cpu":
-            encoded_input = {
-                key: value.to(self.device) for key, value in encoded_input.items()
-            }
-        output = self.model(**encoded_input)
-        return output.logits, output.hidden_states[0]
+    def save_pretrained(self, path: str):
+        """Save model the model."""
+        self.model.save_pretrained(path)
+        self.tokenizer.save_pretrained(path)
+        return self
+
+    def scores(
+        self,
+        queries: list[str],
+        documents: list[str],
+        batch_size: int = 32,
+        k_tokens: int = 256,
+        truncation: bool = True,
+        padding: bool = True,
+        max_length: int = 256,
+        tqdm_bar: bool = True,
+        **kwargs,
+    ) -> torch.Tensor:
+        """Compute similarity scores between queries and documents."""
+        sparse_scores = []
+
+        for batch_queries, batch_documents in zip(
+            utils.batchify(
+                X=queries,
+                batch_size=batch_size,
+                desc="Computing scores.",
+                tqdm_bar=tqdm_bar,
+            ),
+            utils.batchify(X=documents, batch_size=batch_size, tqdm_bar=False),
+        ):
+            queries_embeddings = self.encode(
+                batch_queries,
+                k_tokens=k_tokens,
+                truncation=truncation,
+                padding=padding,
+                max_length=max_length,
+                **kwargs,
+            )
+
+            documents_embeddings = self.encode(
+                batch_documents,
+                k_tokens=k_tokens,
+                truncation=truncation,
+                padding=padding,
+                max_length=max_length,
+                **kwargs,
+            )
+
+            sparse_scores.append(
+                torch.sum(
+                    queries_embeddings["sparse_activations"]
+                    * documents_embeddings["sparse_activations"],
+                    axis=1,
+                )
+            )
+
+        return torch.cat(sparse_scores, dim=0)
 
     def _get_activation(self, logits: torch.Tensor) -> dict[str, torch.Tensor]:
         """Returns activated tokens."""
@@ -217,55 +286,3 @@ class Splade(torch.nn.Module):
             "activations": activations,
             "sparse_activations": sparse_activations,
         }
-
-    def save_pretrained(self, path: str):
-        """Save model the model."""
-        self.model.save_pretrained(path)
-        self.tokenizer.save_pretrained(path)
-        return self
-
-    def scores(
-        self,
-        queries: list[str],
-        documents: list[str],
-        batch_size: int = 32,
-        k_tokens: int = 256,
-        truncation: bool = True,
-        padding: bool = True,
-        max_length: int = 256,
-        **kwargs,
-    ) -> torch.Tensor:
-        """Compute similarity scores between queries and documents."""
-        sparse_scores = []
-
-        for batch_queries, batch_documents in zip(
-            utils.batchify(X=queries, batch_size=batch_size, desc="Computing scores."),
-            utils.batchify(X=documents, batch_size=batch_size, tqdm_bar=False),
-        ):
-            queries_embeddings = self.encode(
-                batch_queries,
-                k_tokens=k_tokens,
-                truncation=truncation,
-                padding=padding,
-                max_length=max_length,
-                **kwargs,
-            )
-
-            documents_embeddings = self.encode(
-                batch_documents,
-                k_tokens=k_tokens,
-                truncation=truncation,
-                padding=padding,
-                max_length=max_length,
-                **kwargs,
-            )
-
-            sparse_scores.append(
-                torch.sum(
-                    queries_embeddings["sparse_activations"]
-                    * documents_embeddings["sparse_activations"],
-                    axis=1,
-                )
-            )
-
-        return torch.cat(sparse_scores, dim=0)

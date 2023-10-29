@@ -1,4 +1,4 @@
-__all__ = ["evaluate", "load_beir"]
+__all__ = ["evaluate", "evaluate_matchs", "load_beir"]
 
 
 def load_beir(dataset_name: str, split: str = "test") -> tuple[list, list, dict]:
@@ -61,14 +61,14 @@ def evaluate(
         Metrics to compute.
 
     >>> from transformers import AutoModelForMaskedLM, AutoTokenizer
-    >>> from sparsembed import model, retrieve, utils
+    >>> from sparsembed import models, retrieve, utils
     >>> import torch
 
     >>> _ = torch.manual_seed(42)
 
     >>> device = "cpu"
 
-    >>> model = model.Splade(
+    >>> model = models.Splade(
     ...     model=AutoModelForMaskedLM.from_pretrained("distilbert-base-uncased").to(device),
     ...     tokenizer=AutoTokenizer.from_pretrained("distilbert-base-uncased"),
     ...     device=device,
@@ -103,10 +103,6 @@ def evaluate(
     {'map': 0.0033333333333333335, 'ndcg@10': 0.0033333333333333335, 'ndcg@100': 0.0033333333333333335, 'recall@10': 0.0033333333333333335, 'recall@100': 0.0033333333333333335}
 
     """
-    from ranx import Qrels, Run, evaluate
-
-    qrels = Qrels(qrels)
-
     matchs = retriever(
         q=list(queries.values()),
         k=k,
@@ -114,9 +110,43 @@ def evaluate(
         batch_size=batch_size,
     )
 
+    return evaluate_matchs(
+        matchs=matchs,
+        qrels=qrels,
+        queries=list(queries.keys()),
+        metrics=metrics,
+    )
+
+
+def evaluate_matchs(
+    matchs: list[list[dict]],
+    qrels: dict,
+    queries: list[str],
+    metrics: list = [],
+):
+    """Evaluate candidates matchs.
+
+    Parameters
+    ----------
+    matchs
+        Matchs.
+    qrels
+        Qrels.
+    queries
+        Queries.
+    k
+        Number of documents to retrieve.
+    metrics
+        Metrics to compute.
+    """
+    from ranx import Qrels, Run, evaluate
+
+    qrels = Qrels(qrels)
+
     run_dict = {
         id_query: {
-            match["id"]: 1 - (rank / k) for rank, match in enumerate(query_matchs)
+            match["id"]: 1 - (rank / len(query_matchs))
+            for rank, match in enumerate(query_matchs)
         }
         for id_query, query_matchs in zip(queries, matchs)
     }

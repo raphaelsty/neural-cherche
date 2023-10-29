@@ -26,12 +26,12 @@ def sparse_scores(
         Sum up with negative scores the dot product.
 
     >>> from transformers import AutoModelForMaskedLM, AutoTokenizer
-    >>> from sparsembed import model
+    >>> from sparsembed import models
     >>> from pprint import pprint as print
 
     >>> device = "mps"
 
-    >>> model = model.Splade(
+    >>> model = models.Splade(
     ...     model=AutoModelForMaskedLM.from_pretrained("distilbert-base-uncased").to(device),
     ...     tokenizer=AutoTokenizer.from_pretrained("distilbert-base-uncased"),
     ...     device=device

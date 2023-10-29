@@ -3,13 +3,17 @@
   <p>Neural search</p>
 </div>
 
-This repository presents a replication of both models Splade and SparseEmbed:
+This repository presents a replication of models Splade, SparseEmbed and ColBERT:
 
 - *[SPLADE: Sparse Lexical and Expansion Model for First Stage Ranking](https://arxiv.org/abs/2107.05720)* authored by Thibault Formal, Benjamin Piwowarski, Stéphane Clinchant, SIGIR 2021.
 
 - *[SPLADE v2: Sparse Lexical and Expansion Model for Information Retrieval](https://arxiv.org/abs/2109.10086)* authored by Thibault Formal, Carlos Lassance, Benjamin Piwowarski, Stéphane Clinchant, SIGIR 2022.
 
 - *[SparseEmbed: Learning Sparse Lexical Representations with Contextual Embeddings for Retrieval](https://research.google/pubs/pub52289/)* authored by Weize Kong, Jeffrey M. Dudek, Cheng Li, Mingyang Zhang, and Mike Bendersky, SIGIR 2023.
+
+- *[ColBERT: Efficient and Effective Passage Search via Contextualized Late Interaction over BERT](https://arxiv.org/abs/2004.12832)* authored by Omar Khattab, Matei Zaharia, SIGIR 2020.
+
+- *[Inductive Entity Representations from Text via Link Prediction](https://dl.acm.org/doi/abs/10.1145/3442381.3450141)* authored by Daniel Daza, Michael Cochez, Paul Groth, WWW 2021.
 
 ## Installation
 
@@ -25,130 +29,7 @@ If we plan to evaluate our model while training install:
 pip install "sparsembed[eval]"
 ```
 
-## Retriever
-
-### Splade
-
-We can initialize a Splade Retriever directly from the `splade_v2_max` checkpoint available on HuggingFace. Retrievers are based on PyTorch sparse matrices, stored in memory and accelerated with GPU. We can reduce the number of activated tokens via the `n_tokens` parameter in order to reduce the memory usage of those sparse matrices. 
-
-```python
-from sparsembed import model, retrieve
-from transformers import AutoModelForMaskedLM, AutoTokenizer
-
-device = "cuda" # cpu
-
-batch_size = 10
-
-# List documents to index:
-documents = [
- {'id': 0,
-  'title': 'Paris',
-  'url': 'https://en.wikipedia.org/wiki/Paris',
-  'text': 'Paris is the capital and most populous city of France.'},
- {'id': 1,
-  'title': 'Paris',
-  'url': 'https://en.wikipedia.org/wiki/Paris',
-  'text': "Since the 17th century, Paris has been one of Europe's major centres of science, and arts."},
- {'id': 2,
-  'title': 'Paris',
-  'url': 'https://en.wikipedia.org/wiki/Paris',
-  'text': 'The City of Paris is the centre and seat of government of the region and province of Île-de-France.'
-}]
-
-model = model.Splade(
-    model=AutoModelForMaskedLM.from_pretrained("naver/splade_v2_max").to(device),
-    tokenizer=AutoTokenizer.from_pretrained("naver/splade_v2_max"),
-    device=device
-)
-
-retriever = retrieve.SpladeRetriever(
-    key="id", # Key identifier of each document.
-    on=["title", "text"], # Fields to search.
-    model=model # Splade retriever.
-)
-
-retriever = retriever.add(
-    documents=documents,
-    batch_size=batch_size,
-    k_tokens=256, # Number of activated tokens.
-)
-
-retriever(
-    ["paris", "Toulouse"], # Queries 
-    k_tokens=20, # Maximum number of activated tokens.
-    k=100, # Number of documents to retrieve.
-    batch_size=batch_size
-)
-```
-
-```python
-[[{'id': 0, 'similarity': 11.481657981872559},
-  {'id': 2, 'similarity': 11.294965744018555},
-  {'id': 1, 'similarity': 10.059721946716309}],
- [{'id': 0, 'similarity': 0.7379149198532104},
-  {'id': 2, 'similarity': 0.6973429918289185},
-  {'id': 1, 'similarity': 0.5428210496902466}]]
-```
-
-### SparsEmbed 
-
-We can also initialize a retriever dedicated to SparseEmbed model. The checkpoint `naver/splade_v2_max` is not a SparseEmbed trained model so we should train one before using it as a retriever.
-
-```python
-from sparsembed import model, retrieve
-from transformers import AutoModelForMaskedLM, AutoTokenizer
-
-device = "cuda" # cpu
-
-batch_size = 10
-
-# List documents to index:
-documents = [
- {'id': 0,
-  'title': 'Paris',
-  'url': 'https://en.wikipedia.org/wiki/Paris',
-  'text': 'Paris is the capital and most populous city of France.'},
- {'id': 1,
-  'title': 'Paris',
-  'url': 'https://en.wikipedia.org/wiki/Paris',
-  'text': "Since the 17th century, Paris has been one of Europe's major centres of science, and arts."},
- {'id': 2,
-  'title': 'Paris',
-  'url': 'https://en.wikipedia.org/wiki/Paris',
-  'text': 'The City of Paris is the centre and seat of government of the region and province of Île-de-France.'
-}]
-
-model = model.SparsEmbed(
-    model=AutoModelForMaskedLM.from_pretrained("naver/splade_v2_max").to(device),
-    tokenizer=AutoTokenizer.from_pretrained("naver/splade_v2_max"),
-    device=device
-)
-
-retriever = retrieve.SparsEmbedRetriever(
-    key="id", # Key identifier of each document.
-    on=["title", "text"], # Fields to search.
-    model=model # Splade retriever.
-)
-
-retriever = retriever.add(
-    documents=documents,
-    batch_size=batch_size,
-    k_tokens=256, # Number of activated tokens.
-)
-
-retriever(
-    ["paris", "Toulouse"], # Queries 
-    k_tokens=20, # Maximum number of activated tokens.
-    k=100, # Number of documents to retrieve.
-    batch_size=batch_size
-)
-```
-
-## Training
-
-Let's fine-tune Splade and SparsEmbed.
-
-### Dataset
+## Dataset
 
 Your training dataset must be made out of triples `(anchor, positive, negative)` where anchor is a query, positive is a document that is directly linked to the anchor and negative is a document that is not relevant for the anchor.
 
@@ -160,16 +41,16 @@ X = [
 ]
 ```
 
-### Models
+## Models
 
-Both Splade and SparseEmbed models can be initialized from the `AutoModelForMaskedLM` pretrained models.
+Both Splade and SparseEmbed models can be initialized from the `AutoModelForMaskedLM` pretrained models. You can choose any model you want from HuggingFace which is compatible with the `AutoModelForMaskedLM` class.
 
 ```python
 from transformers import AutoModelForMaskedLM, AutoTokenizer
 
 model = model.Splade(
-    model=AutoModelForMaskedLM.from_pretrained("naver/splade_v2_max").to(device),
-    tokenizer=AutoTokenizer.from_pretrained("naver/splade_v2_max"),
+    model=AutoModelForMaskedLM.from_pretrained("raphaelsty/splade-max").to(device),
+    tokenizer=AutoTokenizer.from_pretrained("raphaelsty/splade-max"),
     device=device,
 )
 ```
@@ -178,15 +59,17 @@ model = model.Splade(
 from transformers import AutoModelForMaskedLM, AutoTokenizer
 
 model = model.SparsEmbed(
-    model=AutoModelForMaskedLM.from_pretrained("naver/splade_v2_max").to(device),
-    tokenizer=AutoTokenizer.from_pretrained("naver/splade_v2_max"),
+    model=AutoModelForMaskedLM.from_pretrained("raphaelsty/sparsembed-max").to(device),
+    tokenizer=AutoTokenizer.from_pretrained("raphaelsty/sparsembed-max"),
     embedding_size=64,
     k_tokens=96,
     device=device,
 )
 ```
 
-### Splade
+## Splade
+
+### Splade trainer
 
 The following PyTorch code snippet illustrates the training loop to fine-tune Splade:
 
@@ -200,8 +83,8 @@ batch_size = 8
 epochs = 1 # Number of times the model will train over the whole dataset.
 
 model = model.Splade(
-    model=AutoModelForMaskedLM.from_pretrained("naver/splade_v2_max").to(device),
-    tokenizer=AutoTokenizer.from_pretrained("naver/splade_v2_max"),
+    model=AutoModelForMaskedLM.from_pretrained("raphaelsty/splade-max").to(device),
+    tokenizer=AutoTokenizer.from_pretrained("raphaelsty/splade-max"),
     device=device
 )
 
@@ -281,7 +164,72 @@ model = model.Splade(
 )
 ```
 
-## SparsEmbed
+### Splade retriever
+
+We can initialize a Splade Retriever directly from the `raphaelsty/splade-max` checkpoint available on HuggingFace. Retrievers are based on PyTorch sparse matrices, stored in memory and accelerated with GPU. We can reduce the number of activated tokens via the `n_tokens` parameter in order to reduce the memory usage of those sparse matrices. 
+
+```python
+from sparsembed import model, retrieve
+from transformers import AutoModelForMaskedLM, AutoTokenizer
+
+device = "cuda" # cpu or cuda
+
+batch_size = 10
+
+# List documents to index:
+documents = [
+ {'id': 0,
+  'title': 'Paris',
+  'url': 'https://en.wikipedia.org/wiki/Paris',
+  'text': 'Paris is the capital and most populous city of France.'},
+ {'id': 1,
+  'title': 'Paris',
+  'url': 'https://en.wikipedia.org/wiki/Paris',
+  'text': "Since the 17th century, Paris has been one of Europe's major centres of science, and arts."},
+ {'id': 2,
+  'title': 'Paris',
+  'url': 'https://en.wikipedia.org/wiki/Paris',
+  'text': 'The City of Paris is the centre and seat of government of the region and province of Île-de-France.'
+}]
+
+model = model.Splade(
+    model=AutoModelForMaskedLM.from_pretrained("raphaelsty/splade-max").to(device),
+    tokenizer=AutoTokenizer.from_pretrained("raphaelsty/splade-max"),
+    device=device
+)
+
+retriever = retrieve.SpladeRetriever(
+    key="id", # Key identifier of each document.
+    on=["title", "text"], # Fields to search.
+    model=model # Splade retriever.
+)
+
+retriever = retriever.add(
+    documents=documents,
+    batch_size=batch_size,
+    k_tokens=256, # Number of activated tokens.
+)
+
+retriever(
+    ["paris", "Toulouse"], # Queries 
+    k_tokens=20, # Maximum number of activated tokens.
+    k=100, # Number of documents to retrieve.
+    batch_size=batch_size
+)
+```
+
+```python
+[[{'id': 0, 'similarity': 11.481657981872559},
+  {'id': 2, 'similarity': 11.294965744018555},
+  {'id': 1, 'similarity': 10.059721946716309}],
+ [{'id': 0, 'similarity': 0.7379149198532104},
+  {'id': 2, 'similarity': 0.6973429918289185},
+  {'id': 1, 'similarity': 0.5428210496902466}]]
+```
+
+## SparsEmbed 
+
+### SparsEmbed trainer
 
 The following PyTorch code snippet illustrates the training loop to fine-tune SparseEmbed:
 
@@ -378,6 +326,62 @@ model = model.SparsEmbed(
 )
 ```
 
+### SparsEmbed retriever
+
+We can initialize a SparsEmbed Retriever directly from the `raphaelsty/sparsembed-max` checkpoint available on HuggingFace. Retrievers are based on PyTorch sparse matrices, stored in memory and accelerated with GPU. We can reduce the number of activated tokens via the `n_tokens` parameter in order to reduce the memory usage of those sparse matrices. You can use your own trained model as a retriever.
+
+```python
+from sparsembed import model, retrieve
+from transformers import AutoModelForMaskedLM, AutoTokenizer
+
+device = "cuda" # cpu
+
+batch_size = 10
+
+# List documents to index:
+documents = [
+ {'id': 0,
+  'title': 'Paris',
+  'url': 'https://en.wikipedia.org/wiki/Paris',
+  'text': 'Paris is the capital and most populous city of France.'},
+ {'id': 1,
+  'title': 'Paris',
+  'url': 'https://en.wikipedia.org/wiki/Paris',
+  'text': "Since the 17th century, Paris has been one of Europe's major centres of science, and arts."},
+ {'id': 2,
+  'title': 'Paris',
+  'url': 'https://en.wikipedia.org/wiki/Paris',
+  'text': 'The City of Paris is the centre and seat of government of the region and province of Île-de-France.'
+}]
+
+model = model.SparsEmbed(
+    model=AutoModelForMaskedLM.from_pretrained("raphaelsty/sparsembed-max").to(device),
+    tokenizer=AutoTokenizer.from_pretrained("raphaelsty/sparsembed-max"),
+    device=device
+)
+
+retriever = retrieve.SparsEmbedRetriever(
+    key="id", # Key identifier of each document.
+    on=["title", "text"], # Fields to search.
+    model=model # Splade retriever.
+)
+
+retriever = retriever.add(
+    documents=documents,
+    batch_size=batch_size,
+    k_tokens=256, # Number of activated tokens.
+)
+
+retriever(
+    ["paris", "Toulouse"], # Queries 
+    k_tokens=20, # Maximum number of activated tokens.
+    k=100, # Number of documents to retrieve.
+    batch_size=batch_size
+)
+```
+
+### Splade
+
 ## Utils
 
 We can get the activated tokens / embeddings of a sentence with:
@@ -415,7 +419,6 @@ We can save the model and load it back.
 ```python
 model.save_pretrained("checkpoint")
 
-
 from sparsembed import model
 model = model.SparsEmbed(
     model_name_or_path="checkpoint",
@@ -426,6 +429,12 @@ model = model.SparsEmbed(
 
 from sparsembed import model
 model = model.Splade(
+    model_name_or_path="checkpoint",
+    device=device
+)
+
+from sparsembed import model
+model = model.ColBERT(
     model_name_or_path="checkpoint",
     device=device
 )

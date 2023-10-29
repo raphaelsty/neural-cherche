@@ -15,29 +15,27 @@ class SparsEmbed(Splade):
 
     Parameters
     ----------
-    tokenizer
-        HuggingFace Tokenizer.
-    model
-        HuggingFace AutoModelForMaskedLM.
+    model_name_or_path
+        Path to the model or the model name. It should be a SentenceTransformer model.
     k_tokens
         Number of activated terms to retrieve.
     embedding_size
         Size of the embeddings in output of SparsEmbed model.
+    kwargs
+        Additional parameters to the pre-trained model.
 
     Example
     -------
     >>> from transformers import AutoModelForMaskedLM, AutoTokenizer
-    >>> from sparsembed import model
-    >>> from pprint import pprint as print
+    >>> from sparsembed import models
     >>> import torch
 
     >>> _ = torch.manual_seed(42)
 
     >>> device = "mps"
 
-    >>> model = model.SparsEmbed(
-    ...     model=AutoModelForMaskedLM.from_pretrained("distilbert-base-uncased").to(device),
-    ...     tokenizer=AutoTokenizer.from_pretrained("distilbert-base-uncased"),
+    >>> model = models.SparsEmbed(
+    ...     model_name_or_path="distilbert-base-uncased",
     ...     device=device,
     ...     embedding_size=32,
     ... )
@@ -78,9 +76,7 @@ class SparsEmbed(Splade):
 
     >>> _ = model.save_pretrained("checkpoint")
 
-    >>> from sparsembed import model
-
-    >>> model = model.SparsEmbed(
+    >>> model = models.SparsEmbed(
     ...     model_name_or_path="checkpoint",
     ...     device=device,
     ... )
@@ -102,24 +98,25 @@ class SparsEmbed(Splade):
     def __init__(
         self,
         model_name_or_path: str = None,
-        tokenizer: AutoTokenizer = None,
-        model: AutoModelForMaskedLM = None,
         embedding_size: int = 64,
         device: str = None,
+        **kwargs,
     ) -> None:
         super(SparsEmbed, self).__init__(
             model_name_or_path=model_name_or_path,
-            tokenizer=tokenizer,
-            model=model,
             device=device,
+            extra_files_to_load=["linear.pt"],
+            **kwargs,
         )
 
         self.embedding_size = embedding_size
 
         self.softmax = torch.nn.Softmax(dim=2).to(self.device)
 
-        if model_name_or_path is not None:
-            linear = torch.load(os.path.join(model_name_or_path, "linear.pt"))
+        if os.path.exists(os.path.join(self.model_folder, "linear.pt")):
+            linear = torch.load(
+                os.path.join(self.model_folder, "linear.pt"), map_location=self.device
+            )
             self.embedding_size = linear["weight"].shape[0]
             in_features = linear["weight"].shape[1]
         else:
@@ -131,7 +128,7 @@ class SparsEmbed(Splade):
             in_features=in_features, out_features=self.embedding_size, bias=False
         ).to(self.device)
 
-        if model_name_or_path is not None:
+        if os.path.exists(os.path.join(self.model_folder, "linear.pt")):
             self.linear.load_state_dict(linear)
 
     def forward(
@@ -206,13 +203,19 @@ class SparsEmbed(Splade):
         truncation: bool = True,
         padding: bool = True,
         max_length: int = 256,
+        tqdm_bar: bool = True,
         **kwargs,
     ) -> torch.Tensor:
         """Compute similarity scores between queries and documents."""
         dense_scores = []
 
         for batch_queries, batch_documents in zip(
-            utils.batchify(X=queries, batch_size=batch_size, desc="Computing scores."),
+            utils.batchify(
+                X=queries,
+                batch_size=batch_size,
+                desc="Computing scores.",
+                tqdm_bar=tqdm_bar,
+            ),
             utils.batchify(X=documents, batch_size=batch_size, tqdm_bar=False),
         ):
             queries_embeddings = self.encode(
