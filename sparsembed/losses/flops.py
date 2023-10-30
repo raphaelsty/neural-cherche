@@ -34,19 +34,14 @@ class Flops(torch.nn.Module):
 
     Example
     -------
-    >>> from transformers import AutoModelForMaskedLM, AutoTokenizer
-    >>> from sparsembed import model, utils, losses
-    >>> from pprint import pprint as print
+    >>> from sparsembed import models, utils, losses
     >>> import torch
 
     >>> _ = torch.manual_seed(42)
 
-    >>> device = "mps"
-
-    >>> model = model.Splade(
-    ...     model=AutoModelForMaskedLM.from_pretrained("distilbert-base-uncased").to(device),
-    ...     tokenizer=AutoTokenizer.from_pretrained("distilbert-base-uncased"),
-    ...     device=device
+    >>> model = models.Splade(
+    ...     model_name_or_path="raphaelsty/splade-max",
+    ...     device="mps",
     ... )
 
     >>> anchor_activations = model(
@@ -66,7 +61,7 @@ class Flops(torch.nn.Module):
     ...     positive_activations=positive_activations["sparse_activations"],
     ...     negative_activations=negative_activations["sparse_activations"],
     ... )
-    tensor(643.0182, device='mps:0', grad_fn=<AbsBackward0>)
+    tensor(4.0912, device='mps:0', grad_fn=<AbsBackward0>)
 
     References
     ----------

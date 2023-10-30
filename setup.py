@@ -7,9 +7,10 @@ with open("README.md", "r", encoding="utf-8") as fh:
 
 base_packages = [
     "torch >= 1.13",
-    "tqdm >= 4.66",
+    "tqdm == 4.66",
     "transformers == 4.34.0",
     "sentence-transformers == 2.2.2",
+    "cherche == 2.0.6",
 ]
 
 eval = ["ranx >= 0.3.16", "beir >= 2.0.0"]

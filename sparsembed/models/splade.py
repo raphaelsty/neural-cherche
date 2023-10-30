@@ -1,7 +1,6 @@
 import string
 
 import torch
-from transformers import AutoModelForMaskedLM, AutoTokenizer
 
 from .. import utils
 from .base import Base
@@ -23,14 +22,11 @@ class Splade(Base):
 
     Example
     -------
-    >>> from transformers import AutoModelForMaskedLM, AutoTokenizer
     >>> from sparsembed import models
 
-    >>> device = "mps"
-
     >>> model = models.Splade(
-    ...     model_name_or_path="distilbert-base-uncased",
-    ...     device=device,
+    ...     model_name_or_path="raphaelsty/splade-max",
+    ...     device="mps",
     ... )
 
     >>> queries_activations = model.encode(
@@ -49,17 +45,21 @@ class Splade(Base):
     ...     documents=["Sports is great.", "Music is great."],
     ...     batch_size=1
     ... )
-    tensor([301.4348, 214.5453], device='mps:0')
+    tensor([13.0526, 14.1928], device='mps:0')
 
     >>> _ = model.save_pretrained("checkpoint")
 
     >>> model = models.Splade(
     ...     model_name_or_path="checkpoint",
-    ...     device=device,
+    ...     device="mps",
     ... )
 
-    >>> queries_activations["sparse_activations"].shape
-    torch.Size([2, 30522])
+    >>> model.scores(
+    ...     queries=["Sports", "Music"],
+    ...     documents=["Sports is great.", "Music is great."],
+    ...     batch_size=1
+    ... )
+    tensor([13.0526, 14.1928], device='mps:0')
 
     References
     ----------

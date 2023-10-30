@@ -8,16 +8,12 @@ class Ranking(torch.nn.Module):
 
     Examples
     --------
-    >>> from transformers import AutoModelForMaskedLM, AutoTokenizer
-    >>> from sparsembed import model, utils, losses
+    >>> from sparsembed import models, utils, losses
     >>> from pprint import pprint as print
 
-    >>> device = "mps"
-
-    >>> model = model.Splade(
-    ...     model=AutoModelForMaskedLM.from_pretrained("distilbert-base-uncased").to(device),
-    ...     tokenizer=AutoTokenizer.from_pretrained("distilbert-base-uncased"),
-    ...     device=device
+    >>> model = models.Splade(
+    ...     model_name_or_path="raphaelsty/splade-max",
+    ...     device="mps",
     ... )
 
     >>> queries_activations = model(

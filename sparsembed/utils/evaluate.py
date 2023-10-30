@@ -60,22 +60,19 @@ def evaluate(
     metrics
         Metrics to compute.
 
-    >>> from transformers import AutoModelForMaskedLM, AutoTokenizer
+    Examples
+    --------
     >>> from sparsembed import models, retrieve, utils
     >>> import torch
 
     >>> _ = torch.manual_seed(42)
 
-    >>> device = "cpu"
-
     >>> model = models.Splade(
-    ...     model=AutoModelForMaskedLM.from_pretrained("distilbert-base-uncased").to(device),
-    ...     tokenizer=AutoTokenizer.from_pretrained("distilbert-base-uncased"),
-    ...     device=device,
+    ...     model_name_or_path="raphaelsty/splade-max",
+    ...     device="cpu",
     ... )
 
     >>> documents, queries, qrels = utils.load_beir("scifact", split="test")
-
     >>> documents = documents[:10]
 
     >>> retriever = retrieve.SpladeRetriever(

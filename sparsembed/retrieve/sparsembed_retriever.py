@@ -23,7 +23,6 @@ class SparsEmbedRetriever:
 
     Example
     -------
-    >>> from transformers import AutoModelForMaskedLM, AutoTokenizer
     >>> from sparsembed import models, retrieve
     >>> from pprint import pprint as print
     >>> import torch
@@ -33,13 +32,13 @@ class SparsEmbedRetriever:
     >>> device = "cpu"
 
     >>> model = models.SparsEmbed(
-    ...     model=AutoModelForMaskedLM.from_pretrained("distilbert-base-uncased").to(device),
-    ...     tokenizer=AutoTokenizer.from_pretrained("distilbert-base-uncased"),
+    ...     model_name_or_path="raphaelsty/sparsembed-max",
     ...     device=device,
     ...     embedding_size=64,
     ... )
 
-    >>> retriever = retrieve.SparsEmbedRetriever(key="id", on="document", model=model)
+    >>> retriever = retrieve.SparsEmbedRetriever(
+    ...     key="id", on="document", model=model)
 
     >>> documents = [
     ...     {"id": 0, "document": "Food"},
@@ -53,15 +52,15 @@ class SparsEmbedRetriever:
     ... )
 
     >>> print(retriever(["Food", "Sports", "Cinema"], k_tokens=96, batch_size=32))
-    [[{'id': 0, 'similarity': 317.099365234375},
-      {'id': 2, 'similarity': 83.53012084960938},
-      {'id': 1, 'similarity': 74.39786529541016}],
-     [{'id': 1, 'similarity': 430.7840576171875},
-      {'id': 2, 'similarity': 88.93757629394531},
-      {'id': 0, 'similarity': 74.39787292480469}],
-     [{'id': 2, 'similarity': 290.1988220214844},
-      {'id': 1, 'similarity': 88.93758392333984},
-      {'id': 0, 'similarity': 83.53012084960938}]]
+    [[{'id': 0, 'similarity': 91.56182861328125},
+      {'id': 1, 'similarity': 73.63580322265625},
+      {'id': 2, 'similarity': 71.268798828125}],
+     [{'id': 1, 'similarity': 108.9588851928711},
+      {'id': 0, 'similarity': 73.63579559326172},
+      {'id': 2, 'similarity': 71.42951202392578}],
+     [{'id': 2, 'similarity': 107.88558197021484},
+      {'id': 1, 'similarity': 71.42950439453125},
+      {'id': 0, 'similarity': 71.268798828125}]]
 
     """
 

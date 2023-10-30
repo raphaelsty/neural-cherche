@@ -1,7 +1,6 @@
 import os
 
 import torch
-from transformers import AutoModelForMaskedLM, AutoTokenizer
 
 from .. import utils
 from .base import Base

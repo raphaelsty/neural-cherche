@@ -141,15 +141,14 @@ def dense_scores(
 
     Example
     ----------
-    >>> from transformers import AutoModelForMaskedLM, AutoTokenizer
     >>> from sparsembed import models, utils
     >>> import torch
 
     >>> _ = torch.manual_seed(42)
 
     >>> model = models.SparsEmbed(
-    ...     model=AutoModelForMaskedLM.from_pretrained("distilbert-base-uncased"),
-    ...     tokenizer=AutoTokenizer.from_pretrained("distilbert-base-uncased"),
+    ...     model_name_or_path="raphaelsty/sparsembed-max",
+    ...     device="mps",
     ... )
 
     >>> anchor_embeddings = model(
@@ -178,7 +177,7 @@ def dense_scores(
     ... )
 
     >>> scores
-    {'positive_scores': tensor([345.7834, 405.7119], grad_fn=<StackBackward0>), 'negative_scores': tensor([104.3800, 104.3800], grad_fn=<StackBackward0>)}
+    {'positive_scores': tensor([106.1922, 122.9829], device='mps:0', grad_fn=<StackBackward0>), 'negative_scores': tensor([76.1682, 76.1682], device='mps:0', grad_fn=<StackBackward0>)}
 
     """
     anchor_embeddings_index = _build_index(

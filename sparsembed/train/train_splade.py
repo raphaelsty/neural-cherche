@@ -36,18 +36,14 @@ def train_splade(
 
     Examples
     --------
-    >>> from transformers import AutoModelForMaskedLM, AutoTokenizer
-    >>> from sparsembed import model, utils, train
+    >>> from sparsembed import models, utils, train
     >>> import torch
 
     >>> _ = torch.manual_seed(42)
 
-    >>> device = "mps"
-
-    >>> model = model.Splade(
-    ...     model=AutoModelForMaskedLM.from_pretrained("distilbert-base-uncased").to(device),
-    ...     tokenizer=AutoTokenizer.from_pretrained("distilbert-base-uncased"),
-    ...     device=device
+    >>> model = models.Splade(
+    ...     model_name_or_path="raphaelsty/splade-max",
+    ...     device="mps",
     ... )
 
     >>> optimizer = torch.optim.AdamW(model.parameters(), lr=1e-6)
@@ -78,7 +74,7 @@ def train_splade(
     ...     flops_scheduler.step()
 
     >>> loss
-    {'sparse': tensor(0., device='mps:0', grad_fn=<ClampBackward1>), 'flops': tensor(670.9949, device='mps:0', grad_fn=<AbsBackward0>)}
+    {'sparse': tensor(0.4407, device='mps:0', grad_fn=<ClampBackward1>), 'flops': tensor(2.5550, device='mps:0', grad_fn=<AbsBackward0>)}
 
     """
 

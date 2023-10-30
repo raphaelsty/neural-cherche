@@ -23,19 +23,15 @@ class SpladeRetriever:
 
     Example
     -------
-    >>> from transformers import AutoModelForMaskedLM, AutoTokenizer
     >>> from sparsembed import models, retrieve
     >>> from pprint import pprint as print
     >>> import torch
 
     >>> _ = torch.manual_seed(42)
 
-    >>> device = "cpu"
-
     >>> model = models.Splade(
-    ...     model=AutoModelForMaskedLM.from_pretrained("distilbert-base-uncased").to(device),
-    ...     tokenizer=AutoTokenizer.from_pretrained("distilbert-base-uncased"),
-    ...     device=device,
+    ...     model_name_or_path="raphaelsty/splade-max",
+    ...     device="cpu",
     ... )
 
     >>> retriever = retrieve.SpladeRetriever(key="id", on="document", model=model)
@@ -52,15 +48,15 @@ class SpladeRetriever:
     ... )
 
     >>> print(retriever(["Food", "Sports", "Cinema"],  k_tokens=256, batch_size=32))
-    [[{'id': 0, 'similarity': 422.4058532714844},
-      {'id': 2, 'similarity': 239.1786651611328},
-      {'id': 1, 'similarity': 237.7996826171875}],
-     [{'id': 1, 'similarity': 473.9842224121094},
-      {'id': 0, 'similarity': 237.7996826171875},
-      {'id': 2, 'similarity': 231.45362854003906}],
-     [{'id': 2, 'similarity': 382.86102294921875},
-      {'id': 0, 'similarity': 239.1786651611328},
-      {'id': 1, 'similarity': 231.45362854003906}]]
+    [[{'id': 0, 'similarity': 15.746589660644531},
+      {'id': 2, 'similarity': 2.385589838027954},
+      {'id': 1, 'similarity': 2.3080930709838867}],
+     [{'id': 1, 'similarity': 14.190367698669434},
+      {'id': 0, 'similarity': 2.3080930709838867},
+      {'id': 2, 'similarity': 2.0272157192230225}],
+     [{'id': 2, 'similarity': 21.183313369750977},
+      {'id': 0, 'similarity': 2.385589838027954},
+      {'id': 1, 'similarity': 2.0272157192230225}]]
 
     """
 
@@ -133,7 +129,7 @@ class SpladeRetriever:
         self,
         q: list[str],
         k: int = 100,
-        batch_size: int = 3,
+        batch_size: int = 32,
         k_tokens: int = 256,
         **kwargs,
     ) -> list:

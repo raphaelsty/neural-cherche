@@ -54,11 +54,17 @@ class Base(ABC, torch.nn.Module):
         )
 
         self.model.config.output_hidden_states = True
-        model_folder = os.path.join(
-            f"models--{model_name_or_path}".replace("/", "--"), "snapshots"
-        )
-        snapshot = os.listdir(model_folder)[-1]
-        self.model_folder = os.path.join(model_folder, snapshot)
+
+        if os.path.exists(model_name_or_path):
+            # Local checkpoint
+            self.model_folder = model_name_or_path
+        else:
+            # HuggingFace checkpoint
+            model_folder = os.path.join(
+                f"models--{model_name_or_path}".replace("/", "--"), "snapshots"
+            )
+            snapshot = os.listdir(model_folder)[-1]
+            self.model_folder = os.path.join(model_folder, snapshot)
 
     def _encode(self, texts: list[str], **kwargs) -> tuple[torch.Tensor, torch.Tensor]:
         """Encode sentences.

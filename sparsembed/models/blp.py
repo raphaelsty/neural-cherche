@@ -75,6 +75,9 @@ class BLP(torch.nn.Module):
     ...     batch_size=2,
     ... )
 
+    >>> scores.shape
+    torch.Size([4])
+
     """
 
     def __init__(
@@ -109,7 +112,6 @@ class BLP(torch.nn.Module):
         if os.path.exists(
             os.path.join(model_folder, "relations.json")
         ) and os.path.exists(os.path.join(model_folder, "relations_embeddings.pt")):
-            
             embeddings = torch.load(
                 os.path.join(model_folder, "relations_embeddings.pt"),
                 map_location=self.device,
@@ -149,6 +151,9 @@ class BLP(torch.nn.Module):
         relations
             List of relations to encode.
         """
+        if isinstance(relations, str):
+            relations = [relations]
+
         relations = torch.tensor(
             data=[self.relations[relation] for relation in relations],
             device=self.device,

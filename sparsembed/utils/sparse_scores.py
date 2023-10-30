@@ -25,16 +25,13 @@ def sparse_scores(
         Whether to use in batch negatives or not. Defaults to True.
         Sum up with negative scores the dot product.
 
-    >>> from transformers import AutoModelForMaskedLM, AutoTokenizer
+    Examples
+    --------
     >>> from sparsembed import models
-    >>> from pprint import pprint as print
-
-    >>> device = "mps"
 
     >>> model = models.Splade(
-    ...     model=AutoModelForMaskedLM.from_pretrained("distilbert-base-uncased").to(device),
-    ...     tokenizer=AutoTokenizer.from_pretrained("distilbert-base-uncased"),
-    ...     device=device
+    ...     model_name_or_path="raphaelsty/splade-max",
+    ...     device="mps"
     ... )
 
     >>> queries_activations = model(
@@ -55,7 +52,7 @@ def sparse_scores(
     ...     negative_activations=negative_activations["sparse_activations"],
     ...     in_batch_negatives=True,
     ... )
-    {'positive_scores': tensor([1147.8369,  668.3896], device='mps:0', grad_fn=<SumBackward1>), 'negative_scores': tensor([1244.4702, 1133.3767], device='mps:0', grad_fn=<AddBackward0>)}
+    {'positive_scores': tensor([14.1904, 16.7570], device='mps:0', grad_fn=<SumBackward1>), 'negative_scores': tensor([4.4836, 2.9586], device='mps:0', grad_fn=<AddBackward0>)}
 
     """
     positive_scores = torch.sum(anchor_activations * positive_activations, axis=1)

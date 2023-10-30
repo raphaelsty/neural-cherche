@@ -24,7 +24,7 @@ class ColBERTRanker:
     >>> encoder = models.ColBERT(
     ...     model_name_or_path="sentence-transformers/all-mpnet-base-v2",
     ...     embedding_size=64,
-    ...     device="cpu",
+    ...     device="mps",
     ... )
 
     >>> ranker = rank.ColBERTRanker(
@@ -74,7 +74,7 @@ class ColBERTRanker:
     ... )
 
     >>> matchs
-    [{'id': 1, 'text': 'Berlin is the capital of Germany', 'similarity': 0.44193828105926514}, {'id': 2, 'text': 'Paris is the capital of France', 'similarity': 0.3762626349925995}]
+    [{'id': 1, 'text': 'Berlin is the capital of Germany', 'similarity': 0.44193798303604126}, {'id': 2, 'text': 'Paris is the capital of France', 'similarity': 0.37626248598098755}]
 
     """
 
@@ -163,28 +163,24 @@ class ColBERTRanker:
         max_length
             Maximum length of the inputs.
         """
-        return {
-            query: embedding
-            for query, embedding in zip(
-                q,
-                torch.cat(
-                    [
-                        self.model.encode(
-                            texts=batch_texts,
-                            truncation=truncation,
-                            padding=padding,
-                            add_special_tokens=add_special_tokens,
-                            max_length=max_length,
-                            **kwargs,
-                        )
-                        for batch_texts in utils.batchify(
-                            X=q, batch_size=batch_size, tqdm_bar=tqdm_bar
-                        )
-                    ],
-                    dim=0,
-                ),
+        embeddings = {}
+
+        for batch_texts in utils.batchify(
+            X=q, batch_size=batch_size, tqdm_bar=tqdm_bar
+        ):
+            batch_embeddings = self.model.encode(
+                texts=batch_texts,
+                truncation=truncation,
+                padding=padding,
+                add_special_tokens=add_special_tokens,
+                max_length=max_length,
+                **kwargs,
             )
-        }
+
+            for query, embedding in zip(batch_texts, batch_embeddings):
+                embeddings[query] = embedding
+
+        return embeddings
 
     def rank_embeddings(
         self,
@@ -206,26 +202,42 @@ class ColBERTRanker:
         tqdm_bar
             Show tqdm bar.
         """
-        return [
-            torch.cat(
-                [
+        scores = []
+
+        for embedding_query, embeddings_query_documents in zip(
+            embeddings_queries, embeddings_documents
+        ):
+            query_scores = []
+
+            for batch_embeddings_query_documents in utils.batchify(
+                X=embeddings_query_documents,
+                batch_size=batch_size,
+                tqdm_bar=tqdm_bar,
+            ):
+                # The query must contain less tokens than the documents.
+                # We are adding null tensors to the documents embeddings.
+                if embedding_query.shape[0] > batch_embeddings_query_documents.shape[1]:
+                    n, s, h = batch_embeddings_query_documents.shape
+                    
+                    null_tensor = torch.zeros(
+                        n, embedding_query.shape[0] - s, h, device=self.model.device
+                    )
+                    
+                    batch_embeddings_query_documents = torch.cat(
+                        (batch_embeddings_query_documents, null_tensor), dim=1
+                    )
+
+                query_scores.append(
                     torch.einsum(
                         "sh,nsh->n",
                         embedding_query,
                         batch_embeddings_query_documents,
                     )
-                    for batch_embeddings_query_documents in utils.batchify(
-                        X=embeddings_query_documents,
-                        batch_size=batch_size,
-                        tqdm_bar=tqdm_bar,
-                    )
-                ],
-                dim=0,
-            )
-            for embedding_query, embeddings_query_documents in zip(
-                embeddings_queries, embeddings_documents
-            )
-        ]
+                )
+
+            scores.append(torch.cat(query_scores, dim=0))
+
+        return scores
 
     def __call__(
         self,

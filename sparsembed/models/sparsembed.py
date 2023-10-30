@@ -35,9 +35,9 @@ class SparsEmbed(Splade):
     >>> device = "mps"
 
     >>> model = models.SparsEmbed(
-    ...     model_name_or_path="distilbert-base-uncased",
+    ...     model_name_or_path="raphaelsty/sparsembed-max",
     ...     device=device,
-    ...     embedding_size=32,
+    ...     embedding_size=64,
     ... )
 
     >>> queries_embeddings = model.encode(
@@ -65,14 +65,14 @@ class SparsEmbed(Splade):
     torch.Size([2, 30522])
 
     >>> queries_embeddings["embeddings"].shape
-    torch.Size([2, 96, 32])
+    torch.Size([2, 96, 64])
 
     >>> model.scores(
     ...     queries=["Sports", "Music"],
     ...     documents=["Sports is great.", "Music is great."],
     ...     batch_size=1,
     ... )
-    tensor([78.8720, 24.5763], device='mps:0')
+    tensor([78.3541, 68.5557], device='mps:0')
 
     >>> _ = model.save_pretrained("checkpoint")
 
@@ -87,7 +87,7 @@ class SparsEmbed(Splade):
     ... )
 
     >>> queries_embeddings["embeddings"].shape
-    torch.Size([2, 96, 32])
+    torch.Size([2, 96, 64])
 
     References
     ----------
