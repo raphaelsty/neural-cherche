@@ -163,6 +163,7 @@ class ColBERT(Base):
         padding: bool = True,
         add_special_tokens: bool = False,
         tqdm_bar: bool = True,
+        max_length=256,
         **kwargs,
     ) -> torch.Tensor:
         """Score queries and documents.
@@ -200,13 +201,15 @@ class ColBERT(Base):
                 truncation=truncation,
                 padding=padding,
                 add_special_tokens=add_special_tokens,
+                max_length=max_length,
                 **kwargs,
             )
 
             documents_embeddings = self(
                 texts=batch_documents,
                 truncation=truncation,
-                padding=padding,
+                padding="max_length",
+                max_length=max_length,
                 add_special_tokens=add_special_tokens,
                 **kwargs,
             )

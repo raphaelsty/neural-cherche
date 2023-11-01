@@ -37,17 +37,18 @@ class ColBERTRanker:
 
     >>> documents = [
     ...     {"id": 1, "text": "Berlin is the capital of Germany"},
-    ...     {"id": 2, "text": "Paris is the capital of France"},
+    ...     {"id": 2, "text": "Paris is the capital of France and France is in Europe"},
     ...     {"id": 3, "text": "London is the capital of England"},
     ... ]
 
     >>> embeddings_queries = ranker.encode_queries(
     ...     q=q,
-    ...     batch_size=2,
+    ...     batch_size=1,
     ... )
 
     >>> embeddings_documents = ranker.encode_documents(
     ...     documents=documents,
+    ...     batch_size=1,
     ... )
 
     >>> matchs = ranker(
@@ -55,7 +56,7 @@ class ColBERTRanker:
     ...     documents=[documents for _ in q],
     ...     embeddings_queries=embeddings_queries,
     ...     embeddings_documents=embeddings_documents,
-    ...     batch_size=2,
+    ...     batch_size=1,
     ...     tqdm_bar=True,
     ...     k=2,
     ... )
@@ -68,7 +69,7 @@ class ColBERTRanker:
     ...     documents=documents,
     ...     embeddings_queries=embeddings_queries,
     ...     embeddings_documents=embeddings_documents,
-    ...     batch_size=2,
+    ...     batch_size=1,
     ...     tqdm_bar=True,
     ...     k=2,
     ... )
@@ -90,7 +91,6 @@ class ColBERTRanker:
         batch_size: int = 32,
         tqdm_bar: bool = True,
         truncation: bool = True,
-        padding: bool = True,
         add_special_tokens: bool = False,
         max_length: int = 256,
         **kwargs,
@@ -107,13 +107,12 @@ class ColBERTRanker:
             Show tqdm bar.
         truncation
             Truncate the inputs.
-        padding
-            Pad the inputs.
         add_special_tokens
             Add special tokens.
         max_length
             Maximum length of the inputs.
         """
+        # Documents embeddings must be composed of more tokens than queries embeddings
         embeddings = self.encode_queries(
             q=[
                 " ".join([document[field] for field in self.on])
@@ -122,7 +121,7 @@ class ColBERTRanker:
             batch_size=batch_size,
             tqdm_bar=tqdm_bar,
             truncation=truncation,
-            padding=padding,
+            padding="max_length", # padding is always True, documents are padded to max_length
             add_special_tokens=add_special_tokens,
             max_length=max_length,
             **kwargs,
@@ -214,19 +213,7 @@ class ColBERTRanker:
                 batch_size=batch_size,
                 tqdm_bar=tqdm_bar,
             ):
-                # The query must contain less tokens than the documents.
-                # We are adding null tensors to the documents embeddings.
-                if embedding_query.shape[0] > batch_embeddings_query_documents.shape[1]:
-                    n, s, h = batch_embeddings_query_documents.shape
-                    
-                    null_tensor = torch.zeros(
-                        n, embedding_query.shape[0] - s, h, device=self.model.device
-                    )
-                    
-                    batch_embeddings_query_documents = torch.cat(
-                        (batch_embeddings_query_documents, null_tensor), dim=1
-                    )
-
+                
                 query_scores.append(
                     torch.einsum(
                         "sh,nsh->n",
