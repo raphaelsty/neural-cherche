@@ -36,18 +36,36 @@ class ColBERT(Base):
     ... )
 
     >>> embeddings = encoder(texts=["Sports Music Sports", "Music Sports Music"])
+
     >>> embeddings.shape
     torch.Size([2, 3, 64])
 
+    >>> queries = ["Berlin", "Paris", "London"]
+
+    >>> documents = [
+    ...     "Berlin is the capital of Germany",
+    ...     "Paris is the capital of France and France is in Europe",
+    ...     "London is the capital of England",
+    ... ]
+
     >>> scores = encoder.scores(
-    ...    queries=["football football football football football", "rugby rugby rugby"],
-    ...    documents=["football", "rugby"],
+    ...    queries=queries,
+    ...    documents=documents,
     ... )
 
     >>> scores
-    tensor([4.3269, 3.9620], device='mps:0', grad_fn=<CatBackward0>)
+    tensor([0.0236, 0.0239, 0.0246], device='mps:0', grad_fn=<CatBackward0>)
 
     >>> _ = encoder.save_pretrained("checkpoint")
+
+    >>> scores = encoder.scores(
+    ...    queries=queries,
+    ...    documents=documents,
+    ... )
+
+    >>> scores
+    tensor([0.0236, 0.0239, 0.0246], device='mps:0', grad_fn=<CatBackward0>)
+
     """
 
     def __init__(
@@ -79,8 +97,11 @@ class ColBERT(Base):
                 in_features = embeddings.shape[2]
 
         self.linear = torch.nn.Linear(
-            in_features=in_features, out_features=self.embedding_size, bias=False
-        ).to(self.device)
+            in_features=in_features,
+            out_features=self.embedding_size,
+            bias=False,
+            device=self.device,
+        )
 
         if os.path.exists(os.path.join(self.model_folder, "linear.pt")):
             self.linear.load_state_dict(linear)
@@ -91,7 +112,7 @@ class ColBERT(Base):
         truncation: bool = True,
         padding: bool = True,
         add_special_tokens: bool = False,
-        max_length: int = 256,
+        max_length: int = 500,
         **kwargs,
     ) -> torch.Tensor:
         """Encode documents
@@ -126,7 +147,7 @@ class ColBERT(Base):
         truncation: bool = True,
         padding: bool = True,
         add_special_tokens: bool = False,
-        max_length: int = 256,
+        max_length: int = 500,
         **kwargs,
     ) -> torch.Tensor:
         """Pytorch forward method.
@@ -163,7 +184,7 @@ class ColBERT(Base):
         padding: bool = True,
         add_special_tokens: bool = False,
         tqdm_bar: bool = True,
-        max_length=256,
+        max_length=500,
         **kwargs,
     ) -> torch.Tensor:
         """Score queries and documents.
@@ -208,7 +229,7 @@ class ColBERT(Base):
             documents_embeddings = self(
                 texts=batch_documents,
                 truncation=truncation,
-                padding="max_length",
+                padding=padding,
                 max_length=max_length,
                 add_special_tokens=add_special_tokens,
                 **kwargs,

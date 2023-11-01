@@ -2,7 +2,6 @@ import json
 import os
 
 import torch
-from huggingface_hub import hf_hub_download
 from sentence_transformers import SentenceTransformer
 
 from ..utils import batchify

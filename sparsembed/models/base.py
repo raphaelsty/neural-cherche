@@ -84,7 +84,7 @@ class Base(ABC, torch.nn.Module):
             }
 
         output = self.model(**encoded_input)
-        return output.logits, output.hidden_states[0]
+        return output.logits, output.hidden_states[-1]
 
     @abstractmethod
     def forward(self, *args, **kwargs):

@@ -1,7 +1,6 @@
 import os
 
 import torch
-from transformers import AutoModelForMaskedLM, AutoTokenizer
 
 from .. import utils
 
@@ -26,7 +25,6 @@ class SparsEmbed(Splade):
 
     Example
     -------
-    >>> from transformers import AutoModelForMaskedLM, AutoTokenizer
     >>> from sparsembed import models
     >>> import torch
 
@@ -125,8 +123,11 @@ class SparsEmbed(Splade):
                 in_features = embeddings.shape[2]
 
         self.linear = torch.nn.Linear(
-            in_features=in_features, out_features=self.embedding_size, bias=False
-        ).to(self.device)
+            in_features=in_features,
+            out_features=self.embedding_size,
+            bias=False,
+            device=self.device,
+        )
 
         if os.path.exists(os.path.join(self.model_folder, "linear.pt")):
             self.linear.load_state_dict(linear)

@@ -1,5 +1,3 @@
-import typing
-
 import numpy as np
 
 __all__ = ["FaissIndex"]
@@ -111,11 +109,8 @@ class FaissIndex:
     def __call__(
         self,
         embeddings: np.ndarray,
-        k: typing.Optional[int] = None,
-    ) -> typing.Union[
-        typing.List[typing.List[typing.Dict[str, typing.Any]]],
-        typing.List[typing.Dict[str, typing.Any]],
-    ]:
+        k: int = None,
+    ) -> list[list[dict]]:
         if k is None:
             k = len(self)
 

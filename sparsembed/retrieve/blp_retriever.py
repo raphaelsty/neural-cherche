@@ -1,5 +1,3 @@
-from typing import Any
-
 import torch
 
 from ..models import BLP
