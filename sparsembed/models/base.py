@@ -66,6 +66,9 @@ class Base(ABC, torch.nn.Module):
             snapshot = os.listdir(model_folder)[-1]
             self.model_folder = os.path.join(model_folder, snapshot)
 
+        self.query_pad_token = self.tokenizer.mask_token
+        self.original_pad_token = self.tokenizer.pad_token
+
     def _encode(self, texts: list[str], **kwargs) -> tuple[torch.Tensor, torch.Tensor]:
         """Encode sentences.
 

@@ -80,16 +80,19 @@ def train_splade(
 
     anchor_activations = model(
         anchor,
+        query_mode=True,
         **kwargs,
     )
 
     positive_activations = model(
         positive,
+        query_mode=False,
         **kwargs,
     )
 
     negative_activations = model(
         negative,
+        query_mode=False,
         **kwargs,
     )
 

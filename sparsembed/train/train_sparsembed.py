@@ -11,7 +11,6 @@ def train_sparsembed(
     anchor: list[str],
     positive: list[str],
     negative: list[str],
-    k_tokens: int = 256,
     flops_loss_weight: float = 1e-4,
     sparse_loss_weight: float = 0.1,
     dense_loss_weight: float = 1.0,
@@ -91,19 +90,19 @@ def train_sparsembed(
 
     anchor_activations = model(
         anchor,
-        k_tokens=k_tokens,
+        query_mode=True,
         **kwargs,
     )
 
     positive_activations = model(
         positive,
-        k_tokens=k_tokens,
+        query_mode=False,
         **kwargs,
     )
 
     negative_activations = model(
         negative,
-        k_tokens=k_tokens,
+        query_mode=False,
         **kwargs,
     )
 

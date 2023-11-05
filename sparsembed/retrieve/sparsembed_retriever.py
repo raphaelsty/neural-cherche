@@ -4,12 +4,12 @@ import warnings
 import torch
 import tqdm
 
-from ..models import SparsEmbed
+from ..models import SparseEmbed
 
-__all__ = ["SparsEmbedRetriever"]
+__all__ = ["SparseEmbedRetriever"]
 
 
-class SparsEmbedRetriever:
+class SparseEmbedRetriever:
     """Retriever class.
 
     Parameters
@@ -31,13 +31,13 @@ class SparsEmbedRetriever:
 
     >>> device = "cpu"
 
-    >>> model = models.SparsEmbed(
+    >>> model = models.SparseEmbed(
     ...     model_name_or_path="raphaelsty/sparsembed-max",
     ...     device=device,
     ...     embedding_size=64,
     ... )
 
-    >>> retriever = retrieve.SparsEmbedRetriever(
+    >>> retriever = retrieve.SparseEmbedRetriever(
     ...     key="id", on="document", model=model)
 
     >>> documents = [
@@ -68,7 +68,7 @@ class SparsEmbedRetriever:
         self,
         key: str,
         on: list[str],
-        model: SparsEmbed,
+        model: SparseEmbed,
         tokenizer_parallelism: str = "false",
     ) -> None:
         self.key = key
@@ -92,7 +92,7 @@ class SparsEmbedRetriever:
         documents: list,
         batch_size: int = 32,
         k_tokens: int = 96,
-    ) -> "SparsEmbedRetriever":
+    ) -> "SparseEmbedRetriever":
         """Add new documents to the retriever.
 
         Computes documents embeddings and activations and update the sparse matrix.

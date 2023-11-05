@@ -1,3 +1,4 @@
+import json
 import os
 
 import torch
@@ -9,15 +10,13 @@ __all__ = ["SparseEmbed"]
 from .splade import Splade
 
 
-class SparsEmbed(Splade):
-    """SparsEmbed model.
+class SparseEmbed(Splade):
+    """SparseEmbed model.
 
     Parameters
     ----------
     model_name_or_path
         Path to the model or the model name. It should be a SentenceTransformer model.
-    k_tokens
-        Number of activated terms to retrieve.
     embedding_size
         Size of the embeddings in output of SparsEmbed model.
     kwargs
@@ -32,49 +31,48 @@ class SparsEmbed(Splade):
 
     >>> device = "mps"
 
-    >>> model = models.SparsEmbed(
-    ...     model_name_or_path="raphaelsty/sparsembed-max",
+    >>> model = models.SparseEmbed(
+    ...     model_name_or_path="distilbert-base-uncased",
     ...     device=device,
-    ...     embedding_size=64,
     ... )
 
     >>> queries_embeddings = model.encode(
     ...     ["Sports", "Music"],
-    ...     k_tokens=96,
-    ... )
-
-    >>> documents_embeddings = model.encode(
-    ...    ["Music is great.", "Sports is great."],
-    ...     k_tokens=96,
-    ... )
-
-    >>> query_expanded = model.decode(
-    ...     sparse_activations=queries_embeddings["sparse_activations"]
-    ... )
-
-    >>> documents_expanded = model.decode(
-    ...     sparse_activations=documents_embeddings["sparse_activations"]
     ... )
 
     >>> queries_embeddings["activations"].shape
-    torch.Size([2, 96])
+    torch.Size([2, 128])
 
     >>> queries_embeddings["sparse_activations"].shape
     torch.Size([2, 30522])
 
     >>> queries_embeddings["embeddings"].shape
-    torch.Size([2, 96, 64])
+    torch.Size([2, 128, 128])
+
+    >>> documents_embeddings = model.encode(
+    ...    ["Music is great.", "Sports is great."],
+    ...    query_mode=False,
+    ... )
+
+    >>> documents_embeddings["activations"].shape
+    torch.Size([2, 256])
+
+    >>> documents_embeddings["sparse_activations"].shape
+    torch.Size([2, 30522])
+
+    >>> documents_embeddings["embeddings"].shape
+    torch.Size([2, 256, 128])
 
     >>> model.scores(
     ...     queries=["Sports", "Music"],
     ...     documents=["Sports is great.", "Music is great."],
     ...     batch_size=1,
     ... )
-    tensor([61.6028, 48.5660], device='mps:0')
+    tensor([191.8976, 178.3630], device='mps:0')
 
     >>> _ = model.save_pretrained("checkpoint")
 
-    >>> model = models.SparsEmbed(
+    >>> model = models.SparseEmbed(
     ...     model_name_or_path="checkpoint",
     ...     device=device,
     ... )
@@ -84,10 +82,7 @@ class SparsEmbed(Splade):
     ...     documents=["Sports is great.", "Music is great."],
     ...     batch_size=1,
     ... )
-    tensor([61.6028, 48.5660], device='mps:0')
-
-    >>> queries_embeddings["embeddings"].shape
-    torch.Size([2, 96, 64])
+    tensor([191.8976, 178.3630], device='mps:0')
 
     References
     ----------
@@ -98,14 +93,16 @@ class SparsEmbed(Splade):
     def __init__(
         self,
         model_name_or_path: str = None,
-        embedding_size: int = 64,
+        embedding_size: int = 128,
+        max_length_query: int = 128,
+        max_length_document: int = 256,
         device: str = None,
         **kwargs,
     ) -> None:
-        super(SparsEmbed, self).__init__(
+        super(SparseEmbed, self).__init__(
             model_name_or_path=model_name_or_path,
             device=device,
-            extra_files_to_load=["linear.pt"],
+            extra_files_to_load=["linear.pt", "metadata.json"],
             **kwargs,
         )
 
@@ -134,24 +131,45 @@ class SparsEmbed(Splade):
         if os.path.exists(os.path.join(self.model_folder, "linear.pt")):
             self.linear.load_state_dict(linear)
 
+        if os.path.exists(os.path.join(self.model_folder, "metadata.json")):
+            with open(os.path.join(self.model_folder, "metadata.json"), "r") as file:
+                metadata = json.load(file)
+
+            max_length_query = metadata["max_length_query"]
+            max_length_document = metadata["max_length_document"]
+
+        self.max_length_query = max_length_query
+        self.max_length_document = max_length_document
+
     def forward(
         self,
         texts: list[str],
-        k_tokens: int = 96,
-        truncation: bool = True,
-        padding: bool = True,
-        max_length: int = 256,
+        query_mode: bool = True,
         **kwargs,
     ) -> dict[str, torch.Tensor]:
-        """Pytorch forward method."""
-        kwargs = {
-            "truncation": truncation,
-            "padding": padding,
-            "max_length": max_length,
-            **kwargs,
-        }
+        """Pytorch forward method.
 
-        logits, embeddings = self._encode(texts=texts, **kwargs)
+        Parameters
+        ----------
+        texts
+            List of documents to encode.
+        query_mode
+            Whether to encode queries or documents.
+        """
+        suffix = "[Q] " if query_mode else "[D] "
+
+        texts = [suffix + text for text in texts]
+
+        self.tokenizer.pad_token = (
+            self.query_pad_token if query_mode else self.original_pad_token
+        )
+
+        k_tokens = self.max_length_query if query_mode else self.max_length_document
+
+        logits, embeddings = self._encode(
+            texts=texts,
+            **kwargs,
+        )
 
         activations = self._update_activations(
             **self._get_activation(logits=logits),
@@ -195,17 +213,23 @@ class SparsEmbed(Splade):
         self.model.save_pretrained(path)
         self.tokenizer.save_pretrained(path)
         torch.save(self.linear.state_dict(), os.path.join(path, "linear.pt"))
+        with open(os.path.join(path, "metadata.json"), "w") as file:
+            json.dump(
+                fp=file,
+                obj={
+                    "max_length_query": self.max_length_query,
+                    "max_length_document": self.max_length_document,
+                },
+                indent=4,
+            )
+
         return self
 
     def scores(
         self,
         queries: list[str],
         documents: list[str],
-        k_tokens: int = 96,
         batch_size: int = 32,
-        truncation: bool = True,
-        padding: bool = True,
-        max_length: int = 256,
         tqdm_bar: bool = True,
         **kwargs,
     ) -> torch.Tensor:
@@ -222,20 +246,14 @@ class SparsEmbed(Splade):
             utils.batchify(X=documents, batch_size=batch_size, tqdm_bar=False),
         ):
             queries_embeddings = self.encode(
-                batch_queries,
-                k_tokens=k_tokens,
-                truncation=truncation,
-                padding=padding,
-                max_length=max_length,
+                texts=batch_queries,
+                query_mode=True,
                 **kwargs,
             )
 
             documents_embeddings = self.encode(
-                batch_documents,
-                k_tokens=k_tokens,
-                truncation=truncation,
-                padding=padding,
-                max_length=max_length,
+                texts=batch_documents,
+                query_mode=False,
                 **kwargs,
             )
 

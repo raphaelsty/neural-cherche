@@ -75,7 +75,7 @@ class ColBERT(Base):
     ...     query_mode=True
     ... )
 
-    >>> embeddings.shape
+    >>> embeddings["embeddings"].shape
     torch.Size([3, 32, 128])
 
     >>> embeddings = encoder(
@@ -83,7 +83,7 @@ class ColBERT(Base):
     ...     query_mode=False
     ... )
 
-    >>> embeddings.shape
+    >>> embeddings["embeddings"].shape
     torch.Size([3, 350, 128])
 
     """
@@ -136,9 +136,6 @@ class ColBERT(Base):
         if os.path.exists(os.path.join(self.model_folder, "linear.pt")):
             self.linear.load_state_dict(linear)
 
-        self.query_pad_token = self.tokenizer.mask_token
-        self.original_pad_token = self.tokenizer.pad_token
-
     def encode(
         self,
         texts: list[str],
@@ -146,7 +143,7 @@ class ColBERT(Base):
         add_special_tokens: bool = False,
         query_mode: bool = True,
         **kwargs,
-    ) -> torch.Tensor:
+    ) -> dict[str, torch.Tensor]:
         """Encode documents
 
         Parameters
@@ -177,7 +174,7 @@ class ColBERT(Base):
         add_special_tokens: bool = False,
         query_mode: bool = True,
         **kwargs,
-    ) -> torch.Tensor:
+    ) -> dict[str, torch.Tensor]:
         """Pytorch forward method.
 
         Parameters
@@ -188,11 +185,11 @@ class ColBERT(Base):
             Truncate the inputs.
         add_special_tokens
             Add special tokens.
-        max_length
-            Maximum length of the inputs.
         """
         suffix = "[Q] " if query_mode else "[D] "
+
         texts = [suffix + text for text in texts]
+
         self.tokenizer.pad_token = (
             self.query_pad_token if query_mode else self.original_pad_token
         )
@@ -206,8 +203,14 @@ class ColBERT(Base):
             "add_special_tokens": add_special_tokens,
             **kwargs,
         }
+
         _, embeddings = self._encode(texts=texts, **kwargs)
-        return torch.nn.functional.normalize(self.linear(embeddings), p=2, dim=2)
+
+        return {
+            "embeddings": torch.nn.functional.normalize(
+                self.linear(embeddings), p=2, dim=2
+            )
+        }
 
     def scores(
         self,
@@ -266,7 +269,9 @@ class ColBERT(Base):
             )
 
             late_interactions = torch.einsum(
-                "bsh,bth->bst", queries_embeddings, documents_embeddings
+                "bsh,bth->bst",
+                queries_embeddings["embeddings"],
+                documents_embeddings["embeddings"],
             )
 
             late_interactions = torch.max(late_interactions, axis=2).values.sum(axis=1)

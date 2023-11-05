@@ -1,15 +1,14 @@
 import os
-import warnings
 
-import torch
-import tqdm
+from scipy.sparse import csr_matrix
 
 from ..models import Splade
+from .tfidf_retriever import TfIdfRetriever
 
 __all__ = ["SpladeRetriever"]
 
 
-class SpladeRetriever:
+class SpladeRetriever(TfIdfRetriever):
     """Retriever class.
 
     Parameters
@@ -24,39 +23,45 @@ class SpladeRetriever:
     Example
     -------
     >>> from sparsembed import models, retrieve
-    >>> from pprint import pprint as print
+    >>> from pprint import pprint
     >>> import torch
 
     >>> _ = torch.manual_seed(42)
-
-    >>> model = models.Splade(
-    ...     model_name_or_path="raphaelsty/splade-max",
-    ...     device="cpu",
-    ... )
-
-    >>> retriever = retrieve.SpladeRetriever(key="id", on="document", model=model)
 
     >>> documents = [
     ...     {"id": 0, "document": "Food"},
     ...     {"id": 1, "document": "Sports"},
     ...     {"id": 2, "document": "Cinema"},
     ... ]
+
+    >>> model = models.Splade(
+    ...     model_name_or_path="distilbert-base-uncased",
+    ...     device="mps",
+    ... )
+
+    >>> retriever = retrieve.SpladeRetriever(key="id", on="document", model=model)
+
     >>> retriever = retriever.add(
     ...     documents=documents,
-    ...     k_tokens=256,
     ...     batch_size=32,
     ... )
 
-    >>> print(retriever(["Food", "Sports", "Cinema"],  k_tokens=256, batch_size=32))
-    [[{'id': 0, 'similarity': 15.746589660644531},
-      {'id': 2, 'similarity': 2.385589838027954},
-      {'id': 1, 'similarity': 2.3080930709838867}],
-     [{'id': 1, 'similarity': 14.190367698669434},
-      {'id': 0, 'similarity': 2.3080930709838867},
-      {'id': 2, 'similarity': 2.0272157192230225}],
-     [{'id': 2, 'similarity': 21.183313369750977},
-      {'id': 0, 'similarity': 2.385589838027954},
-      {'id': 1, 'similarity': 2.0272157192230225}]]
+    >>> matchs = retriever(
+    ...     ["Food", "Sports", "Cinema"],
+    ...     batch_size=32,
+    ...     k=3,
+    ... )
+
+    >>> pprint(matchs)
+    [[{'id': 0, 'similarity': 380.16464},
+      {'id': 1, 'similarity': 318.81836},
+      {'id': 2, 'similarity': 318.04926}],
+     [{'id': 1, 'similarity': 356.52582},
+      {'id': 2, 'similarity': 312.32935},
+      {'id': 0, 'similarity': 262.64456}],
+     [{'id': 2, 'similarity': 362.6682},
+      {'id': 1, 'similarity': 334.7304},
+      {'id': 0, 'similarity': 295.53903}]]
 
     """
 
@@ -67,27 +72,49 @@ class SpladeRetriever:
         model: Splade,
         tokenizer_parallelism: str = "false",
     ) -> None:
-        self.key = key
-        self.on = [on] if isinstance(on, str) else on
-        self.model = model
-        self.vocabulary_size = len(model.tokenizer.get_vocab())
+        super().__init__(
+            key=key,
+            on=on,
+        )
 
-        # Mapping between sparse matrix index and document key.
-        self.sparse_matrix = None
-        self.documents_keys = {}
+        self.model = model
+
+        # TfIdf Retriever.
+        self.fit = True
 
         # Documents embeddings and activations store.
-        self.documents_embeddings, self.documents_activations = [], []
+        self.documents_embeddings = []
         os.environ["TOKENIZERS_PARALLELISM"] = tokenizer_parallelism
-        warnings.filterwarnings(
-            "ignore", ".*Sparse CSR tensor support is in beta state.*"
+
+    def transform_queries(self, texts: list[str], **kwargs) -> csr_matrix:
+        """Transform queries into sparse matrix."""
+        return csr_matrix(
+            self.model.encode(
+                texts=texts,
+                query_mode=True,
+                **kwargs,
+            )["sparse_activations"]
+            .detach()
+            .cpu()
+        )
+
+    def transform_documents(self, texts: list[str], **kwargs) -> csr_matrix:
+        """Transform queries into sparse matrix."""
+        return csr_matrix(
+            self.model.encode(
+                texts=texts,
+                query_mode=False,
+                **kwargs,
+            )["sparse_activations"]
+            .detach()
+            .cpu()
         )
 
     def add(
         self,
         documents: list,
         batch_size: int = 32,
-        k_tokens: int = 256,
+        tqdm_bar: bool = False,
         **kwargs,
     ) -> "SpladeRetriever":
         """Add new documents to the retriever.
@@ -101,27 +128,13 @@ class SpladeRetriever:
         batch_size
             Batch size.
         """
-
-        for X in self._to_batch(documents, batch_size=batch_size):
-            sparse_matrix = self._build_index(
-                X=[" ".join([document[field] for field in self.on]) for document in X],
-                k_tokens=k_tokens,
-                **kwargs,
-            )
-
-            self.sparse_matrix = (
-                sparse_matrix.T
-                if self.sparse_matrix is None
-                else torch.cat([self.sparse_matrix.to_sparse(), sparse_matrix.T], dim=1)
-            )
-
-            self.documents_keys = {
-                **self.documents_keys,
-                **{
-                    len(self.documents_keys) + index: document[self.key]
-                    for index, document in enumerate(X)
-                },
-            }
+        super().add(
+            documents=documents,
+            batch_size=batch_size,
+            tqdm_bar=tqdm_bar,
+            transform=self.transform_documents,
+            **kwargs,
+        )
 
         return self
 
@@ -130,7 +143,7 @@ class SpladeRetriever:
         q: list[str],
         k: int = 100,
         batch_size: int = 32,
-        k_tokens: int = 256,
+        tqdm_bar: bool = False,
         **kwargs,
     ) -> list:
         """Retrieve documents.
@@ -142,70 +155,11 @@ class SpladeRetriever:
         k_sparse
             Number of documents to retrieve.
         """
-        q = [q] if isinstance(q, str) else q
-
-        ranked = []
-
-        for X in self._to_batch(q, batch_size=batch_size):
-            sparse_matrix = self._build_index(
-                X=X,
-                k_tokens=k_tokens,
-                **kwargs,
-            )
-
-            sparse_scores = (sparse_matrix @ self.sparse_matrix).to_dense()
-
-            ranked += self._rank(
-                sparse_scores=sparse_scores,
-                k=k,
-            )
-
-        return ranked
-
-    def _rank(self, sparse_scores: torch.Tensor, k: int) -> list:
-        """Rank documents by scores.
-
-        Parameters
-        ----------
-        scores
-            Scores between queries and documents.
-        matchs
-            Documents matchs.
-        """
-        sparse_scores, sparse_matchs = torch.topk(
-            input=sparse_scores, k=min(k, len(self.documents_keys)), dim=-1
+        return super().__call__(
+            q=q,
+            k=k,
+            batch_size=batch_size,
+            tqdm_bar=tqdm_bar,
+            transform=self.transform_queries,
+            **kwargs,
         )
-
-        sparse_scores = sparse_scores.tolist()
-        sparse_matchs = sparse_matchs.tolist()
-
-        return [
-            [
-                {
-                    self.key: self.documents_keys[document],
-                    "similarity": score,
-                }
-                for score, document in zip(query_scores, query_matchs)
-            ]
-            for query_scores, query_matchs in zip(sparse_scores, sparse_matchs)
-        ]
-
-    def _build_index(
-        self,
-        X: list[str],
-        k_tokens: int,
-        **kwargs,
-    ) -> tuple[list, list, torch.Tensor]:
-        """Build a sparse matrix index."""
-        batch_embeddings = self.model.encode(X, k_tokens=k_tokens, **kwargs)
-        return batch_embeddings["sparse_activations"].to_sparse()
-
-    @staticmethod
-    def _to_batch(X: list, batch_size: int) -> list:
-        """Convert input list to batch."""
-        for X in tqdm.tqdm(
-            [X[pos : pos + batch_size] for pos in range(0, len(X), batch_size)],
-            position=0,
-            total=1 + len(X) // batch_size,
-        ):
-            yield X

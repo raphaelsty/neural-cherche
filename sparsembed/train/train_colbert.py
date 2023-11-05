@@ -67,29 +67,32 @@ def train_colbert(
     ...     )
 
     >>> loss
-    {'loss': tensor(0.0007, device='mps:0', grad_fn=<ClampBackward1>)}
+    {'loss': tensor(6.2146e-05, device='mps:0', grad_fn=<ClampBackward1>)}
 
     """
 
     anchor_embeddings = model(
         anchor,
+        query_mode=True,
         **kwargs,
     )
 
     positive_embeddings = model(
         positive,
+        query_mode=False,
         **kwargs,
     )
 
     negative_embeddings = model(
         negative,
+        query_mode=False,
         **kwargs,
     )
 
     scores = utils.colbert_scores(
-        anchor_embeddings=anchor_embeddings,
-        positive_embeddings=positive_embeddings,
-        negative_embeddings=negative_embeddings,
+        anchor_embeddings=anchor_embeddings["embeddings"],
+        positive_embeddings=positive_embeddings["embeddings"],
+        negative_embeddings=negative_embeddings["embeddings"],
         in_batch_negatives=in_batch_negatives,
     )
 

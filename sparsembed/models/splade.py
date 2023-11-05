@@ -1,3 +1,5 @@
+import json
+import os
 import string
 
 import torch
@@ -35,6 +37,7 @@ class Splade(Base):
 
     >>> documents_activations = model.encode(
     ...    ["Music is great.", "Sports is great."],
+    ...    query_mode=False,
     ... )
 
     >>> queries_activations["sparse_activations"].shape
@@ -45,7 +48,7 @@ class Splade(Base):
     ...     documents=["Sports is great.", "Music is great."],
     ...     batch_size=1
     ... )
-    tensor([13.0526, 14.1928], device='mps:0')
+    tensor([0.0487, 0.2794], device='mps:0')
 
     >>> _ = model.save_pretrained("checkpoint")
 
@@ -59,7 +62,7 @@ class Splade(Base):
     ...     documents=["Sports is great.", "Music is great."],
     ...     batch_size=1
     ... )
-    tensor([13.0526, 14.1928], device='mps:0')
+    tensor([0.0487, 0.2794], device='mps:0')
 
     References
     ----------
@@ -71,23 +74,34 @@ class Splade(Base):
         self,
         model_name_or_path: str = None,
         device: str = None,
+        max_length_query: int = 128,
+        max_length_document: int = 256,
+        extra_files_to_load: list[str] = ["metadata.json"],
         **kwargs,
     ) -> None:
         super(Splade, self).__init__(
             model_name_or_path=model_name_or_path,
             device=device,
+            extra_files_to_load=extra_files_to_load,
             **kwargs,
         )
 
         self.relu = torch.nn.ReLU().to(self.device)
 
+        if os.path.exists(os.path.join(self.model_folder, "metadata.json")):
+            with open(os.path.join(self.model_folder, "metadata.json"), "r") as file:
+                metadata = json.load(file)
+
+            max_length_query = metadata["max_length_query"]
+            max_length_document = metadata["max_length_document"]
+
+        self.max_length_query = max_length_query
+        self.max_length_document = max_length_document
+
     def encode(
         self,
         texts: list[str],
-        truncation: bool = True,
-        padding: bool = True,
-        max_length: int = 256,
-        k_tokens: int = 256,
+        query_mode: bool = True,
         **kwargs,
     ) -> dict[str, torch.Tensor]:
         """Encode documents
@@ -102,16 +116,11 @@ class Splade(Base):
             Whether to pad the documents.
         max_length
             Maximum length of the documents.
-        k_tokens
-            Number of tokens to keep.
         """
         with torch.no_grad():
             return self(
                 texts=texts,
-                k_tokens=k_tokens,
-                truncation=truncation,
-                padding=padding,
-                max_length=max_length,
+                query_mode=query_mode,
                 **kwargs,
             )
 
@@ -121,7 +130,6 @@ class Splade(Base):
         clean_up_tokenization_spaces: bool = False,
         skip_special_tokens: bool = True,
         k_tokens: int = 96,
-        **kwargs,
     ) -> list[str]:
         """Decode activated tokens ids where activated value > 0.
 
@@ -155,10 +163,7 @@ class Splade(Base):
     def forward(
         self,
         texts: list[str],
-        truncation: bool = True,
-        padding: bool = True,
-        k_tokens: int = None,
-        max_length: int = 256,
+        query_mode: bool,
         **kwargs,
     ) -> dict[str, torch.Tensor]:
         """Pytorch forward method.
@@ -167,23 +172,27 @@ class Splade(Base):
         ----------
         texts
             List of documents to encode.
-        truncation
-            Whether to truncate the documents.
-        padding
-            Whether to pad the documents.
-        k_tokens
-            Number of tokens to keep.
-        max_length
-            Maximum length of the documents.
+        query_mode
+            Whether to encode queries or documents.
         """
-        kwargs = {
-            "truncation": truncation,
-            "padding": padding,
-            "max_length": max_length,
-            **kwargs,
-        }
+        suffix = "[Q] " if query_mode else "[D] "
 
-        logits, _ = self._encode(texts=texts, **kwargs)
+        texts = [suffix + text for text in texts]
+
+        self.tokenizer.pad_token = (
+            self.query_pad_token if query_mode else self.original_pad_token
+        )
+
+        k_tokens = self.max_length_query if query_mode else self.max_length_document
+
+        logits, _ = self._encode(
+            texts=texts,
+            truncation=True,
+            padding="max_length",
+            max_length=k_tokens,
+            add_special_tokens=False,
+            **kwargs,
+        )
 
         activations = self._get_activation(logits=logits)
 
@@ -196,9 +205,28 @@ class Splade(Base):
         return {"sparse_activations": activations["sparse_activations"]}
 
     def save_pretrained(self, path: str):
-        """Save model the model."""
+        """Save model the model.
+
+        Parameters
+        ----------
+        path
+            Path to save the model.
+
+        """
         self.model.save_pretrained(path)
+        self.tokenizer.pad_token = self.original_pad_token
         self.tokenizer.save_pretrained(path)
+
+        with open(os.path.join(path, "metadata.json"), "w") as file:
+            json.dump(
+                fp=file,
+                obj={
+                    "max_length_query": self.max_length_query,
+                    "max_length_document": self.max_length_document,
+                },
+                indent=4,
+            )
+
         return self
 
     def scores(
@@ -206,14 +234,22 @@ class Splade(Base):
         queries: list[str],
         documents: list[str],
         batch_size: int = 32,
-        k_tokens: int = 256,
-        truncation: bool = True,
-        padding: bool = True,
-        max_length: int = 256,
         tqdm_bar: bool = True,
         **kwargs,
     ) -> torch.Tensor:
-        """Compute similarity scores between queries and documents."""
+        """Compute similarity scores between queries and documents.
+
+        Parameters
+        ----------
+        queries
+            List of queries.
+        documents
+            List of documents.
+        batch_size
+            Batch size.
+        tqdm_bar
+            Show a progress bar.
+        """
         sparse_scores = []
 
         for batch_queries, batch_documents in zip(
@@ -227,19 +263,13 @@ class Splade(Base):
         ):
             queries_embeddings = self.encode(
                 batch_queries,
-                k_tokens=k_tokens,
-                truncation=truncation,
-                padding=padding,
-                max_length=max_length,
+                query_mode=True,
                 **kwargs,
             )
 
             documents_embeddings = self.encode(
                 batch_documents,
-                k_tokens=k_tokens,
-                truncation=truncation,
-                padding=padding,
-                max_length=max_length,
+                query_mode=False,
                 **kwargs,
             )
 

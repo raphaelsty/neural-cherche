@@ -17,6 +17,7 @@ class ColBERTRanker:
     Example
     -------
     >>> from sparsembed import models, rank
+    >>> from pprint import pprint
     >>> import torch
 
     >>> _ = torch.manual_seed(42)
@@ -72,17 +73,25 @@ class ColBERTRanker:
     >>> assert len(matchs) == 3
     >>> assert len(matchs[0]) == 2
 
-    >>> ranker(
+    >>> pprint(ranker(
     ...     q=q,
     ...     documents=[documents for _ in q],
     ...     embeddings_queries=embeddings_queries,
     ...     embeddings_documents=embeddings_documents,
-    ...     batch_size=1,
+    ...     batch_size=2,
     ...     tqdm_bar=True,
     ...     k=1,
-    ... )
-    [[{'id': 1, 'text': 'Berlin is the capital of Germany', 'similarity': 20.214763641357422}], [{'id': 2, 'text': 'Paris is the capital of France and France is in Europe', 'similarity': 16.75994873046875}], [{'id': 3, 'text': 'London is the capital of England', 'similarity': 18.290054321289062}]]
-
+    ... ))
+    [[{'id': 1,
+       'similarity': 20.214763641357422,
+       'text': 'Berlin is the capital of Germany'}],
+     [{'id': 2,
+       'similarity': 16.75994873046875,
+       'text': 'Paris is the capital of France and France is in Europe'}],
+     [{'id': 3,
+       'similarity': 18.290054321289062,
+       'text': 'London is the capital of England'}]]
+    
     """
 
     def __init__(
@@ -186,7 +195,9 @@ class ColBERTRanker:
                 **kwargs,
             )
 
-            batch_embeddings = batch_embeddings.cpu().detach().numpy().astype("float32")
+            batch_embeddings = (
+                batch_embeddings["embeddings"].cpu().detach().numpy().astype("float32")
+            )
 
             for query, embedding in zip(batch_texts, batch_embeddings):
                 embeddings[query] = embedding
