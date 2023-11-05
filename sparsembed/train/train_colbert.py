@@ -67,7 +67,7 @@ def train_colbert(
     ...     )
 
     >>> loss
-    {'loss': tensor(0.6143, device='mps:0', grad_fn=<ClampBackward1>)}
+    {'loss': tensor(0.0007, device='mps:0', grad_fn=<ClampBackward1>)}
 
     """
 

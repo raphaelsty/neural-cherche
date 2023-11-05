@@ -28,6 +28,9 @@ class BLP(torch.nn.Module):
     Example
     -------
     >>> from sparsembed import models
+    >>> import torch
+
+    >>> _ = torch.manual_seed(42)
 
     >>> model = models.BLP(
     ...     model_name_or_path="sentence-transformers/all-mpnet-base-v2",
@@ -62,11 +65,10 @@ class BLP(torch.nn.Module):
     ...     batch_size=2,
     ... )
 
-    >>> scores.shape
-    torch.Size([4])
+    >>> scores
+    tensor([-19.2297, -19.2082, -18.8848, -18.8848], device='mps:0')
 
     >>> model = model.save_pretrained(path="checkpoint")
-
     >>> model = models.BLP(model_name_or_path="checkpoint")
 
     >>> scores = model.scores_triples(
@@ -74,8 +76,8 @@ class BLP(torch.nn.Module):
     ...     batch_size=2,
     ... )
 
-    >>> scores.shape
-    torch.Size([4])
+    >>> scores
+    tensor([-19.2297, -19.2082, -18.8848, -18.8848])
 
     """
 

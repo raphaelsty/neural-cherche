@@ -23,8 +23,10 @@ class ColBERTRanker:
 
     >>> encoder = models.ColBERT(
     ...     model_name_or_path="sentence-transformers/all-mpnet-base-v2",
-    ...     embedding_size=64,
+    ...     embedding_size=128,
     ...     device="mps",
+    ...     max_length_query=32,
+    ...     max_length_document=350,
     ... )
 
     >>> ranker = rank.ColBERTRanker(
@@ -48,8 +50,14 @@ class ColBERTRanker:
 
     >>> embeddings_documents = ranker.encode_documents(
     ...     documents=documents,
-    ...     batch_size=2,
+    ...     batch_size=1,
     ... )
+
+    >>> for query, query_embedding in embeddings_queries.items():
+    ...     assert query_embedding.shape[0] == 32
+
+    >>> for query, documents_embedding in embeddings_documents.items():
+    ...     assert documents_embedding.shape[0] == 350
 
     >>> matchs = ranker(
     ...     q=q,
@@ -64,18 +72,16 @@ class ColBERTRanker:
     >>> assert len(matchs) == 3
     >>> assert len(matchs[0]) == 2
 
-    >>> matchs = ranker(
-    ...     q=q[0],
-    ...     documents=documents,
+    >>> ranker(
+    ...     q=q,
+    ...     documents=[documents for _ in q],
     ...     embeddings_queries=embeddings_queries,
     ...     embeddings_documents=embeddings_documents,
-    ...     batch_size=2,
+    ...     batch_size=1,
     ...     tqdm_bar=True,
-    ...     k=2,
+    ...     k=1,
     ... )
-
-    >>> matchs
-    [{'id': 1, 'text': 'Berlin is the capital of Germany', 'similarity': 0.02357814833521843}, {'id': 2, 'text': 'Paris is the capital of France and France is in Europe', 'similarity': 0.019557710736989975}]
+    [[{'id': 1, 'text': 'Berlin is the capital of Germany', 'similarity': 20.214763641357422}], [{'id': 2, 'text': 'Paris is the capital of France and France is in Europe', 'similarity': 16.75994873046875}], [{'id': 3, 'text': 'London is the capital of England', 'similarity': 18.290054321289062}]]
 
     """
 
@@ -97,7 +103,7 @@ class ColBERTRanker:
         tqdm_bar: bool = True,
         truncation: bool = True,
         add_special_tokens: bool = False,
-        max_length: int = 500,
+        query_mode: bool = False,
         **kwargs,
     ) -> dict[str, torch.Tensor]:
         """Encode documents.
@@ -126,11 +132,14 @@ class ColBERTRanker:
             batch_size=batch_size,
             tqdm_bar=tqdm_bar,
             truncation=truncation,
-            padding="max_length",  # padding is always True, documents are padded to max_length
             add_special_tokens=add_special_tokens,
-            max_length=max_length,
+            query_mode=query_mode,
             **kwargs,
         )
+
+        for _, embedding in embeddings.items():
+            if embedding.shape[0] < self.model.max_length_document:
+                raise ValueError(embedding.shape)
 
         return {
             document[self.key]: embedding
@@ -143,9 +152,8 @@ class ColBERTRanker:
         batch_size: int = 32,
         tqdm_bar: bool = True,
         truncation: bool = True,
-        padding: bool = True,
         add_special_tokens: bool = False,
-        max_length: int = 500,
+        query_mode: bool = True,
         **kwargs,
     ) -> dict[str, torch.Tensor]:
         """Encode queries.
@@ -160,12 +168,10 @@ class ColBERTRanker:
             Show tqdm bar.
         truncation
             Truncate the inputs.
-        padding
-            Pad the inputs.
         add_special_tokens
             Add special tokens.
-        max_length
-            Maximum length of the inputs.
+        query
+            Wether the model encode queries or documents.
         """
         embeddings = {}
 
@@ -175,9 +181,8 @@ class ColBERTRanker:
             batch_embeddings = self.model.encode(
                 texts=batch_texts,
                 truncation=truncation,
-                padding=padding,
                 add_special_tokens=add_special_tokens,
-                max_length=max_length,
+                query_mode=query_mode,
                 **kwargs,
             )
 

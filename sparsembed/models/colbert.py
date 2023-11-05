@@ -1,3 +1,4 @@
+import json
 import os
 
 import torch
@@ -29,17 +30,6 @@ class ColBERT(Base):
 
     >>> _ = torch.manual_seed(42)
 
-    >>> encoder = models.ColBERT(
-    ...     model_name_or_path="sentence-transformers/all-mpnet-base-v2",
-    ...     embedding_size=64,
-    ...     device="mps",
-    ... )
-
-    >>> embeddings = encoder(texts=["Sports Music Sports", "Music Sports Music"])
-
-    >>> embeddings.shape
-    torch.Size([2, 3, 64])
-
     >>> queries = ["Berlin", "Paris", "London"]
 
     >>> documents = [
@@ -48,41 +38,75 @@ class ColBERT(Base):
     ...     "London is the capital of England",
     ... ]
 
+    >>> encoder = models.ColBERT(
+    ...     model_name_or_path="sentence-transformers/all-mpnet-base-v2",
+    ...     embedding_size=128,
+    ...     max_length_query=32,
+    ...     max_length_document=350,
+    ...     device="mps",
+    ... )
+
     >>> scores = encoder.scores(
     ...    queries=queries,
     ...    documents=documents,
     ... )
 
     >>> scores
-    tensor([0.0236, 0.0239, 0.0246], device='mps:0', grad_fn=<CatBackward0>)
+    tensor([20.2148, 16.7599, 18.2901], device='mps:0', grad_fn=<CatBackward0>)
 
     >>> _ = encoder.save_pretrained("checkpoint")
 
+    >>> encoder = models.ColBERT(
+    ...     model_name_or_path="checkpoint",
+    ...     embedding_size=64,
+    ...     device="cpu",
+    ... )
+
     >>> scores = encoder.scores(
     ...    queries=queries,
     ...    documents=documents,
     ... )
 
     >>> scores
-    tensor([0.0236, 0.0239, 0.0246], device='mps:0', grad_fn=<CatBackward0>)
+    tensor([20.2148, 16.7599, 18.2900], grad_fn=<CatBackward0>)
+
+    >>> embeddings = encoder(
+    ...     texts=queries,
+    ...     query_mode=True
+    ... )
+
+    >>> embeddings.shape
+    torch.Size([3, 32, 128])
+
+    >>> embeddings = encoder(
+    ...     texts=queries,
+    ...     query_mode=False
+    ... )
+
+    >>> embeddings.shape
+    torch.Size([3, 350, 128])
 
     """
 
     def __init__(
         self,
         model_name_or_path: str,
-        embedding_size: int = 64,
+        embedding_size: int = 128,
         device: str = None,
+        max_length_query: int = 32,
+        max_length_document: int = 350,
         **kwargs,
     ) -> None:
         """Initialize the model."""
         super(ColBERT, self).__init__(
             model_name_or_path=model_name_or_path,
             device=device,
-            extra_files_to_load=["linear.pt"],
+            extra_files_to_load=["linear.pt", "metadata.json"],
             **kwargs,
         )
 
+        self.max_length_query = max_length_query
+        self.max_length_document = max_length_document
         self.embedding_size = embedding_size
 
         if os.path.exists(os.path.join(self.model_folder, "linear.pt")):
@@ -103,16 +127,24 @@ class ColBERT(Base):
             device=self.device,
         )
 
+        if os.path.exists(os.path.join(self.model_folder, "metadata.json")):
+            with open(os.path.join(self.model_folder, "metadata.json"), "r") as f:
+                metadata = json.load(f)
+            self.max_length_document = metadata["max_length_document"]
+            self.max_length_query = metadata["max_length_query"]
+
         if os.path.exists(os.path.join(self.model_folder, "linear.pt")):
             self.linear.load_state_dict(linear)
+
+        self.query_pad_token = self.tokenizer.mask_token
+        self.original_pad_token = self.tokenizer.pad_token
 
     def encode(
         self,
         texts: list[str],
         truncation: bool = True,
-        padding: bool = True,
         add_special_tokens: bool = False,
-        max_length: int = 500,
+        query_mode: bool = True,
         **kwargs,
     ) -> torch.Tensor:
         """Encode documents
@@ -123,8 +155,6 @@ class ColBERT(Base):
             List of sentences to encode.
         truncation
             Truncate the inputs.
-        padding
-            Pad the inputs.
         add_special_tokens
             Add special tokens.
         max_length
@@ -134,9 +164,8 @@ class ColBERT(Base):
             embeddings = self(
                 texts=texts,
                 truncation=truncation,
-                padding=padding,
                 add_special_tokens=add_special_tokens,
-                max_length=max_length,
+                query_mode=query_mode,
                 **kwargs,
             )
         return embeddings
@@ -145,9 +174,8 @@ class ColBERT(Base):
         self,
         texts: list[str],
         truncation: bool = True,
-        padding: bool = True,
         add_special_tokens: bool = False,
-        max_length: int = 500,
+        query_mode: bool = True,
         **kwargs,
     ) -> torch.Tensor:
         """Pytorch forward method.
@@ -158,22 +186,28 @@ class ColBERT(Base):
             List of sentences to encode.
         truncation
             Truncate the inputs.
-        padding
-            Pad the inputs.
         add_special_tokens
             Add special tokens.
         max_length
             Maximum length of the inputs.
         """
+        suffix = "[Q] " if query_mode else "[D] "
+        texts = [suffix + text for text in texts]
+        self.tokenizer.pad_token = (
+            self.query_pad_token if query_mode else self.original_pad_token
+        )
+
         kwargs = {
             "truncation": truncation,
-            "padding": padding,
-            "max_length": max_length,
+            "padding": "max_length",
+            "max_length": self.max_length_query
+            if query_mode
+            else self.max_length_document,
             "add_special_tokens": add_special_tokens,
             **kwargs,
         }
         _, embeddings = self._encode(texts=texts, **kwargs)
-        return self.linear(embeddings)
+        return torch.nn.functional.normalize(self.linear(embeddings), p=2, dim=2)
 
     def scores(
         self,
@@ -181,7 +215,6 @@ class ColBERT(Base):
         documents: list[str],
         batch_size: int = 2,
         truncation: bool = True,
-        padding: bool = True,
         add_special_tokens: bool = False,
         tqdm_bar: bool = True,
         max_length=500,
@@ -199,8 +232,6 @@ class ColBERT(Base):
             Batch size.
         truncation
             Truncate the inputs.
-        padding
-            Pad the inputs.
         add_special_tokens
             Add special tokens.
         tqdm_bar
@@ -220,18 +251,17 @@ class ColBERT(Base):
             queries_embeddings = self(
                 texts=batch_queries,
                 truncation=truncation,
-                padding=padding,
                 add_special_tokens=add_special_tokens,
-                max_length=max_length,
+                query_mode=True,
                 **kwargs,
             )
 
             documents_embeddings = self(
                 texts=batch_documents,
                 truncation=truncation,
-                padding=padding,
                 max_length=max_length,
                 add_special_tokens=add_special_tokens,
+                query_mode=False,
                 **kwargs,
             )
 
@@ -254,5 +284,15 @@ class ColBERT(Base):
             Path to save the model.
         """
         self.model.save_pretrained(path)
+        torch.save(self.linear.state_dict(), os.path.join(path, "linear.pt"))
+        self.tokenizer.pad_token = self.original_pad_token
         self.tokenizer.save_pretrained(path)
+        with open(os.path.join(path, "metadata.json"), "w") as f:
+            json.dump(
+                {
+                    "max_length_query": self.max_length_query,
+                    "max_length_document": self.max_length_document,
+                },
+                f,
+            )
         return self

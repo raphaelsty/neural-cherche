@@ -177,7 +177,7 @@ def dense_scores(
     ... )
 
     >>> scores
-    {'positive_scores': tensor([106.1922, 122.9829], device='mps:0', grad_fn=<StackBackward0>), 'negative_scores': tensor([76.1682, 76.1682], device='mps:0', grad_fn=<StackBackward0>)}
+    {'positive_scores': tensor([ 79.3331, 104.6195], device='mps:0', grad_fn=<StackBackward0>), 'negative_scores': tensor([65.5028, 65.5028], device='mps:0', grad_fn=<StackBackward0>)}
 
     """
     anchor_embeddings_index = _build_index(

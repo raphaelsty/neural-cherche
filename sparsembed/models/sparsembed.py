@@ -70,7 +70,7 @@ class SparsEmbed(Splade):
     ...     documents=["Sports is great.", "Music is great."],
     ...     batch_size=1,
     ... )
-    tensor([78.3541, 68.5557], device='mps:0')
+    tensor([61.6028, 48.5660], device='mps:0')
 
     >>> _ = model.save_pretrained("checkpoint")
 
@@ -79,10 +79,12 @@ class SparsEmbed(Splade):
     ...     device=device,
     ... )
 
-    >>> queries_embeddings = model.encode(
-    ...     ["Sports", "Music"],
-    ...     k_tokens=96,
+    >>> model.scores(
+    ...     queries=["Sports", "Music"],
+    ...     documents=["Sports is great.", "Music is great."],
+    ...     batch_size=1,
     ... )
+    tensor([61.6028, 48.5660], device='mps:0')
 
     >>> queries_embeddings["embeddings"].shape
     torch.Size([2, 96, 64])

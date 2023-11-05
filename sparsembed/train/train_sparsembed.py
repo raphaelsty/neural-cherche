@@ -85,7 +85,7 @@ def train_sparsembed(
     ...     flops_scheduler.step()
 
     >>> loss
-    {'dense': tensor(0.5934, device='mps:0', grad_fn=<ClampBackward1>), 'sparse': tensor(0.4604, device='mps:0', grad_fn=<ClampBackward1>), 'flops': tensor(3.3170, device='mps:0', grad_fn=<AbsBackward0>)}
+    {'dense': tensor(0.0003, device='mps:0', grad_fn=<ClampBackward1>), 'sparse': tensor(0.4728, device='mps:0', grad_fn=<ClampBackward1>), 'flops': tensor(3.3009, device='mps:0', grad_fn=<AbsBackward0>)}
 
     """
 
