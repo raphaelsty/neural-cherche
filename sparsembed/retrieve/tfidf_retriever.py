@@ -3,7 +3,7 @@ __all__ = ["TfIdf"]
 import typing
 
 import numpy as np
-from scipy.sparse import csc_matrix, hstack
+from scipy.sparse import csc_matrix, csr_matrix, hstack, vstack
 from sklearn.feature_extraction.text import TfidfVectorizer
 
 from ..utils import batchify
@@ -29,37 +29,43 @@ class TfIdfRetriever:
 
     Examples
     --------
-
     >>> from sparsembed import retrieve
     >>> from pprint import pprint
 
     >>> documents = [
-    ...     {"id": 0, "title": "Paris", "article": "Eiffel tower"},
-    ...     {"id": 1, "title": "Montreal", "article": "Montreal is in Canada."},
-    ...     {"id": 2, "title": "Paris", "article": "Eiffel tower"},
-    ...     {"id": 3, "title": "Montreal", "article": "Montreal is in Canada."},
+    ...     {"id": 0, "document": "Food"},
+    ...     {"id": 1, "document": "Sports"},
+    ...     {"id": 2, "document": "Cinema"},
     ... ]
+
+    >>> queries = ["Food", "Sports", "Cinema"]
 
     >>> retriever = retrieve.TfIdfRetriever(
     ...     key="id",
-    ...     on=["title", "article"],
+    ...     on=["document"],
     ... )
 
-    >>> retriever = retriever.add(documents)
+    >>> documents_embeddings = retriever.encode_documents(
+    ...     documents=documents
+    ... )
 
-    >>> matrix = retriever.transform(texts=["paris", "canada"])
-    >>> matrix.shape
-    (2, 179)
+    >>> retriever = retriever.add(
+    ...     documents_embeddings=documents_embeddings,
+    ... )
 
-    >>> pprint(retriever(q=["paris", "canada"], k=4))
-    [[{'id': 2, 'similarity': 0.29395219465280986},
-      {'id': 0, 'similarity': 0.29395219465280986}],
-     [{'id': 3, 'similarity': 0.23284916979662118},
-      {'id': 1, 'similarity': 0.23284916979662118}]]
+    >>> queries_embeddings = retriever.encode_queries(
+    ...     queries=queries
+    ... )
 
-    >>> pprint(retriever(q="paris"))
-    [{'id': 2, 'similarity': 0.29395219465280986},
-     {'id': 0, 'similarity': 0.29395219465280986}]
+    >>> scores = retriever(
+    ...     queries_embeddings=queries_embeddings,
+    ...     k=4
+    ... )
+
+    >>> pprint(scores)
+    [[{'id': 0, 'similarity': 1.0}],
+     [{'id': 1, 'similarity': 0.9999999999999999}],
+     [{'id': 2, 'similarity': 0.9999999999999999}]]
 
     References
     ----------
@@ -73,6 +79,7 @@ class TfIdfRetriever:
         key: str,
         on: typing.Union[str, list],
         tfidf: TfidfVectorizer = None,
+        fit: bool = True,
     ) -> None:
         self.key = key
         self.on = [on] if isinstance(on, str) else on
@@ -84,59 +91,59 @@ class TfIdfRetriever:
         )
 
         self.matrix = None
-        self.fit = False
-        self.duplicates = {}
+        self.fit = fit
         self.documents = []
         self.n_documents = 0
 
+    def encode_documents(self, documents: list[dict]) -> dict[str, csr_matrix]:
+        """Encode queries into sparse matrix.
+
+        Parameters
+        ----------
+        documents
+            Documents to encode.
+
+        """
+        content = [
+            " ".join([doc.get(field, "") for field in self.on]) for doc in documents
+        ]
+
+        if self.fit:
+            self.tfidf.fit(content)
+            self.fit = False
+
+        # matrix is a csr matrix of shape (n_documents, n_features)
+        matrix = self.tfidf.transform(content)
+        return {document[self.key]: row for document, row in zip(documents, matrix)}
+
+    def encode_queries(self, queries: list[str]) -> dict[str, csr_matrix]:
+        """Encode queries into sparse matrix.
+
+        Parameters
+        ----------
+        queries
+            Queries to encode.
+
+        """
+        if self.fit:
+            raise ValueError("You must call the `encode_documents` method first.")
+
+        # matrix is a csr matrix of shape (n_queries, n_features)
+        matrix = self.tfidf.transform(queries)
+        return {query: row for query, row in zip(queries, matrix)}
+
     def add(
         self,
-        documents: list,
-        batch_size: int = 100_000,
-        tqdm_bar: bool = False,
-        fit: bool = True,
-        transform: any = None,
-        **kwargs,
+        documents_embeddings: dict[str, csr_matrix],
     ):
         """Add new documents to the TFIDF retriever. The tfidf won't be refitted."""
-        transform = self.tfidf.transform if transform is None else transform
+        matrix = vstack([row for row in documents_embeddings.values()]).T.tocsr()
 
-        for batch in batchify(
-            documents,
-            batch_size=batch_size,
-            tqdm_bar=tqdm_bar,
-        ):
-            batch = [
-                document
-                for document in batch
-                if document[self.key] not in self.duplicates
-            ]
+        for document_key in documents_embeddings:
+            self.documents.append({self.key: document_key})
 
-            if not batch:
-                continue
-
-            texts = [
-                " ".join([doc.get(field, "") for field in self.on]) for doc in batch
-            ]
-
-            if not self.fit and fit:
-                self.tfidf.fit(texts)
-                self.fit = True
-
-            matrix = csc_matrix(
-                transform(texts, **kwargs),
-                dtype=np.float32,
-            ).T
-
-            self.matrix = (
-                matrix if self.matrix is None else hstack((self.matrix, matrix))
-            )
-
-            for document in batch:
-                self.documents.append({self.key: document[self.key]})
-                self.duplicates[document[self.key]] = True
-
-            self.n_documents += len(batch)
+        self.n_documents += len(documents_embeddings)
+        self.matrix = matrix if self.matrix is None else hstack((self.matrix, matrix))
 
         return self
 
@@ -155,38 +162,36 @@ class TfIdfRetriever:
 
     def __call__(
         self,
-        q: list[str],
+        queries_embeddings: dict[str, csr_matrix],
         k: int = None,
         batch_size: int = 2000,
         tqdm_bar: bool = True,
-        transform: any = None,
-        **kwargs,
     ) -> list[list[dict]]:
         """Retrieve documents from batch of queries.
 
         Parameters
         ----------
-        q
-            Either a single query or a list of queries.
+        queries_embeddings
+            Queries embeddings.
         k
             Number of documents to retrieve. Default is `None`, i.e all documents that match the
             query will be retrieved.
         batch_size
             Batch size to use to retrieve documents.
         """
-        queries = [q] if isinstance(q, str) else q
         k = k if k is not None else self.n_documents
-        transform = self.tfidf.transform if transform is None else transform
 
         ranked = []
 
-        for batch in batchify(
-            queries,
-            batch_size=batch_size if batch_size is not None else self.batch_size,
+        for batch_embeddings in batchify(
+            list(queries_embeddings.values()),
+            batch_size=batch_size,
             desc=f"{self.__class__.__name__} retriever",
             tqdm_bar=tqdm_bar,
         ):
-            similarities = -1 * transform(batch, **kwargs).dot(self.matrix)
+            # self.matrix is a csr matrix of shape (n_features, n_documents)
+            # Transform output a csr matrix of shape (n_queries, n_features)
+            similarities = -1 * vstack(batch_embeddings).dot(self.matrix)
             batch_match, batch_similarities = self.top_k(similarities=similarities, k=k)
 
             for match, similarities in zip(batch_match, batch_similarities):
@@ -198,4 +203,4 @@ class TfIdfRetriever:
                     ]
                 )
 
-        return ranked[0] if isinstance(q, str) else ranked
+        return ranked

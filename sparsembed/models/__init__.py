@@ -1,6 +1,5 @@
-from .blp import BLP
 from .colbert import ColBERT
 from .sparse_embed import SparseEmbed
 from .splade import Splade
 
-__all__ = ["ColBERT", "SparseEmbed", "Splade", "BLP"]
+__all__ = ["ColBERT", "SparseEmbed", "Splade"]

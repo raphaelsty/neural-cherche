@@ -10,7 +10,6 @@ base_packages = [
     "tqdm == 4.66",
     "transformers == 4.34.0",
     "sentence-transformers == 2.2.2",
-    "cherche == 2.0.6",
 ]
 
 eval = ["ranx >= 0.3.16", "beir >= 2.0.0"]

@@ -68,21 +68,21 @@ class SparseEmbed(Splade):
     ...     documents=["Sports is great.", "Music is great."],
     ...     batch_size=1,
     ... )
-    tensor([191.8976, 178.3630], device='mps:0')
+    tensor([64.2330, 54.0180], device='mps:0')
 
     >>> _ = model.save_pretrained("checkpoint")
 
     >>> model = models.SparseEmbed(
     ...     model_name_or_path="checkpoint",
-    ...     device=device,
+    ...     device="cpu",
     ... )
 
     >>> model.scores(
     ...     queries=["Sports", "Music"],
     ...     documents=["Sports is great.", "Music is great."],
-    ...     batch_size=1,
+    ...     batch_size=2,
     ... )
-    tensor([191.8976, 178.3630], device='mps:0')
+    tensor([64.2330, 54.0180])
 
     References
     ----------
@@ -108,7 +108,7 @@ class SparseEmbed(Splade):
 
         self.embedding_size = embedding_size
 
-        self.softmax = torch.nn.Softmax(dim=2).to(self.device)
+        self.softmax = torch.nn.LogSoftmax(dim=2).to(self.device)
 
         if os.path.exists(os.path.join(self.model_folder, "linear.pt")):
             linear = torch.load(
@@ -168,6 +168,10 @@ class SparseEmbed(Splade):
 
         logits, embeddings = self._encode(
             texts=texts,
+            truncation=True,
+            padding="max_length",
+            max_length=k_tokens,
+            add_special_tokens=True,
             **kwargs,
         )
 
@@ -206,11 +210,12 @@ class SparseEmbed(Splade):
             ),
         )
 
-        return self.softmax(attention.transpose(1, 2))
+        return self.softmax(attention)
 
     def save_pretrained(self, path: str):
         """Save model the model."""
         self.model.save_pretrained(path)
+        self.tokenizer.pad_token = self.original_pad_token
         self.tokenizer.save_pretrained(path)
         torch.save(self.linear.state_dict(), os.path.join(path, "linear.pt"))
         with open(os.path.join(path, "metadata.json"), "w") as file:

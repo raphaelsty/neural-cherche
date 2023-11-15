@@ -3,6 +3,7 @@ import os
 from scipy.sparse import csr_matrix
 
 from ..models import Splade
+from ..utils import batchify
 from .tfidf_retriever import TfIdfRetriever
 
 __all__ = ["SpladeRetriever"]
@@ -34,25 +35,39 @@ class SpladeRetriever(TfIdfRetriever):
     ...     {"id": 2, "document": "Cinema"},
     ... ]
 
+    >>> queries = ["Food", "Sports", "Cinema"]
+
     >>> model = models.Splade(
     ...     model_name_or_path="distilbert-base-uncased",
     ...     device="mps",
     ... )
 
-    >>> retriever = retrieve.SpladeRetriever(key="id", on="document", model=model)
+    >>> retriever = retrieve.SpladeRetriever(
+    ...     key="id",
+    ...     on="document",
+    ...     model=model
+    ... )
 
-    >>> retriever = retriever.add(
+    >>> documents_embeddings = retriever.encode_documents(
     ...     documents=documents,
     ...     batch_size=32,
     ... )
 
-    >>> matchs = retriever(
-    ...     ["Food", "Sports", "Cinema"],
+    >>> queries_embeddings = retriever.encode_queries(
+    ...     queries=queries,
     ...     batch_size=32,
+    ... )
+
+    >>> retriever = retriever.add(
+    ...     documents_embeddings=documents_embeddings,
+    ... )
+
+    >>> scores = retriever(
+    ...     queries_embeddings=queries_embeddings,
     ...     k=3,
     ... )
 
-    >>> pprint(matchs)
+    >>> pprint(scores)
     [[{'id': 0, 'similarity': 380.16464},
       {'id': 1, 'similarity': 318.81836},
       {'id': 2, 'similarity': 318.04926}],
@@ -78,88 +93,89 @@ class SpladeRetriever(TfIdfRetriever):
         )
 
         self.model = model
-
-        # TfIdf Retriever.
-        self.fit = True
-
-        # Documents embeddings and activations store.
-        self.documents_embeddings = []
         os.environ["TOKENIZERS_PARALLELISM"] = tokenizer_parallelism
 
-    def transform_queries(self, texts: list[str], **kwargs) -> csr_matrix:
-        """Transform queries into sparse matrix."""
-        return csr_matrix(
-            self.model.encode(
-                texts=texts,
-                query_mode=True,
-                **kwargs,
-            )["sparse_activations"]
-            .detach()
-            .cpu()
-        )
-
-    def transform_documents(self, texts: list[str], **kwargs) -> csr_matrix:
-        """Transform queries into sparse matrix."""
-        return csr_matrix(
-            self.model.encode(
-                texts=texts,
-                query_mode=False,
-                **kwargs,
-            )["sparse_activations"]
-            .detach()
-            .cpu()
-        )
-
-    def add(
+    def encode_documents(
         self,
-        documents: list,
+        documents: list[dict],
         batch_size: int = 32,
-        tqdm_bar: bool = False,
+        tqdm_bar: bool = True,
+        query_mode: bool = False,
         **kwargs,
-    ) -> "SpladeRetriever":
-        """Add new documents to the retriever.
-
-        Computes documents embeddings and activations and update the sparse matrix.
+    ) -> dict[str, csr_matrix]:
+        """Encode queries into sparse matrix.
 
         Parameters
         ----------
         documents
-            Documents to add.
+            Documents to encode.
         batch_size
             Batch size.
+        tqdm_bar
+            Whether to show tqdm bar.
+
         """
-        super().add(
-            documents=documents,
+        documents_embeddings = {}
+
+        for batch_documents in batchify(
+            documents,
             batch_size=batch_size,
             tqdm_bar=tqdm_bar,
-            transform=self.transform_documents,
-            **kwargs,
-        )
+        ):
+            embeddings = self.model.encode(
+                [
+                    " ".join([doc.get(field, "") for field in self.on])
+                    for doc in batch_documents
+                ],
+                query_mode=query_mode,
+                **kwargs,
+            )
 
-        return self
+            sparse_activations = csr_matrix(
+                embeddings["sparse_activations"].detach().cpu()
+            )
+            for document, sparse_activation in zip(batch_documents, sparse_activations):
+                documents_embeddings[document[self.key]] = sparse_activation
 
-    def __call__(
+        return documents_embeddings
+
+    def encode_queries(
         self,
-        q: list[str],
-        k: int = 100,
+        queries: list[str],
         batch_size: int = 32,
-        tqdm_bar: bool = False,
+        tqdm_bar: bool = True,
+        query_mode: bool = True,
         **kwargs,
-    ) -> list:
-        """Retrieve documents.
+    ) -> dict[str, csr_matrix]:
+        """Encode queries into sparse matrix.
 
         Parameters
         ----------
-        q
-            Queries.
-        k_sparse
-            Number of documents to retrieve.
+        documents
+            Documents to encode.
+        batch_size
+            Batch size.
+        tqdm_bar
+            Whether to show tqdm bar.
+
         """
-        return super().__call__(
-            q=q,
-            k=k,
+        queries_embeddings = {}
+
+        for batch_queries in batchify(
+            queries,
             batch_size=batch_size,
             tqdm_bar=tqdm_bar,
-            transform=self.transform_queries,
-            **kwargs,
-        )
+        ):
+            embeddings = self.model.encode(
+                batch_queries,
+                query_mode=query_mode,
+                **kwargs,
+            )
+
+            sparse_activations = csr_matrix(
+                embeddings["sparse_activations"].detach().cpu()
+            )
+            for query, sparse_activation in zip(batch_queries, sparse_activations):
+                queries_embeddings[query] = sparse_activation
+
+        return queries_embeddings

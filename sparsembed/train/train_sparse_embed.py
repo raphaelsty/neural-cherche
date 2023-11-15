@@ -2,20 +2,21 @@ import torch
 
 from .. import losses, utils
 
-__all__ = ["train_sparsembed"]
+__all__ = ["train_sparse_embed"]
 
 
-def train_sparsembed(
+def train_sparse_embed(
     model,
     optimizer,
     anchor: list[str],
     positive: list[str],
     negative: list[str],
-    flops_loss_weight: float = 1e-4,
-    sparse_loss_weight: float = 0.1,
+    flops_loss_weight: float = 1e-5,
+    sparse_loss_weight: float = 1.0,
     dense_loss_weight: float = 1.0,
     in_batch_negatives: bool = False,
-    threshold_flops: float = 10,
+    threshold_flops: float = 30,
+    max_loss: float = 10.0,
     **kwargs,
 ):
     """Compute the ranking loss and the flops loss for a single step.
@@ -33,15 +34,17 @@ def train_sparsembed(
     negative
         Negative.
     flops_loss_weight
-        Flops loss weight. Defaults to 1e-4.
+        Flops loss weight. Defaults to 1e-5.
     sparse_loss_weight
-        Sparse loss weight. Defaults to 0.1.
+        Sparse loss weight. Defaults to 1.0.
     dense_loss_weight
         Dense loss weight. Defaults to 1.0.
     in_batch_negatives
         Whether to use in batch negatives or not. Defaults to True.
     threshold_flops
         Threshold margin for the flops loss. Defaults to 10.
+    max_loss
+        Maximum loss value for the flops loss. Defaults to 1.0.
 
     Examples
     --------
@@ -50,8 +53,8 @@ def train_sparsembed(
 
     >>> _ = torch.manual_seed(42)
 
-    >>> model = models.SparsEmbed(
-    ...     model_name_or_path="raphaelsty/sparsembed-max",
+    >>> model = models.SparseEmbed(
+    ...     model_name_or_path="distilbert-base-uncased",
     ...     device="mps",
     ... )
 
@@ -71,10 +74,9 @@ def train_sparsembed(
     ...         batch_size=3,
     ...         shuffle=False
     ...     ):
-    ...     loss = train.train_sparsembed(
+    ...     loss = train.train_sparse_embed(
     ...         model=model,
     ...         optimizer=optimizer,
-    ...         k_tokens=96,
     ...         anchor=anchor,
     ...         positive=positive,
     ...         negative=negative,
@@ -84,7 +86,7 @@ def train_sparsembed(
     ...     flops_scheduler.step()
 
     >>> loss
-    {'dense': tensor(0.0003, device='mps:0', grad_fn=<ClampBackward1>), 'sparse': tensor(0.4728, device='mps:0', grad_fn=<ClampBackward1>), 'flops': tensor(3.3009, device='mps:0', grad_fn=<AbsBackward0>)}
+    {'dense': tensor(0.0016, device='mps:0', grad_fn=<ClampBackward1>), 'sparse': tensor(0.0744, device='mps:0', grad_fn=<ClampBackward1>), 'flops': tensor(1., device='mps:0', grad_fn=<ClampBackward1>)}
 
     """
 
@@ -138,6 +140,7 @@ def train_sparsembed(
         positive_activations=positive_activations["sparse_activations"],
         negative_activations=negative_activations["sparse_activations"],
         threshold=threshold_flops,
+        max_loss=max_loss,
     )
 
     loss = (

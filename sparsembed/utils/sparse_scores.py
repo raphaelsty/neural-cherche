@@ -9,7 +9,7 @@ def sparse_scores(
     anchor_activations: torch.Tensor,
     positive_activations: torch.Tensor,
     negative_activations: torch.Tensor,
-    in_batch_negatives: bool = True,
+    in_batch_negatives: bool = False,
 ):
     """Computes dot product between anchor, positive and negative activations.
 
@@ -30,29 +30,31 @@ def sparse_scores(
     >>> from sparsembed import models
 
     >>> model = models.Splade(
-    ...     model_name_or_path="raphaelsty/splade-max",
+    ...     model_name_or_path="distilbert-base-uncased",
     ...     device="mps"
     ... )
 
-    >>> queries_activations = model(
+    >>> anchor_activations = model(
     ...     ["Sports", "Music"],
+    ...     query_mode=True,
     ... )
 
     >>> positive_activations = model(
     ...    ["Sports", "Music"],
+    ...    query_mode=False,
     ... )
 
     >>> negative_activations = model(
     ...    ["Cinema", "Movie"],
+    ...    query_mode=False,
     ... )
 
     >>> sparse_scores(
-    ...     anchor_activations=queries_activations["sparse_activations"],
+    ...     anchor_activations=anchor_activations["sparse_activations"],
     ...     positive_activations=positive_activations["sparse_activations"],
     ...     negative_activations=negative_activations["sparse_activations"],
-    ...     in_batch_negatives=True,
     ... )
-    {'positive_scores': tensor([14.1904, 16.7570], device='mps:0', grad_fn=<SumBackward1>), 'negative_scores': tensor([4.4836, 2.9586], device='mps:0', grad_fn=<AddBackward0>)}
+    {'positive_scores': tensor([356.5258, 348.1818], device='mps:0', grad_fn=<SumBackward1>), 'negative_scores': tensor([312.3294, 286.0956], device='mps:0', grad_fn=<SumBackward1>)}
 
     """
     positive_scores = torch.sum(anchor_activations * positive_activations, axis=1)

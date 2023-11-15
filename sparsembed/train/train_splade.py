@@ -9,10 +9,11 @@ def train_splade(
     anchor: list[str],
     positive: list[str],
     negative: list[str],
-    flops_loss_weight: float = 1e-4,
+    flops_loss_weight: float = 1e-5,
     sparse_loss_weight: float = 1.0,
     in_batch_negatives: bool = False,
-    threshold_flops: float = 10,
+    threshold_flops: float = 30,
+    max_loss: float = 10.0,
     **kwargs,
 ):
     """Compute the ranking loss and the flops loss for a single step.
@@ -42,11 +43,14 @@ def train_splade(
     >>> _ = torch.manual_seed(42)
 
     >>> model = models.Splade(
-    ...     model_name_or_path="raphaelsty/splade-max",
+    ...     model_name_or_path="distilbert-base-uncased",
     ...     device="mps",
     ... )
 
-    >>> optimizer = torch.optim.AdamW(model.parameters(), lr=1e-6)
+    >>> optimizer = torch.optim.AdamW(
+    ...     model.parameters(),
+    ...     lr=1e-6,
+    ... )
 
     >>> X = [
     ...     ("Sports", "Music", "Cinema"),
@@ -74,7 +78,7 @@ def train_splade(
     ...     flops_scheduler.step()
 
     >>> loss
-    {'sparse': tensor(0.4407, device='mps:0', grad_fn=<ClampBackward1>), 'flops': tensor(2.5550, device='mps:0', grad_fn=<AbsBackward0>)}
+    {'sparse': tensor(0., device='mps:0', grad_fn=<ClampBackward1>), 'flops': tensor(10., device='mps:0', grad_fn=<ClampBackward1>)}
 
     """
 
@@ -110,6 +114,7 @@ def train_splade(
         positive_activations=positive_activations["sparse_activations"],
         negative_activations=negative_activations["sparse_activations"],
         threshold=threshold_flops,
+        max_loss=max_loss,
     )
 
     loss = sparse_loss_weight * sparse_loss + flops_loss_weight * flops_loss

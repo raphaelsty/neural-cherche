@@ -40,20 +40,23 @@ class Flops(torch.nn.Module):
     >>> _ = torch.manual_seed(42)
 
     >>> model = models.Splade(
-    ...     model_name_or_path="raphaelsty/splade-max",
+    ...     model_name_or_path="distilbert-base-uncased",
     ...     device="mps",
     ... )
 
     >>> anchor_activations = model(
     ...     ["Sports", "Music"],
+    ...     query_mode=True,
     ... )
 
     >>> positive_activations = model(
     ...    ["Sports", "Music"],
+    ...     query_mode=False,
     ... )
 
     >>> negative_activations = model(
     ...    ["Cinema", "Movie"],
+    ...     query_mode=False,
     ... )
 
     >>> losses.Flops()(
@@ -61,7 +64,7 @@ class Flops(torch.nn.Module):
     ...     positive_activations=positive_activations["sparse_activations"],
     ...     negative_activations=negative_activations["sparse_activations"],
     ... )
-    tensor(4.0912, device='mps:0', grad_fn=<AbsBackward0>)
+    tensor(1., device='mps:0', grad_fn=<ClampBackward1>)
 
     References
     ----------
@@ -78,12 +81,16 @@ class Flops(torch.nn.Module):
         anchor_activations: torch.Tensor,
         positive_activations: torch.Tensor,
         negative_activations: torch.Tensor,
-        threshold: float = 10.0,
+        threshold: float = 30.0,
+        max_loss: float = 1.0,
     ) -> torch.Tensor:
         """Loss which tend to reduce sparse activation."""
         activations = torch.cat(
             [anchor_activations, positive_activations, negative_activations], dim=0
         )
-        return torch.abs(
+
+        loss = torch.abs(
             threshold - torch.sum(torch.mean(torch.abs(activations), dim=0) ** 2, dim=0)
         )
+
+        return torch.clip(loss, min=0.0, max=max_loss)

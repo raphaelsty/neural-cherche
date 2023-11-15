@@ -146,24 +146,24 @@ def dense_scores(
 
     >>> _ = torch.manual_seed(42)
 
-    >>> model = models.SparsEmbed(
-    ...     model_name_or_path="raphaelsty/sparsembed-max",
+    >>> model = models.SparseEmbed(
+    ...     model_name_or_path="distilbert-base-uncased",
     ...     device="mps",
     ... )
 
     >>> anchor_embeddings = model(
     ...     ["Paris", "Toulouse"],
-    ...     k_tokens=96,
+    ...     query_mode=True,
     ... )
 
     >>> positive_embeddings = model(
     ...    ["Paris", "Toulouse"],
-    ...    k_tokens=96,
+    ...    query_mode=False,
     ... )
 
     >>> negative_embeddings = model(
     ...    ["Toulouse", "Paris"],
-    ...    k_tokens=96,
+    ...    query_mode=False,
     ... )
 
     >>> scores = utils.dense_scores(
@@ -177,7 +177,7 @@ def dense_scores(
     ... )
 
     >>> scores
-    {'positive_scores': tensor([ 79.3331, 104.6195], device='mps:0', grad_fn=<StackBackward0>), 'negative_scores': tensor([65.5028, 65.5028], device='mps:0', grad_fn=<StackBackward0>)}
+    {'positive_scores': tensor([310.0527, 243.2855], device='mps:0', grad_fn=<StackBackward0>), 'negative_scores': tensor([288.1985, 220.8163], device='mps:0', grad_fn=<StackBackward0>)}
 
     """
     anchor_embeddings_index = _build_index(

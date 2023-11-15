@@ -25,9 +25,12 @@ class Splade(Base):
     Example
     -------
     >>> from sparsembed import models
+    >>> import torch
+
+    >>> _ = torch.manual_seed(42)
 
     >>> model = models.Splade(
-    ...     model_name_or_path="raphaelsty/splade-max",
+    ...     model_name_or_path="distilbert-base-uncased",
     ...     device="mps",
     ... )
 
@@ -48,7 +51,7 @@ class Splade(Base):
     ...     documents=["Sports is great.", "Music is great."],
     ...     batch_size=1
     ... )
-    tensor([0.0487, 0.2794], device='mps:0')
+    tensor([318.1384, 271.8006], device='mps:0')
 
     >>> _ = model.save_pretrained("checkpoint")
 
@@ -62,7 +65,7 @@ class Splade(Base):
     ...     documents=["Sports is great.", "Music is great."],
     ...     batch_size=1
     ... )
-    tensor([0.0487, 0.2794], device='mps:0')
+    tensor([318.1384, 271.8006], device='mps:0')
 
     References
     ----------
@@ -190,17 +193,16 @@ class Splade(Base):
             truncation=True,
             padding="max_length",
             max_length=k_tokens,
-            add_special_tokens=False,
+            add_special_tokens=True,
             **kwargs,
         )
 
         activations = self._get_activation(logits=logits)
 
-        if k_tokens is not None:
-            activations = self._update_activations(
-                **activations,
-                k_tokens=k_tokens,
-            )
+        activations = self._update_activations(
+            **activations,
+            k_tokens=k_tokens,
+        )
 
         return {"sparse_activations": activations["sparse_activations"]}
 
@@ -285,9 +287,7 @@ class Splade(Base):
 
     def _get_activation(self, logits: torch.Tensor) -> dict[str, torch.Tensor]:
         """Returns activated tokens."""
-        return {
-            "sparse_activations": torch.amax(torch.log1p(self.relu(logits)), dim=1),
-        }
+        return {"sparse_activations": torch.amax(torch.log1p(self.relu(logits)), dim=1)}
 
     def _filter_activations(
         self, sparse_activations: torch.Tensor, k_tokens: int
@@ -309,8 +309,10 @@ class Splade(Base):
 
         # Set value of max sparse_activations which are not in top k to 0.
         sparse_activations = sparse_activations * torch.zeros(
-            (sparse_activations.shape[0], sparse_activations.shape[1]), dtype=int
-        ).to(self.device).scatter_(dim=1, index=activations.long(), value=1)
+            (sparse_activations.shape[0], sparse_activations.shape[1]),
+            dtype=int,
+            device=self.device,
+        ).scatter_(dim=1, index=activations.long(), value=1)
 
         return {
             "activations": activations,

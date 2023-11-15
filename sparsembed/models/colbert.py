@@ -52,7 +52,7 @@ class ColBERT(Base):
     ... )
 
     >>> scores
-    tensor([20.2148, 16.7599, 18.2901], device='mps:0', grad_fn=<CatBackward0>)
+    tensor([24.5880, 19.3780, 22.6769], device='mps:0', grad_fn=<CatBackward0>)
 
     >>> _ = encoder.save_pretrained("checkpoint")
 
@@ -68,7 +68,7 @@ class ColBERT(Base):
     ... )
 
     >>> scores
-    tensor([20.2148, 16.7599, 18.2900], grad_fn=<CatBackward0>)
+    tensor([24.5880, 19.3781, 22.6769], grad_fn=<CatBackward0>)
 
     >>> embeddings = encoder(
     ...     texts=queries,
@@ -170,8 +170,6 @@ class ColBERT(Base):
     def forward(
         self,
         texts: list[str],
-        truncation: bool = True,
-        add_special_tokens: bool = False,
         query_mode: bool = True,
         **kwargs,
     ) -> dict[str, torch.Tensor]:
@@ -181,10 +179,8 @@ class ColBERT(Base):
         ----------
         texts
             List of sentences to encode.
-        truncation
-            Truncate the inputs.
-        add_special_tokens
-            Add special tokens.
+        query_mode
+            Wether to encode query or not.
         """
         suffix = "[Q] " if query_mode else "[D] "
 
@@ -195,12 +191,12 @@ class ColBERT(Base):
         )
 
         kwargs = {
-            "truncation": truncation,
+            "truncation": True,
             "padding": "max_length",
             "max_length": self.max_length_query
             if query_mode
             else self.max_length_document,
-            "add_special_tokens": add_special_tokens,
+            "add_special_tokens": True,
             **kwargs,
         }
 
@@ -217,10 +213,7 @@ class ColBERT(Base):
         queries: list[str],
         documents: list[str],
         batch_size: int = 2,
-        truncation: bool = True,
-        add_special_tokens: bool = False,
         tqdm_bar: bool = True,
-        max_length=500,
         **kwargs,
     ) -> torch.Tensor:
         """Score queries and documents.
@@ -253,17 +246,12 @@ class ColBERT(Base):
         ):
             queries_embeddings = self(
                 texts=batch_queries,
-                truncation=truncation,
-                add_special_tokens=add_special_tokens,
                 query_mode=True,
                 **kwargs,
             )
 
             documents_embeddings = self(
                 texts=batch_documents,
-                truncation=truncation,
-                max_length=max_length,
-                add_special_tokens=add_special_tokens,
                 query_mode=False,
                 **kwargs,
             )

@@ -21,6 +21,44 @@ def colbert_scores(
         Negative embeddings.
     in_batch_negatives
         Whether to use in batch negatives or not. Defaults to False.
+
+
+    Examples
+    --------
+    >>> from sparsembed import models, utils
+    >>> import torch
+
+    >>> _ = torch.manual_seed(42)
+
+    >>> model = models.ColBERT(
+    ...     model_name_or_path="sentence-transformers/all-mpnet-base-v2",
+    ...     device="mps",
+    ... )
+
+    >>> anchor_embeddings = model(
+    ...     ["Paris", "Toulouse"],
+    ...     query_mode=True,
+    ... )
+
+    >>> positive_embeddings = model(
+    ...    ["Paris", "Toulouse"],
+    ...    query_mode=False,
+    ... )
+
+    >>> negative_embeddings = model(
+    ...    ["Toulouse", "Paris"],
+    ...    query_mode=False,
+    ... )
+
+    >>> scores = utils.colbert_scores(
+    ...     anchor_embeddings=anchor_embeddings["embeddings"],
+    ...     positive_embeddings=positive_embeddings["embeddings"],
+    ...     negative_embeddings=negative_embeddings["embeddings"],
+    ... )
+
+    >>> scores
+    {'positive_scores': tensor([26.7849, 26.7100], device='mps:0', grad_fn=<SumBackward1>), 'negative_scores': tensor([13.9315, 13.8330], device='mps:0', grad_fn=<SumBackward1>)}
+
     """
     positive_scores = torch.einsum(
         "bsh,bth->bst", anchor_embeddings, positive_embeddings

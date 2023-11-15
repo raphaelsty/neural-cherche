@@ -18,14 +18,17 @@ class Ranking(torch.nn.Module):
 
     >>> queries_activations = model(
     ...     ["Sports", "Music"],
+    ...     query_mode=True,
     ... )
 
     >>> positive_activations = model(
     ...    ["Sports", "Music"],
+    ...    query_mode=False,
     ... )
 
     >>> negative_activations = model(
     ...    ["Cinema", "Movie"],
+    ...    query_mode=False,
     ... )
 
     >>> scores = utils.sparse_scores(
