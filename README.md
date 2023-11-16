@@ -16,7 +16,7 @@ Neural-Cherche is a library designed to fine-tune neural search models such as S
 
 ## Installation
 
-We can install neural_cherche using:
+We can install neural-cherche using:
 
 ```
 pip install neural-cherche
@@ -44,7 +44,7 @@ X = [
 ]
 ```
 
-And here is how to fine-tune ColBERT using neural-cherche:
+And here is how to fine-tune ColBERT from a Sentence Transformer pre-trained checkpoint using neural-cherche:
 
 ```python
 import torch
