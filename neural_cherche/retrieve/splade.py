@@ -2,14 +2,13 @@ import os
 
 from scipy.sparse import csr_matrix
 
-from ..models import Splade
-from ..utils import batchify
-from .tfidf_retriever import TfIdfRetriever
+from .. import models, utils
+from .tfidf import TfIdf
 
-__all__ = ["SpladeRetriever"]
+__all__ = ["Splade"]
 
 
-class SpladeRetriever(TfIdfRetriever):
+class Splade(TfIdf):
     """Retriever class.
 
     Parameters
@@ -23,7 +22,7 @@ class SpladeRetriever(TfIdfRetriever):
 
     Example
     -------
-    >>> from sparsembed import models, retrieve
+    >>> from neural_cherche import models, retrieve
     >>> from pprint import pprint
     >>> import torch
 
@@ -42,7 +41,7 @@ class SpladeRetriever(TfIdfRetriever):
     ...     device="mps",
     ... )
 
-    >>> retriever = retrieve.SpladeRetriever(
+    >>> retriever = retrieve.Splade(
     ...     key="id",
     ...     on="document",
     ...     model=model
@@ -68,15 +67,15 @@ class SpladeRetriever(TfIdfRetriever):
     ... )
 
     >>> pprint(scores)
-    [[{'id': 0, 'similarity': 380.16464},
-      {'id': 1, 'similarity': 318.81836},
-      {'id': 2, 'similarity': 318.04926}],
-     [{'id': 1, 'similarity': 356.52582},
-      {'id': 2, 'similarity': 312.32935},
-      {'id': 0, 'similarity': 262.64456}],
-     [{'id': 2, 'similarity': 362.6682},
-      {'id': 1, 'similarity': 334.7304},
-      {'id': 0, 'similarity': 295.53903}]]
+    [[{'id': 0, 'similarity': 489.65244},
+      {'id': 2, 'similarity': 338.9705},
+      {'id': 1, 'similarity': 332.3472}],
+     [{'id': 1, 'similarity': 470.40497},
+      {'id': 2, 'similarity': 301.56982},
+      {'id': 0, 'similarity': 278.8062}],
+     [{'id': 2, 'similarity': 472.487},
+      {'id': 1, 'similarity': 341.8396},
+      {'id': 0, 'similarity': 319.97287}]]
 
     """
 
@@ -84,7 +83,7 @@ class SpladeRetriever(TfIdfRetriever):
         self,
         key: str,
         on: list[str],
-        model: Splade,
+        model: models.Splade,
         tokenizer_parallelism: str = "false",
     ) -> None:
         super().__init__(
@@ -117,7 +116,7 @@ class SpladeRetriever(TfIdfRetriever):
         """
         documents_embeddings = {}
 
-        for batch_documents in batchify(
+        for batch_documents in utils.batchify(
             documents,
             batch_size=batch_size,
             tqdm_bar=tqdm_bar,
@@ -161,7 +160,7 @@ class SpladeRetriever(TfIdfRetriever):
         """
         queries_embeddings = {}
 
-        for batch_queries in batchify(
+        for batch_queries in utils.batchify(
             queries,
             batch_size=batch_size,
             tqdm_bar=tqdm_bar,

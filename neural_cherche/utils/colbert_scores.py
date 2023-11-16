@@ -25,7 +25,7 @@ def colbert_scores(
 
     Examples
     --------
-    >>> from sparsembed import models, utils
+    >>> from neural_cherche import models, utils
     >>> import torch
 
     >>> _ = torch.manual_seed(42)
@@ -57,7 +57,7 @@ def colbert_scores(
     ... )
 
     >>> scores
-    {'positive_scores': tensor([26.7849, 26.7100], device='mps:0', grad_fn=<SumBackward1>), 'negative_scores': tensor([13.9315, 13.8330], device='mps:0', grad_fn=<SumBackward1>)}
+    {'positive_scores': tensor([24.7555, 26.4455], device='mps:0', grad_fn=<SumBackward1>), 'negative_scores': tensor([18.3089, 17.1017], device='mps:0', grad_fn=<SumBackward1>)}
 
     """
     positive_scores = torch.einsum(

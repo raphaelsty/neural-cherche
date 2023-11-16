@@ -27,7 +27,7 @@ def sparse_scores(
 
     Examples
     --------
-    >>> from sparsembed import models
+    >>> from neural_cherche import models
 
     >>> model = models.Splade(
     ...     model_name_or_path="distilbert-base-uncased",
@@ -54,7 +54,7 @@ def sparse_scores(
     ...     positive_activations=positive_activations["sparse_activations"],
     ...     negative_activations=negative_activations["sparse_activations"],
     ... )
-    {'positive_scores': tensor([356.5258, 348.1818], device='mps:0', grad_fn=<SumBackward1>), 'negative_scores': tensor([312.3294, 286.0956], device='mps:0', grad_fn=<SumBackward1>)}
+    {'positive_scores': tensor([470.4049, 435.0986], device='mps:0', grad_fn=<SumBackward1>), 'negative_scores': tensor([301.5698, 353.6218], device='mps:0', grad_fn=<SumBackward1>)}
 
     """
     positive_scores = torch.sum(anchor_activations * positive_activations, axis=1)

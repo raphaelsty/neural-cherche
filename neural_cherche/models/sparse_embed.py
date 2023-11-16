@@ -24,7 +24,7 @@ class SparseEmbed(Splade):
 
     Example
     -------
-    >>> from sparsembed import models
+    >>> from neural_cherche import models
     >>> import torch
 
     >>> _ = torch.manual_seed(42)
@@ -108,7 +108,7 @@ class SparseEmbed(Splade):
 
         self.embedding_size = embedding_size
 
-        self.softmax = torch.nn.LogSoftmax(dim=2).to(self.device)
+        self.softmax = torch.nn.Softmax(dim=2).to(self.device)
 
         if os.path.exists(os.path.join(self.model_folder, "linear.pt")):
             linear = torch.load(

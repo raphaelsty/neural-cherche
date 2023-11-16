@@ -57,7 +57,7 @@ def evaluate(
 
     Examples
     --------
-    >>> from sparsembed import models, retrieve, utils
+    >>> from neural_cherche import models, retrieve, utils
     >>> import torch
 
     >>> _ = torch.manual_seed(42)
@@ -74,7 +74,7 @@ def evaluate(
 
     >>> documents = documents[:10]
 
-    >>> retriever = retrieve.SpladeRetriever(
+    >>> retriever = retrieve.Splade(
     ...     key="id",
     ...     on=["title", "text"],
     ...     model=model

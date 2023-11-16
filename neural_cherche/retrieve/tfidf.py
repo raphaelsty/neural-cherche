@@ -1,15 +1,13 @@
-__all__ = ["TfIdf"]
-
-import typing
-
 import numpy as np
 from scipy.sparse import csc_matrix, csr_matrix, hstack, vstack
 from sklearn.feature_extraction.text import TfidfVectorizer
 
-from ..utils import batchify
+from .. import utils
+
+__all__ = ["TfIdf"]
 
 
-class TfIdfRetriever:
+class TfIdf:
     """TfIdf retriever based on cosine similarities.
 
     Parameters
@@ -29,7 +27,7 @@ class TfIdfRetriever:
 
     Examples
     --------
-    >>> from sparsembed import retrieve
+    >>> from neural_cherche import retrieve
     >>> from pprint import pprint
 
     >>> documents = [
@@ -40,7 +38,7 @@ class TfIdfRetriever:
 
     >>> queries = ["Food", "Sports", "Cinema"]
 
-    >>> retriever = retrieve.TfIdfRetriever(
+    >>> retriever = retrieve.TfIdf(
     ...     key="id",
     ...     on=["document"],
     ... )
@@ -77,7 +75,7 @@ class TfIdfRetriever:
     def __init__(
         self,
         key: str,
-        on: typing.Union[str, list],
+        on: list[str],
         tfidf: TfidfVectorizer = None,
         fit: bool = True,
     ) -> None:
@@ -183,7 +181,7 @@ class TfIdfRetriever:
 
         ranked = []
 
-        for batch_embeddings in batchify(
+        for batch_embeddings in utils.batchify(
             list(queries_embeddings.values()),
             batch_size=batch_size,
             desc=f"{self.__class__.__name__} retriever",

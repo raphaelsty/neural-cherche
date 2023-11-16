@@ -5,14 +5,13 @@ import numpy as np
 import torch
 from scipy.sparse import csc_matrix, csr_matrix, hstack, vstack
 
-from ..models import SparseEmbed
-from ..utils import batchify
-from .tfidf_retriever import TfIdfRetriever
+from .. import models, utils
+from .tfidf import TfIdf
 
-__all__ = ["SparseEmbedRetriever"]
+__all__ = ["SparseEmbed"]
 
 
-class SparseEmbedRetriever(TfIdfRetriever):
+class SparseEmbed(TfIdf):
     """Retriever class.
 
     Parameters
@@ -26,7 +25,7 @@ class SparseEmbedRetriever(TfIdfRetriever):
 
     Example
     -------
-    >>> from sparsembed import models, retrieve
+    >>> from neural_cherche import models, retrieve
     >>> from pprint import pprint
     >>> import torch
 
@@ -40,7 +39,7 @@ class SparseEmbedRetriever(TfIdfRetriever):
     ...     embedding_size=64,
     ... )
 
-    >>> retriever = retrieve.SparseEmbedRetriever(
+    >>> retriever = retrieve.SparseEmbed(
     ...     key="id",
     ...     on="document",
     ...     model=model,
@@ -74,15 +73,15 @@ class SparseEmbedRetriever(TfIdfRetriever):
     ... )
 
     >>> pprint(scores)
-    [[{'id': 0, 'similarity': 127.2161636352539},
-      {'id': 2, 'similarity': 112.07202911376953},
-      {'id': 1, 'similarity': 107.36328887939453}],
-     [{'id': 1, 'similarity': 167.22268676757812},
-      {'id': 2, 'similarity': 87.65172576904297},
-      {'id': 0, 'similarity': 84.95704650878906}],
-     [{'id': 2, 'similarity': 141.13333129882812},
-      {'id': 0, 'similarity': 111.82447814941406},
-      {'id': 1, 'similarity': 107.57138061523438}]]
+    [[{'id': 0, 'similarity': 62.01531219482422},
+      {'id': 1, 'similarity': 59.01810836791992},
+      {'id': 2, 'similarity': 40.613182067871094}],
+     [{'id': 1, 'similarity': 97.81436920166016},
+      {'id': 2, 'similarity': 32.50034713745117},
+      {'id': 0, 'similarity': 25.678363800048828}],
+     [{'id': 2, 'similarity': 56.019283294677734},
+      {'id': 1, 'similarity': 37.612735748291016},
+      {'id': 0, 'similarity': 26.307708740234375}]]
 
     """
 
@@ -90,7 +89,7 @@ class SparseEmbedRetriever(TfIdfRetriever):
         self,
         key: str,
         on: list[str],
-        model: SparseEmbed,
+        model: models.SparseEmbed,
         tokenizer_parallelism: str = "false",
     ) -> None:
         super().__init__(
@@ -129,7 +128,7 @@ class SparseEmbedRetriever(TfIdfRetriever):
         """
         embeddings = collections.defaultdict(dict)
 
-        for batch in batchify(
+        for batch in utils.batchify(
             queries,
             batch_size=batch_size,
             desc=f"{self.__class__.__name__} encoder",
@@ -167,7 +166,7 @@ class SparseEmbedRetriever(TfIdfRetriever):
         """
         embeddings = collections.defaultdict(dict)
 
-        for batch in batchify(
+        for batch in utils.batchify(
             documents,
             batch_size=batch_size,
             tqdm_bar=tqdm_bar,
@@ -192,7 +191,7 @@ class SparseEmbedRetriever(TfIdfRetriever):
     def add(
         self,
         documents_embeddings: dict[dict[str, torch.Tensor]],
-    ) -> "SparseEmbedRetriever":
+    ) -> "SparseEmbed":
         """Add documents embeddings and activations to the retriever.
 
         Parameters
@@ -255,7 +254,7 @@ class SparseEmbedRetriever(TfIdfRetriever):
 
         ranked = []
 
-        for queries_batch in batchify(
+        for queries_batch in utils.batchify(
             list(queries_embeddings.values()),
             batch_size=batch_size,
             desc=f"{self.__class__.__name__} retriever",

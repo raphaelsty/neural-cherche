@@ -34,7 +34,7 @@ class Flops(torch.nn.Module):
 
     Example
     -------
-    >>> from sparsembed import models, utils, losses
+    >>> from neural_cherche import models, utils, losses
     >>> import torch
 
     >>> _ = torch.manual_seed(42)
@@ -82,15 +82,12 @@ class Flops(torch.nn.Module):
         positive_activations: torch.Tensor,
         negative_activations: torch.Tensor,
         threshold: float = 30.0,
-        max_loss: float = 1.0,
     ) -> torch.Tensor:
         """Loss which tend to reduce sparse activation."""
         activations = torch.cat(
             [anchor_activations, positive_activations, negative_activations], dim=0
         )
 
-        loss = torch.abs(
+        return torch.abs(
             threshold - torch.sum(torch.mean(torch.abs(activations), dim=0) ** 2, dim=0)
         )
-
-        return torch.clip(loss, min=0.0, max=max_loss)

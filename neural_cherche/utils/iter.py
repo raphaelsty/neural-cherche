@@ -45,7 +45,7 @@ def iter(
 
     Example
     -------
-    >>> from sparsembed import utils
+    >>> from neural_cherche import utils
 
     >>> X = [
     ...    ("Apple", "🍏", "cherry"),
@@ -74,6 +74,8 @@ def iter(
         if shuffle:
             random.shuffle(X)
         for batch in batchify(X=X, batch_size=batch_size, desc=f"Epoch {epoch}"):
-            yield [sample[0] for sample in batch], [sample[1] for sample in batch], [
-                sample[2] for sample in batch
-            ]
+            yield (
+                [sample[0] for sample in batch],
+                [sample[1] for sample in batch],
+                [sample[2] for sample in batch],
+            )

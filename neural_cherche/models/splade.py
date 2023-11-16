@@ -24,7 +24,7 @@ class Splade(Base):
 
     Example
     -------
-    >>> from sparsembed import models
+    >>> from neural_cherche import models
     >>> import torch
 
     >>> _ = torch.manual_seed(42)

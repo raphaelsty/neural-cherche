@@ -23,7 +23,7 @@ def in_batch_sparse_scores(
     Examples
     --------
 
-    >>> from sparsembed import utils
+    >>> from neural_cherche import utils
 
     >>> activations = torch.tensor([
     ...     [0, 0, 0, 0, 0, 0, 0, 0, 0, 1],

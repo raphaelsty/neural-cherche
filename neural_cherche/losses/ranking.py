@@ -8,7 +8,7 @@ class Ranking(torch.nn.Module):
 
     Examples
     --------
-    >>> from sparsembed import models, utils, losses
+    >>> from neural_cherche import models, utils, losses
     >>> from pprint import pprint as print
 
     >>> model = models.Splade(

@@ -31,7 +31,7 @@ def train_colbert(
 
     Examples
     --------
-    >>> from sparsembed import models, utils, train
+    >>> from neural_cherche import models, utils, train
     >>> import torch
 
     >>> _ = torch.manual_seed(42)
@@ -67,7 +67,7 @@ def train_colbert(
     ...     )
 
     >>> loss
-    {'loss': tensor(6.2146e-05, device='mps:0', grad_fn=<ClampBackward1>)}
+    {'loss': tensor(0.0054, device='mps:0', grad_fn=<ClampBackward1>)}
 
     """
 

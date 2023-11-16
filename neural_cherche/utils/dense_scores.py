@@ -141,7 +141,7 @@ def dense_scores(
 
     Example
     ----------
-    >>> from sparsembed import models, utils
+    >>> from neural_cherche import models, utils
     >>> import torch
 
     >>> _ = torch.manual_seed(42)
@@ -177,7 +177,7 @@ def dense_scores(
     ... )
 
     >>> scores
-    {'positive_scores': tensor([310.0527, 243.2855], device='mps:0', grad_fn=<StackBackward0>), 'negative_scores': tensor([288.1985, 220.8163], device='mps:0', grad_fn=<StackBackward0>)}
+    {'positive_scores': tensor([144.4106, 155.5398], device='mps:0', grad_fn=<StackBackward0>), 'negative_scores': tensor([173.4966,  99.9521], device='mps:0', grad_fn=<StackBackward0>)}
 
     """
     anchor_embeddings_index = _build_index(

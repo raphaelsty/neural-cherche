@@ -1,12 +1,11 @@
 import torch
 
-from .. import utils
-from ..models import ColBERT
+from .. import models, utils
 
-__all__ = ["ColBERTRanker"]
+__all__ = ["ColBERT"]
 
 
-class ColBERTRanker:
+class ColBERT:
     """ColBERT ranker.
 
     Parameters
@@ -16,7 +15,7 @@ class ColBERTRanker:
 
     Example
     -------
-    >>> from sparsembed import models, rank
+    >>> from neural_cherche import models, rank
     >>> from pprint import pprint
     >>> import torch
 
@@ -35,7 +34,7 @@ class ColBERTRanker:
 
     >>> queries = ["Food", "Sports", "Cinema"]
 
-    >>> ranker = rank.ColBERTRanker(
+    >>> ranker = rank.ColBERT(
     ...    key="id",
     ...    on=["document"],
     ...    model=encoder,
@@ -77,7 +76,7 @@ class ColBERTRanker:
         self,
         key: str,
         on: list[str],
-        model: ColBERT,
+        model: models.ColBERT,
     ) -> None:
         self.key = key
         self.on = on if isinstance(on, list) else [on]
