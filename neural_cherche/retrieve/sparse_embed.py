@@ -3,7 +3,7 @@ import os
 
 import numpy as np
 import torch
-from scipy.sparse import csc_matrix, csr_matrix, hstack, vstack
+from scipy.sparse import csr_matrix, hstack, vstack
 
 from .. import models, utils
 from .tfidf import TfIdf
@@ -23,8 +23,8 @@ class SparseEmbed(TfIdf):
     model
         SparsEmbed model.
 
-    Example
-    -------
+    Examples
+    --------
     >>> from neural_cherche import models, retrieve
     >>> from pprint import pprint
     >>> import torch
@@ -46,7 +46,7 @@ class SparseEmbed(TfIdf):
     ... )
 
     >>> documents = [
-    ...     {"id": 0, "document": "Food"},
+    ...     {"id": 0, "document": "Food Hello world"},
     ...     {"id": 1, "document": "Sports"},
     ...     {"id": 2, "document": "Cinema"},
     ... ]
@@ -55,12 +55,12 @@ class SparseEmbed(TfIdf):
 
     >>> documents_embeddings = retriever.encode_documents(
     ...     documents=documents,
-    ...     batch_size=1,
+    ...     batch_size=2,
     ... )
 
     >>> queries_embeddings = retriever.encode_queries(
     ...     queries=queries,
-    ...     batch_size=1,
+    ...     batch_size=2,
     ... )
 
     >>> retriever = retriever.add(
@@ -73,15 +73,15 @@ class SparseEmbed(TfIdf):
     ... )
 
     >>> pprint(scores)
-    [[{'id': 0, 'similarity': 62.01531219482422},
+    [[{'id': 0, 'similarity': 65.11363983154297},
       {'id': 1, 'similarity': 59.01810836791992},
       {'id': 2, 'similarity': 40.613182067871094}],
      [{'id': 1, 'similarity': 97.81436920166016},
-      {'id': 2, 'similarity': 32.50034713745117},
-      {'id': 0, 'similarity': 25.678363800048828}],
+      {'id': 0, 'similarity': 42.08279037475586},
+      {'id': 2, 'similarity': 32.50034713745117}],
      [{'id': 2, 'similarity': 56.019283294677734},
       {'id': 1, 'similarity': 37.612735748291016},
-      {'id': 0, 'similarity': 26.307708740234375}]]
+      {'id': 0, 'similarity': 31.05425453186035}]]
 
     """
 
@@ -114,7 +114,7 @@ class SparseEmbed(TfIdf):
         tqdm_bar: bool = True,
         query_mode: bool = True,
         **kwargs,
-    ) -> dict[str, torch.Tensor]:
+    ) -> dict[str, dict[str, torch.Tensor]]:
         """Encode queries.
 
         Parameters
@@ -134,18 +134,30 @@ class SparseEmbed(TfIdf):
             desc=f"{self.__class__.__name__} encoder",
             tqdm_bar=tqdm_bar,
         ):
-            documents_embeddings = self.model.encode(
+            queries_embeddings = self.model.encode(
                 texts=batch,
                 query_mode=query_mode,
                 **kwargs,
             )
 
-            for field, output in documents_embeddings.items():
-                for query in batch:
-                    activation = output.detach().cpu().numpy().astype(np.float32)
-                    if field == "sparse_activations":
-                        activation = csr_matrix(activation)
-                    embeddings[query][field] = activation
+            queries_embeddings = {
+                field: array.detach().cpu().numpy().astype(np.float32)
+                for field, array in queries_embeddings.items()
+            }
+
+            queries_embeddings["sparse_activations"] = csr_matrix(
+                queries_embeddings["sparse_activations"]
+            )
+
+            for query, sparse_activations, activations, tokens_embeddings in zip(
+                batch,
+                queries_embeddings["sparse_activations"],
+                queries_embeddings["activations"],
+                queries_embeddings["embeddings"],
+            ):
+                embeddings[query]["sparse_activations"] = csr_matrix(sparse_activations)
+                embeddings[query]["activations"] = activations
+                embeddings[query]["embeddings"] = tokens_embeddings
 
         return embeddings
 
@@ -156,7 +168,7 @@ class SparseEmbed(TfIdf):
         tqdm_bar: bool = True,
         query_mode: bool = False,
         **kwargs,
-    ) -> dict[str, torch.Tensor]:
+    ) -> dict[str, dict[str, torch.Tensor]]:
         """Encode documents.
 
         Parameters
@@ -179,12 +191,25 @@ class SparseEmbed(TfIdf):
                 **kwargs,
             )
 
-            for field, output in documents_embeddings.items():
-                output = output.detach().cpu().numpy().astype(np.float32)
-                for document, activation in zip(batch, output):
-                    if field == "sparse_activations":
-                        activation = csc_matrix(activation).T
-                    embeddings[document[self.key]][field] = activation
+            documents_embeddings = {
+                field: array.detach().cpu().numpy().astype(np.float32)
+                for field, array in documents_embeddings.items()
+            }
+
+            documents_embeddings["sparse_activations"] = csr_matrix(
+                documents_embeddings["sparse_activations"]
+            )
+
+            for document, sparse_activations, activations, tokens_embeddings in zip(
+                batch,
+                documents_embeddings["sparse_activations"],
+                documents_embeddings["activations"],
+                documents_embeddings["embeddings"],
+            ):
+                key = document[self.key]
+                embeddings[key]["sparse_activations"] = sparse_activations
+                embeddings[key]["activations"] = activations
+                embeddings[key]["embeddings"] = tokens_embeddings
 
         return embeddings
 
@@ -205,12 +230,13 @@ class SparseEmbed(TfIdf):
         matrix
             List of sparse matrix.
         """
-        matrix = hstack(
+        matrix = vstack(
             [
                 embeddings["sparse_activations"]
                 for embeddings in documents_embeddings.values()
             ]
-        )
+        ).T.tocsr()
+
         self.matrix = matrix if self.matrix is None else hstack((self.matrix, matrix))
 
         for key, embeddings in documents_embeddings.items():
@@ -232,7 +258,7 @@ class SparseEmbed(TfIdf):
 
     def __call__(
         self,
-        queries_embeddings,
+        queries_embeddings: dict[str, dict[str, torch.Tensor]],
         k: int = None,
         batch_size: int = 64,
         tqdm_bar: bool = True,
@@ -261,14 +287,14 @@ class SparseEmbed(TfIdf):
             tqdm_bar=tqdm_bar,
         ):
             embeddings = {
-                "activations": torch.cat(
+                "activations": torch.stack(
                     [
                         torch.tensor(query["activations"], device=self.model.device)
                         for query in queries_batch
                     ],
                     dim=0,
                 ),
-                "embeddings": torch.cat(
+                "embeddings": torch.stack(
                     [
                         torch.tensor(query["embeddings"], device=self.model.device)
                         for query in queries_batch
@@ -289,7 +315,9 @@ class SparseEmbed(TfIdf):
 
         return ranked
 
-    def _retrieve(self, embeddings: dict, k: int) -> list[list[dict]]:
+    def _retrieve(
+        self, embeddings: dict[str, torch.Tensor], k: int
+    ) -> list[list[dict]]:
         """Retrieve documents from input embeddings.
 
         Parameters

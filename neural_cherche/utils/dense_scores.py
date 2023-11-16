@@ -139,8 +139,8 @@ def dense_scores(
         Either torch.sum or torch.mean. torch.mean is dedicated to training and
         torch.sum is dedicated to inference.
 
-    Example
-    ----------
+    Examples
+    --------
     >>> from neural_cherche import models, utils
     >>> import torch
 

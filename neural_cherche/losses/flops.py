@@ -32,8 +32,8 @@ class FlopsScheduler:
 class Flops(torch.nn.Module):
     """Flops loss, act as regularization loss over sparse activations.
 
-    Example
-    -------
+    Examples
+    --------
     >>> from neural_cherche import models, utils, losses
     >>> import torch
 

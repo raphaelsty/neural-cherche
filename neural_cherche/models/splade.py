@@ -22,8 +22,8 @@ class Splade(Base):
     kwargs
         Additional parameters to the SentenceTransformer model.
 
-    Example
-    -------
+    Examples
+    --------
     >>> from neural_cherche import models
     >>> import torch
 

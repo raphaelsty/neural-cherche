@@ -43,8 +43,8 @@ def iter(
     shuffle
         Shuffle the data.
 
-    Example
-    -------
+    Examples
+    --------
     >>> from neural_cherche import utils
 
     >>> X = [

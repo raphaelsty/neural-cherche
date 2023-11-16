@@ -1,0 +1,6 @@
+nav:
+    - Home: fine_tune
+    - retrieve
+    - evaluate
+    - pre_trained_models
+    - api

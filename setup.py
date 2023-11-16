@@ -7,12 +7,14 @@ with open("README.md", "r", encoding="utf-8") as fh:
 
 base_packages = [
     "torch >= 1.13",
-    "tqdm == 4.66",
-    "transformers == 4.34.0",
-    "sentence-transformers == 2.2.2",
+    "tqdm >= 4.66",
+    "transformers >= 4.34.0",
+    "sentence-transformers >= 2.2.2",
 ]
 
 eval = ["ranx >= 0.3.16", "beir >= 2.0.0"]
+
+dev = ["mkdocs-material == 9.2.8"]
 
 setuptools.setup(
     name="neural_cherche",
@@ -23,8 +25,8 @@ setuptools.setup(
     description="Sparse Embeddings for Neural Search.",
     long_description=long_description,
     long_description_content_type="text/markdown",
-    url="https://github.com/raphaelsty/neural_cherche",
-    download_url="https://github.com/user/neural_cherche/archive/v_01.tar.gz",
+    url="https://github.com/raphaelsty/neural-cherche",
+    download_url="https://github.com/user/neural-cherche/archive/v_01.tar.gz",
     keywords=[
         "neural search",
         "information retrieval",
@@ -37,9 +39,7 @@ setuptools.setup(
     ],
     packages=setuptools.find_packages(),
     install_requires=base_packages,
-    extras_require={
-        "eval": base_packages + eval,
-    },
+    extras_require={"eval": base_packages + eval, "dev": base_packages + eval + dev},
     classifiers=[
         "Programming Language :: Python :: 3",
         "License :: OSI Approved :: MIT License",

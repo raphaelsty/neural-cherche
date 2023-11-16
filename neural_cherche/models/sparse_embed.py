@@ -22,8 +22,8 @@ class SparseEmbed(Splade):
     kwargs
         Additional parameters to the pre-trained model.
 
-    Example
-    -------
+    Examples
+    --------
     >>> from neural_cherche import models
     >>> import torch
 

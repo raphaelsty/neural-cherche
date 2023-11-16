@@ -1,0 +1,75 @@
+# Project information
+site_name: neural-cherche
+site_description: Neural Search 
+site_author: Raphael Sourty
+site_url: https://raphaelsty.github.io/neural-cherche
+
+# Repository
+repo_name: raphaelsty/neural-cherche
+repo_url: https://github.com/raphaelsty/neural-cherche
+edit_uri: ""
+
+# Copyright
+copyright: Copyright &copy; 2023
+
+# Configuration
+theme:
+    name: material
+    language: en
+    palette:
+        primary: indigo
+        accent: indigo
+    font:
+        text: Roboto
+        code: Roboto Mono
+    favicon: img/favicon.ico
+    features:
+        - navigation.tabs
+        - navigation.instant
+        - navigation.expand
+        - content.code.copy
+
+# Extras
+extra:
+    social:
+      - icon: fontawesome/brands/github-alt
+        link: https://github.com/raphaelsty/neural-cherche
+
+# Extensions
+markdown_extensions:
+  - admonition
+  - footnotes
+  - toc:
+        permalink: true
+        toc_depth: "1-3"
+  - pymdownx.details
+  - pymdownx.arithmatex:
+      generic: true
+  - pymdownx.highlight:
+      anchor_linenums: true
+      line_spans: __span
+      pygments_lang_class: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - pymdownx.superfences
+  - codehilite:
+      guess_lang: false
+      pygments_style: monokai
+
+
+plugins:
+  - search
+  - awesome-pages
+  - mkdocs-jupyter
+
+extra_javascript:
+  - javascripts/config.js
+  - https://polyfill.io/v3/polyfill.min.js?features=es6
+  - https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js
+  - js/version-select.js
+
+extra_css:
+  - stylesheets/extra.css
+  - css/version-select.css
+
+

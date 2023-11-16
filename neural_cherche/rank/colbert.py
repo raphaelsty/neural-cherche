@@ -10,11 +10,15 @@ class ColBERT:
 
     Parameters
     ----------
+    key
+        Document unique identifier.
+    on
+        Document texts.
     model
         ColBERT model.
 
-    Example
-    -------
+    Examples
+    --------
     >>> from neural_cherche import models, rank
     >>> from pprint import pprint
     >>> import torch

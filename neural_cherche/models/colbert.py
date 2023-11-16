@@ -23,8 +23,8 @@ class ColBERT(Base):
     kwargs
         Additional parameters to the SentenceTransformer model.
 
-    Example
-    -------
+    Examples
+    --------
     >>> from neural_cherche import models
     >>> import torch
 
@@ -244,13 +244,13 @@ class ColBERT(Base):
             ),
             utils.batchify(X=documents, batch_size=batch_size, tqdm_bar=False),
         ):
-            queries_embeddings = self(
+            queries_embeddings = self.encode(
                 texts=batch_queries,
                 query_mode=True,
                 **kwargs,
             )
 
-            documents_embeddings = self(
+            documents_embeddings = self.encode(
                 texts=batch_documents,
                 query_mode=False,
                 **kwargs,

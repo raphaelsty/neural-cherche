@@ -20,8 +20,8 @@ class Splade(TfIdf):
     model
         SparsEmbed model.
 
-    Example
-    -------
+    Examples
+    --------
     >>> from neural_cherche import models, retrieve
     >>> from pprint import pprint
     >>> import torch
