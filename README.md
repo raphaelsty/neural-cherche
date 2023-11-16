@@ -7,7 +7,7 @@
 
 <div align="center">
   <!-- Documentation -->
-  <a href="https://raphaelsty.github.io/neural-cherche/"><img src="https://img.shields.io/website?label=docs&style=flat-square&url=https%3A%2F%2Fraphaelsty.github.io/neural-cherche/%2F" alt="documentation"></a>
+  <a href="https://raphaelsty.github.io/neural-cherche/"><img src="https://img.shields.io/website?label=Documentation&style=flat-square&url=https%3A%2F%2Fraphaelsty.github.io/neural-cherche/%2F" alt="documentation"></a>
   <!-- License -->
   <a href="https://opensource.org/licenses/MIT"><img src="https://img.shields.io/badge/License-MIT-blue.svg?style=flat-square" alt="license"></a>
 </div>
@@ -66,8 +66,8 @@ X = [
 
 for anchor, positive, negative in utils.iter(
         X,
-        epochs=epochs,
-        batch_size=2,
+        epochs=1,
+        batch_size=32,
         shuffle=True
     ):
 

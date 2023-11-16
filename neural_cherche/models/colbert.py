@@ -52,7 +52,7 @@ class ColBERT(Base):
     ... )
 
     >>> scores
-    tensor([24.5880, 19.3780, 22.6769], device='mps:0', grad_fn=<CatBackward0>)
+    tensor([20.2148, 16.7599, 18.2901], device='mps:0')
 
     >>> _ = encoder.save_pretrained("checkpoint")
 
@@ -68,7 +68,7 @@ class ColBERT(Base):
     ... )
 
     >>> scores
-    tensor([24.5880, 19.3781, 22.6769], grad_fn=<CatBackward0>)
+    tensor([20.2148, 16.7599, 18.2901])
 
     >>> embeddings = encoder(
     ...     texts=queries,

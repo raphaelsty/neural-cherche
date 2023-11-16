@@ -8,7 +8,7 @@ from neural_cherche import models, retrieve
 import torch
 
 device = "cuda" if torch.cuda.is_available() else "cpu"
-batch_size = 1
+batch_size = 32
 
 model = models.SparseEmbed(
     model_name_or_path="distilbert-base-uncased",

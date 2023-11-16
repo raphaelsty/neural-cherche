@@ -9,6 +9,9 @@ livedoc:
 	mkdocs build --clean
 	mkdocs serve --dirtyreload
 
+deploydoc:
+	mkdocs gh-deploy --force
+
 .PHONY: bench
 bench:
 	asv run ${COMMIT_HASH} --config benchmarks/asv.conf.json --steps 1
