@@ -30,7 +30,7 @@ pip install "neural-cherche[eval]"
 
 ## Documentation
 
-The complete documentation is available [here](https://neural-cherche.readthedocs.io/en/latest/).
+The complete documentation is available [here](https://raphaelsty.github.io/neural-cherche/).
 
 ## Quick Start
 
