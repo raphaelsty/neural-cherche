@@ -51,7 +51,6 @@ if __name__ == "__main__"":
             )
     
         if accelerator.is_main_process and save_on_epoch:
-            accelerator.save_model(model, "checkpoint/epoch" + str(epoch))
             unwrapped_model = accelerator.unwrap_model(model)
             unwrapped_model.save_pretrained(
             "checkpoint/epoch" + str(epoch),
