@@ -80,12 +80,16 @@ class Splade(Base):
         max_length_query: int = 128,
         max_length_document: int = 256,
         extra_files_to_load: list[str] = ["metadata.json"],
+        query_prefix: str = "[Q] ",
+        document_prefix: str = "[D] ",
         **kwargs,
     ) -> None:
         super(Splade, self).__init__(
             model_name_or_path=model_name_or_path,
             device=device,
             extra_files_to_load=extra_files_to_load,
+            query_prefix=query_prefix,
+            document_prefix=document_prefix,
             **kwargs,
         )
 
@@ -178,9 +182,9 @@ class Splade(Base):
         query_mode
             Whether to encode queries or documents.
         """
-        suffix = "[Q] " if query_mode else "[D] "
+        prefix = self.query_prefix if query_mode else self.document_prefix
 
-        texts = [suffix + text for text in texts]
+        texts = [prefix + text for text in texts]
 
         self.tokenizer.pad_token = (
             self.query_pad_token if query_mode else self.original_pad_token
