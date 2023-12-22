@@ -54,7 +54,8 @@ if __name__ == "__main__"":
             accelerator.save_model(model, "checkpoint/epoch" + str(epoch))
             unwrapped_model = accelerator.unwrap_model(model)
             unwrapped_model.save_pretrained(
-            "SPARSE_EMBEDFULL/epoch" + str(epoch),
+            "checkpoint/epoch" + str(epoch),
+            )
 
     # Save at the end of the training loop
     # We check to make sure that only the main process will export the model
