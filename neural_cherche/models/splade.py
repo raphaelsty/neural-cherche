@@ -101,6 +101,8 @@ class Splade(Base):
 
             max_length_query = metadata["max_length_query"]
             max_length_document = metadata["max_length_document"]
+            self.query_prefix = metadata.get("query_prefix", self.query_prefix)
+            self.document_prefix = metadata.get("document_prefix", self.document_prefix)
 
         self.max_length_query = max_length_query
         self.max_length_document = max_length_document
@@ -229,6 +231,8 @@ class Splade(Base):
                 obj={
                     "max_length_query": self.max_length_query,
                     "max_length_document": self.max_length_document,
+                    "query_prefix": self.query_prefix,
+                    "document_prefix": self.document_prefix,
                 },
                 indent=4,
             )

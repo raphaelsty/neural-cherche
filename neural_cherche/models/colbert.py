@@ -136,6 +136,8 @@ class ColBERT(Base):
                 metadata = json.load(f)
             self.max_length_document = metadata["max_length_document"]
             self.max_length_query = metadata["max_length_query"]
+            self.query_prefix = metadata.get("query_prefix", self.query_prefix)
+            self.document_prefix = metadata.get("document_prefix", self.document_prefix)
 
         if os.path.exists(os.path.join(self.model_folder, "linear.pt")):
             self.linear.load_state_dict(linear)
@@ -289,6 +291,8 @@ class ColBERT(Base):
                 {
                     "max_length_query": self.max_length_query,
                     "max_length_document": self.max_length_document,
+                    "query_prefix": self.query_prefix,
+                    "document_prefix": self.document_prefix,
                 },
                 f,
             )
