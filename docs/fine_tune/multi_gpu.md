@@ -36,7 +36,7 @@ if __name__ == "__main__"":
     model, optimizer, data_loader = accelerator.prepare(model, optimizer, data_loader)
 
     for epoch in range(epochs):
-        for batch_data in enumerate(data_loader):
+        for batch_id, batch_data in enumerate(data_loader):
             # Assuming batch_data is a tuple in the form (anchors, positives, negatives)
             anchors, positives, negatives = batch_data
 
