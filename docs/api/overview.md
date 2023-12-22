@@ -27,6 +27,7 @@
 - [train_colbert](../train/train-colbert)
 - [train_sparse_embed](../train/train-sparse-embed)
 - [train_splade](../train/train-splade)
+- [Multi-GPU training via Accelerator](../train/multi-gpu)
 
 ## utils
 

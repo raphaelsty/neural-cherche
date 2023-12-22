@@ -77,16 +77,16 @@ class Base(ABC, torch.nn.Module):
         texts
             List of sentences to encode.
         """
-        encoded_input = self.tokenizer.batch_encode_plus(
-            texts, return_tensors="pt", **kwargs
+        encoded_input = self.tokenizer(texts, return_tensors="pt", **kwargs).to(
+            self.device
         )
 
-        if self.device != "cpu":
-            encoded_input = {
-                key: value.to(self.device) for key, value in encoded_input.items()
-            }
+        # Must hardcode position_ids to avoid a bug with accelerate multi-GPU
+        seq_len = encoded_input["input_ids"].size(1)
+        position_ids = torch.arange(0, seq_len).expand((len(texts), -1)).to(self.device)
 
-        output = self.model(**encoded_input)
+        # Pass both the inputs and position_ids to the model
+        output = self.model(**encoded_input, position_ids=position_ids)
         return output.logits, output.hidden_states[-1]
 
     @abstractmethod

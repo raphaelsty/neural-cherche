@@ -212,11 +212,40 @@ class SparseEmbed(Splade):
 
         return self.softmax(attention)
 
-    def save_pretrained(self, path: str):
+    def save_pretrained(
+        self,
+        path: str,
+        accelerator: bool = False,
+    ):
         """Save model the model."""
         self.model.save_pretrained(path)
         self.tokenizer.pad_token = self.original_pad_token
-        self.tokenizer.save_pretrained(path)
+        if accelerator:
+            # Workaround an issue with accelerator. Tokenizer has a key "device"
+            # which is non serialisable, but not removeable with a basic delattr
+
+            # dump config
+            tokenizer_config = {
+                k: v for k, v in self.tokenizer.__dict__.items() if k != "device"
+            }
+            tokenizer_config_file = os.path.join(path, "tokenizer_config.json")
+            with open(tokenizer_config_file, "w", encoding="utf-8") as file:
+                json.dump(tokenizer_config, file, ensure_ascii=False, indent=4)
+
+            # dump vocab
+            self.tokenizer.save_vocabulary(path)
+
+            # save special tokens
+            special_tokens_file = os.path.join(path, "special_tokens_map.json")
+            with open(special_tokens_file, "w", encoding="utf-8") as file:
+                json.dump(
+                    self.tokenizer.special_tokens_map,
+                    file,
+                    ensure_ascii=False,
+                    indent=4,
+                )
+        else:
+            self.tokenizer.save_pretrained(path)
         torch.save(self.linear.state_dict(), os.path.join(path, "linear.pt"))
         with open(os.path.join(path, "metadata.json"), "w") as file:
             json.dump(
