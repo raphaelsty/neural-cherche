@@ -30,10 +30,15 @@ class Base(ABC, torch.nn.Module):
         device: str = None,
         extra_files_to_load: list[str] = [],
         accelerate: bool = False,
+        query_prefix: str = "[Q] ",
+        document_prefix: str = "[D] ",
         **kwargs,
     ) -> None:
         """Initialize the model."""
         super(Base, self).__init__()
+
+        self.query_prefix = query_prefix
+        self.document_prefix = document_prefix
 
         if device is not None:
             self.device = device

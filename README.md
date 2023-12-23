@@ -82,6 +82,10 @@ for anchor, positive, negative in utils.iter(
 model.save_pretrained("checkpoint")
 ```
 
+## Neural-Cherche Contributors 
+
+- [Benjamin Clavié](https://github.com/bclavie)
+
 ## References
 
 - *[SPLADE: Sparse Lexical and Expansion Model for First Stage Ranking](https://arxiv.org/abs/2107.05720)* authored by Thibault Formal, Benjamin Piwowarski, Stéphane Clinchant, SIGIR 2021.
