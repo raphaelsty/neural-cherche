@@ -95,6 +95,8 @@ class ColBERT(Base):
         device: str = None,
         max_length_query: int = 32,
         max_length_document: int = 350,
+        query_prefix: str = "[Q] ",
+        document_prefix: str = "[D] ",
         **kwargs,
     ) -> None:
         """Initialize the model."""
@@ -102,6 +104,8 @@ class ColBERT(Base):
             model_name_or_path=model_name_or_path,
             device=device,
             extra_files_to_load=["linear.pt", "metadata.json"],
+            query_prefix=query_prefix,
+            document_prefix=document_prefix,
             **kwargs,
         )
 
@@ -132,6 +136,8 @@ class ColBERT(Base):
                 metadata = json.load(f)
             self.max_length_document = metadata["max_length_document"]
             self.max_length_query = metadata["max_length_query"]
+            self.query_prefix = metadata.get("query_prefix", self.query_prefix)
+            self.document_prefix = metadata.get("document_prefix", self.document_prefix)
 
         if os.path.exists(os.path.join(self.model_folder, "linear.pt")):
             self.linear.load_state_dict(linear)
@@ -182,9 +188,9 @@ class ColBERT(Base):
         query_mode
             Wether to encode query or not.
         """
-        suffix = "[Q] " if query_mode else "[D] "
+        prefix = self.query_prefix if query_mode else self.document_prefix
 
-        texts = [suffix + text for text in texts]
+        texts = [prefix + text for text in texts]
 
         self.tokenizer.pad_token = (
             self.query_pad_token if query_mode else self.original_pad_token
@@ -285,6 +291,8 @@ class ColBERT(Base):
                 {
                     "max_length_query": self.max_length_query,
                     "max_length_document": self.max_length_document,
+                    "query_prefix": self.query_prefix,
+                    "document_prefix": self.document_prefix,
                 },
                 f,
             )
