@@ -80,12 +80,14 @@ class Splade(Base):
         max_length_query: int = 128,
         max_length_document: int = 256,
         extra_files_to_load: list[str] = ["metadata.json"],
+        accelerate: bool = False,
         **kwargs,
     ) -> None:
         super(Splade, self).__init__(
             model_name_or_path=model_name_or_path,
             device=device,
             extra_files_to_load=extra_files_to_load,
+            accelerate=accelerate,
             **kwargs,
         )
 
@@ -209,7 +211,6 @@ class Splade(Base):
     def save_pretrained(
         self,
         path: str,
-        accelerator: bool = False,
     ):
         """Save model the model.
 
@@ -221,30 +222,9 @@ class Splade(Base):
         """
         self.model.save_pretrained(path)
         self.tokenizer.pad_token = self.original_pad_token
-        if accelerator:
-            # Workaround an issue with accelerator. Tokenizer has a key "device"
-            # which is non serialisable, but not removeable with a basic delattr
 
-            # dump config
-            tokenizer_config = {
-                k: v for k, v in self.tokenizer.__dict__.items() if k != "device"
-            }
-            tokenizer_config_file = os.path.join(path, "tokenizer_config.json")
-            with open(tokenizer_config_file, "w", encoding="utf-8") as file:
-                json.dump(tokenizer_config, file, ensure_ascii=False, indent=4)
-
-            # dump vocab
-            self.tokenizer.save_vocabulary(path)
-
-            # save special tokens
-            special_tokens_file = os.path.join(path, "special_tokens_map.json")
-            with open(special_tokens_file, "w", encoding="utf-8") as file:
-                json.dump(
-                    self.tokenizer.special_tokens_map,
-                    file,
-                    ensure_ascii=False,
-                    indent=4,
-                )
+        if self.accelerate:
+            self.save_tokenizer_accelerate(path)
         else:
             self.tokenizer.save_pretrained(path)
 

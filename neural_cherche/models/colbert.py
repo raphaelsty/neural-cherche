@@ -20,6 +20,8 @@ class ColBERT(Base):
         Size of the embeddings in output of ColBERT model.
     device
         Device to use for the model. CPU or CUDA.
+    accelerate
+        Use HuggingFace Accelerate.
     kwargs
         Additional parameters to the SentenceTransformer model.
 
@@ -43,7 +45,6 @@ class ColBERT(Base):
     ...     embedding_size=128,
     ...     max_length_query=32,
     ...     max_length_document=350,
-    ...     device="mps",
     ... )
 
     >>> scores = encoder.scores(
@@ -52,9 +53,9 @@ class ColBERT(Base):
     ... )
 
     >>> scores
-    tensor([20.2148, 16.7599, 18.2901], device='mps:0')
+    tensor([22.9325, 19.8296, 20.8019])
 
-    >>> _ = encoder.save_pretrained("checkpoint")
+    >>> _ = encoder.save_pretrained("checkpoint", accelerate=False)
 
     >>> encoder = models.ColBERT(
     ...     model_name_or_path="checkpoint",
@@ -68,7 +69,7 @@ class ColBERT(Base):
     ... )
 
     >>> scores
-    tensor([20.2148, 16.7599, 18.2901])
+    tensor([22.9325, 19.8296, 20.8019])
 
     >>> embeddings = encoder(
     ...     texts=queries,
@@ -95,6 +96,7 @@ class ColBERT(Base):
         device: str = None,
         max_length_query: int = 32,
         max_length_document: int = 350,
+        accelerate: bool = False,
         **kwargs,
     ) -> None:
         """Initialize the model."""
@@ -102,6 +104,7 @@ class ColBERT(Base):
             model_name_or_path=model_name_or_path,
             device=device,
             extra_files_to_load=["linear.pt", "metadata.json"],
+            accelerate=accelerate,
             **kwargs,
         )
 
@@ -268,7 +271,7 @@ class ColBERT(Base):
 
         return torch.cat(list_scores, dim=0)
 
-    def save_pretrained(self, path: str, accelerator: bool = False) -> "ColBERT":
+    def save_pretrained(self, path: str) -> "ColBERT":
         """Save model the model.
 
         Parameters
@@ -279,32 +282,6 @@ class ColBERT(Base):
         self.model.save_pretrained(path)
         torch.save(self.linear.state_dict(), os.path.join(path, "linear.pt"))
         self.tokenizer.pad_token = self.original_pad_token
-        if accelerator:
-            # Workaround an issue with accelerator. Tokenizer has a key "device"
-            # which is non serialisable, but not removeable with a basic delattr
-
-            # dump config
-            tokenizer_config = {
-                k: v for k, v in self.tokenizer.__dict__.items() if k != "device"
-            }
-            tokenizer_config_file = os.path.join(path, "tokenizer_config.json")
-            with open(tokenizer_config_file, "w", encoding="utf-8") as file:
-                json.dump(tokenizer_config, file, ensure_ascii=False, indent=4)
-
-            # dump vocab
-            self.tokenizer.save_vocabulary(path)
-
-            # save special tokens
-            special_tokens_file = os.path.join(path, "special_tokens_map.json")
-            with open(special_tokens_file, "w", encoding="utf-8") as file:
-                json.dump(
-                    self.tokenizer.special_tokens_map,
-                    file,
-                    ensure_ascii=False,
-                    indent=4,
-                )
-        else:
-            self.tokenizer.save_pretrained(path)
         with open(os.path.join(path, "metadata.json"), "w") as f:
             json.dump(
                 {
@@ -313,4 +290,8 @@ class ColBERT(Base):
                 },
                 f,
             )
+        if self.accelerate:
+            self.save_tokenizer_accelerate(path=path)
+        else:
+            self.tokenizer.save_pretrained(path)
         return self

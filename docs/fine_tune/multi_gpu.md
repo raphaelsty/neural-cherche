@@ -1,46 +1,54 @@
-# Multi-GPU (Accelerator)
+# Multi-GPU (Partial)
 
-
-Training any of the models on multiple GPU via the accelerator library is simple. You just need to modify the training loop in a few key ways:
+Neural-Cherche is working towards being fully compatible with multiples GPUs training using [Accelerator](https://huggingface.co/docs/accelerate/package_reference/accelerator). At the moment, there is partial compatibility, and we can train every models of neural-cherche using GPUs in most circumstances, although it's not yet fully supported. Here is a tutorial.
 
 ```python
-from neural_cherche import models, utils, train
 import torch
-from torch.utils.data import DataLoader
 from accelerate import Accelerator
+from datasets import Dataset
+from torch.utils.data import DataLoader
 
+from neural_cherche import models, train
 
-# Wrap in main function to avoid multiprocessing issues
-if __name__ == "__main__"":
+if __name__ == "__main__":
+    # We will need to wrap your training loop in a function to avoid multiprocessing issues.
     accelerator = Accelerator()
-    device = accelerator.device
-    batch_size = 32
-    epochs = 2
-    save_on_epoch = True
+    save_each_epoch = True
 
     model = models.SparseEmbed(
         model_name_or_path="distilbert-base-uncased",
-        device=device
-    ).to(device)
+        accelerate=True,
+        device=accelerator.device,
+    ).to(accelerator.device)
 
     # Optimizer
     optimizer = torch.optim.AdamW(model.parameters(), lr=3e-5)
 
-    # prepare your dataset -- this example uses a huggingface `datasets` object
-    ...
+    # Dataset creation using HuggingFace Datasets library.
+    dataset = Dataset.from_dict(
+        {
+            "anchors": ["anchor 1", "anchor 2", "anchor 3", "anchor 4"],
+            "positives": ["positive 1", "positive 2", "positive 3", "positive 4"],
+            "negatives": ["negative 1", "negative 2", "negative 3", "negative 4"],
+        }
+    )
 
-    # Convert the data into a PyTorch dataloader for ease of preparation
-    data_loader = DataLoader(dataset, batch_size=batch_size, shuffle=True)
+    # Convert your dataset to a DataLoader.
+    data_loader = DataLoader(dataset, batch_size=32, shuffle=True)
 
-    # Wrap the model, optimizer, and data loader in the accelerator
+    # Wrap model, optimizer, and dataloader in accelerator.
     model, optimizer, data_loader = accelerator.prepare(model, optimizer, data_loader)
 
-    for epoch in range(epochs):
-        for batch_id, batch_data in enumerate(data_loader):
-            # Assuming batch_data is a tuple in the form (anchors, positives, negatives)
-            anchors, positives, negatives = batch_data
+    for epoch in range(2):
+        for batch in enumerate(data_loader):
+            # Batch is a triple like (anchors, positives, negatives)
+            anchors, positives, negatives = (
+                batch["anchors"],
+                batch["positives"],
+                batch["negatives"],
+            )
 
-            loss = train_sparse_embed(
+            loss = train.train_sparse_embed(
                 model=model,
                 optimizer=optimizer,
                 anchor=anchors,
@@ -49,16 +57,16 @@ if __name__ == "__main__"":
                 threshold_flops=30,
                 accelerator=accelerator,
             )
-    
-        if accelerator.is_main_process and save_on_epoch:
+
+        if accelerator.is_main_process and save_each_epoch:
             unwrapped_model = accelerator.unwrap_model(model)
             unwrapped_model.save_pretrained(
-            "checkpoint/epoch" + str(epoch),
+                "checkpoint/epoch" + str(epoch),
             )
 
     # Save at the end of the training loop
     # We check to make sure that only the main process will export the model
     if accelerator.is_main_process:
         unwrapped_model = accelerator.unwrap_model(model)
-        unwrapped_model.save_pretrained("checkpoint", accelerator=True)
+        unwrapped_model.save_pretrained("checkpoint")
 ```
