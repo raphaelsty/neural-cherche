@@ -20,6 +20,8 @@ class ColBERT(Base):
         Size of the embeddings in output of ColBERT model.
     device
         Device to use for the model. CPU or CUDA.
+    accelerate
+        Use HuggingFace Accelerate.
     kwargs
         Additional parameters to the SentenceTransformer model.
 
@@ -43,7 +45,6 @@ class ColBERT(Base):
     ...     embedding_size=128,
     ...     max_length_query=32,
     ...     max_length_document=350,
-    ...     device="mps",
     ... )
 
     >>> scores = encoder.scores(
@@ -52,9 +53,9 @@ class ColBERT(Base):
     ... )
 
     >>> scores
-    tensor([20.2148, 16.7599, 18.2901], device='mps:0')
+    tensor([22.9325, 19.8296, 20.8019])
 
-    >>> _ = encoder.save_pretrained("checkpoint")
+    >>> _ = encoder.save_pretrained("checkpoint", accelerate=False)
 
     >>> encoder = models.ColBERT(
     ...     model_name_or_path="checkpoint",
@@ -68,7 +69,7 @@ class ColBERT(Base):
     ... )
 
     >>> scores
-    tensor([20.2148, 16.7599, 18.2901])
+    tensor([22.9325, 19.8296, 20.8019])
 
     >>> embeddings = encoder(
     ...     texts=queries,
@@ -95,6 +96,7 @@ class ColBERT(Base):
         device: str = None,
         max_length_query: int = 32,
         max_length_document: int = 350,
+        accelerate: bool = False,
         query_prefix: str = "[Q] ",
         document_prefix: str = "[D] ",
         **kwargs,
@@ -104,6 +106,7 @@ class ColBERT(Base):
             model_name_or_path=model_name_or_path,
             device=device,
             extra_files_to_load=["linear.pt", "metadata.json"],
+            accelerate=accelerate,
             query_prefix=query_prefix,
             document_prefix=document_prefix,
             **kwargs,
@@ -285,7 +288,6 @@ class ColBERT(Base):
         self.model.save_pretrained(path)
         torch.save(self.linear.state_dict(), os.path.join(path, "linear.pt"))
         self.tokenizer.pad_token = self.original_pad_token
-        self.tokenizer.save_pretrained(path)
         with open(os.path.join(path, "metadata.json"), "w") as f:
             json.dump(
                 {
@@ -296,4 +298,8 @@ class ColBERT(Base):
                 },
                 f,
             )
+        if self.accelerate:
+            self.save_tokenizer_accelerate(path=path)
+        else:
+            self.tokenizer.save_pretrained(path)
         return self

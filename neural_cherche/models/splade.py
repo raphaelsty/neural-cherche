@@ -80,6 +80,7 @@ class Splade(Base):
         max_length_query: int = 128,
         max_length_document: int = 256,
         extra_files_to_load: list[str] = ["metadata.json"],
+        accelerate: bool = False,
         query_prefix: str = "[Q] ",
         document_prefix: str = "[D] ",
         **kwargs,
@@ -88,6 +89,7 @@ class Splade(Base):
             model_name_or_path=model_name_or_path,
             device=device,
             extra_files_to_load=extra_files_to_load,
+            accelerate=accelerate,
             query_prefix=query_prefix,
             document_prefix=document_prefix,
             **kwargs,
@@ -212,7 +214,10 @@ class Splade(Base):
 
         return {"sparse_activations": activations["sparse_activations"]}
 
-    def save_pretrained(self, path: str):
+    def save_pretrained(
+        self,
+        path: str,
+    ):
         """Save model the model.
 
         Parameters
@@ -223,7 +228,11 @@ class Splade(Base):
         """
         self.model.save_pretrained(path)
         self.tokenizer.pad_token = self.original_pad_token
-        self.tokenizer.save_pretrained(path)
+
+        if self.accelerate:
+            self.save_tokenizer_accelerate(path)
+        else:
+            self.tokenizer.save_pretrained(path)
 
         with open(os.path.join(path, "metadata.json"), "w") as file:
             json.dump(
@@ -314,15 +323,12 @@ class Splade(Base):
     ) -> torch.Tensor:
         """Returns activated tokens."""
         activations = torch.topk(input=sparse_activations, k=k_tokens, dim=1).indices
-
-        # Set value of max sparse_activations which are not in top k to 0.
-        sparse_activations = sparse_activations * torch.zeros(
-            (sparse_activations.shape[0], sparse_activations.shape[1]),
-            dtype=int,
-            device=self.device,
-        ).scatter_(dim=1, index=activations.long(), value=1)
+        zero_tensor = torch.zeros_like(sparse_activations, dtype=int)
+        updated_sparse_activations = sparse_activations * zero_tensor.scatter(
+            dim=1, index=activations.long(), value=1
+        )
 
         return {
             "activations": activations,
-            "sparse_activations": sparse_activations,
+            "sparse_activations": updated_sparse_activations,
         }

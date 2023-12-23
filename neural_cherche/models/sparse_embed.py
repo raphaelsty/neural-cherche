@@ -97,6 +97,7 @@ class SparseEmbed(Splade):
         max_length_query: int = 128,
         max_length_document: int = 256,
         device: str = None,
+        accelerate: bool = False,
         query_prefix: str = "[Q] ",
         document_prefix: str = "[D] ",
         **kwargs,
@@ -105,6 +106,7 @@ class SparseEmbed(Splade):
             model_name_or_path=model_name_or_path,
             device=device,
             extra_files_to_load=["linear.pt", "metadata.json"],
+            accelerate=accelerate,
             query_prefix=query_prefix,
             document_prefix=document_prefix,
             **kwargs,
@@ -218,11 +220,18 @@ class SparseEmbed(Splade):
 
         return self.softmax(attention)
 
-    def save_pretrained(self, path: str):
+    def save_pretrained(
+        self,
+        path: str,
+    ):
         """Save model the model."""
         self.model.save_pretrained(path)
         self.tokenizer.pad_token = self.original_pad_token
-        self.tokenizer.save_pretrained(path)
+
+        if self.accelerate:
+            self.save_tokenizer_accelerate(path)
+        else:
+            self.tokenizer.save_pretrained(path)
         torch.save(self.linear.state_dict(), os.path.join(path, "linear.pt"))
         with open(os.path.join(path, "metadata.json"), "w") as file:
             json.dump(
