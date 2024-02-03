@@ -95,3 +95,7 @@ model.save_pretrained("checkpoint")
 - *[SparseEmbed: Learning Sparse Lexical Representations with Contextual Embeddings for Retrieval](https://research.google/pubs/pub52289/)* authored by Weize Kong, Jeffrey M. Dudek, Cheng Li, Mingyang Zhang, and Mike Bendersky, SIGIR 2023.
 
 - *[ColBERT: Efficient and Effective Passage Search via Contextualized Late Interaction over BERT](https://arxiv.org/abs/2004.12832)* authored by Omar Khattab, Matei Zaharia, SIGIR 2020.
+
+## License
+
+This Python library is licensed under the MIT open-source license, and the splade model is licensed as non-commercial only by the authors. SparseEmbed and ColBERT are fully open-source including commercial usage.
