@@ -1,3 +1,4 @@
+import json
 import os
 from abc import ABC, abstractmethod
 
@@ -15,6 +16,10 @@ class Base(ABC, torch.nn.Module):
         Path to the model or the model name.
     device
         Device to use for the model. CPU or CUDA.
+    extra_files_to_load
+        List of extra files to load.
+    accelerate
+        Use HuggingFace Accelerate.
     kwargs
         Additional parameters to the model.
     """
@@ -24,6 +29,7 @@ class Base(ABC, torch.nn.Module):
         model_name_or_path: str,
         device: str = None,
         extra_files_to_load: list[str] = [],
+        accelerate: bool = False,
         query_prefix: str = "[Q] ",
         document_prefix: str = "[D] ",
         **kwargs,
@@ -41,6 +47,8 @@ class Base(ABC, torch.nn.Module):
             self.device = "cuda"
         else:
             self.device = "cpu"
+
+        self.accelerate = accelerate
 
         os.environ["TRANSFORMERS_CACHE"] = "."
         self.model = AutoModelForMaskedLM.from_pretrained(
@@ -74,6 +82,31 @@ class Base(ABC, torch.nn.Module):
         self.query_pad_token = self.tokenizer.mask_token
         self.original_pad_token = self.tokenizer.pad_token
 
+    def _encode_accelerate(self, texts: list[str], **kwargs) -> tuple[torch.Tensor]:
+        """Encode sentences with multiples gpus.
+
+        Parameters
+        ----------
+        texts
+            List of sentences to encode.
+
+        References
+        ----------
+        [Accelerate issue.](https://github.com/huggingface/accelerate/issues/97)
+        """
+        encoded_input = self.tokenizer(texts, return_tensors="pt", **kwargs).to(
+            self.device
+        )
+
+        position_ids = (
+            torch.arange(0, encoded_input["input_ids"].size(1))
+            .expand((len(texts), -1))
+            .to(self.device)
+        )
+
+        output = self.model(**encoded_input, position_ids=position_ids)
+        return output.logits, output.hidden_states[-1]
+
     def _encode(self, texts: list[str], **kwargs) -> tuple[torch.Tensor, torch.Tensor]:
         """Encode sentences.
 
@@ -82,6 +115,9 @@ class Base(ABC, torch.nn.Module):
         texts
             List of sentences to encode.
         """
+        if self.accelerate:
+            return self._encode_accelerate(texts, **kwargs)
+
         encoded_input = self.tokenizer.batch_encode_plus(
             texts, return_tensors="pt", **kwargs
         )
@@ -113,3 +149,25 @@ class Base(ABC, torch.nn.Module):
     def save_pretrained(self, path: str):
         """Save model the model."""
         pass
+
+    def save_tokenizer_accelerate(self, path: str) -> None:
+        """Save tokenizer when using accelerate."""
+        tokenizer_config = {
+            k: v for k, v in self.tokenizer.__dict__.items() if k != "device"
+        }
+        tokenizer_config_file = os.path.join(path, "tokenizer_config.json")
+        with open(tokenizer_config_file, "w", encoding="utf-8") as file:
+            json.dump(tokenizer_config, file, ensure_ascii=False, indent=4)
+
+        # dump vocab
+        self.tokenizer.save_vocabulary(path)
+
+        # save special tokens
+        special_tokens_file = os.path.join(path, "special_tokens_map.json")
+        with open(special_tokens_file, "w", encoding="utf-8") as file:
+            json.dump(
+                self.tokenizer.special_tokens_map,
+                file,
+                ensure_ascii=False,
+                indent=4,
+            )
