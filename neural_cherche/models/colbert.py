@@ -252,13 +252,11 @@ class ColBERT(Base):
         ):
             queries_embeddings = self.encode(
                 texts=batch_queries,
-                query_mode=True,
                 **kwargs,
             )
 
             documents_embeddings = self.encode(
                 texts=batch_documents,
-                query_mode=False,
                 **kwargs,
             )
 
