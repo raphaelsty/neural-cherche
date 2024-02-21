@@ -25,12 +25,12 @@ X = [
     ("query", "positive document", "negative document"),
 ]
 
-for anchor, positive, negative in utils.iter(
+for step, (anchor, positive, negative) in enumerate(utils.iter(
         X,
         epochs=epochs,
         batch_size=batch_size,
         shuffle=False
-    ):
+    )):
 
     loss = train.train_sparse_embed(
         model=model,
@@ -39,9 +39,13 @@ for anchor, positive, negative in utils.iter(
         positive=positive,
         negative=negative,
         threshold_flops=30,
+        step=step,
+        gradient_accumulation_steps=50,
     )
 
-model.save_pretrained("checkpoint")
+    if (step + 1) % 1000 == 0:
+        # Save the model every 1000 steps
+        model.save_pretrained("checkpoint")
 ```
 
 We can load the checkpoint using:

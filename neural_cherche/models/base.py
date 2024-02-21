@@ -26,6 +26,8 @@ class Base(ABC, torch.nn.Module):
         extra_files_to_load: list[str] = [],
         query_prefix: str = "[Q] ",
         document_prefix: str = "[D] ",
+        padding: str = "max_length",
+        truncation: bool | None = True,
         **kwargs,
     ) -> None:
         """Initialize the model."""
@@ -33,10 +35,11 @@ class Base(ABC, torch.nn.Module):
 
         self.query_prefix = query_prefix
         self.document_prefix = document_prefix
+        self.padding = padding
+        self.truncation = truncation
 
         if device is not None:
             self.device = device
-
         elif torch.cuda.is_available():
             self.device = "cuda"
         else:
@@ -44,23 +47,28 @@ class Base(ABC, torch.nn.Module):
 
         os.environ["TRANSFORMERS_CACHE"] = "."
         self.model = AutoModelForMaskedLM.from_pretrained(
-            model_name_or_path, cache_dir="./", **kwargs
+            pretrained_model_name_or_path=model_name_or_path, cache_dir="./", **kwargs
         ).to(self.device)
 
         # Download linear layer if exists
         for file in extra_files_to_load:
             try:
-                _ = hf_hub_download(model_name_or_path, filename=file, cache_dir=".")
+                _ = hf_hub_download(
+                    repo_id=model_name_or_path, filename=file, cache_dir="."
+                )
             except:
                 pass
 
         self.tokenizer = AutoTokenizer.from_pretrained(
-            model_name_or_path, device=self.device, cache_dir="./", **kwargs
+            pretrained_model_name_or_path=model_name_or_path,
+            device=self.device,
+            cache_dir="./",
+            **kwargs,
         )
 
         self.model.config.output_hidden_states = True
 
-        if os.path.exists(model_name_or_path):
+        if os.path.exists(path=model_name_or_path):
             # Local checkpoint
             self.model_folder = model_name_or_path
         else:

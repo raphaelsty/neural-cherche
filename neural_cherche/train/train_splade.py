@@ -1,3 +1,5 @@
+import torch
+
 from .. import losses, utils
 
 __all__ = ["train_splade"]
@@ -12,10 +14,12 @@ def train_splade(
     flops_loss_weight: float = 1e-4,
     sparse_loss_weight: float = 1.0,
     in_batch_negatives: bool = False,
-    threshold_flops: float = 30,
-    backward: bool = True,
+    threshold_flops: float = 30.0,
+    max_flops_loss: float = 10.0,
+    step: int = None,
+    gradient_accumulation_steps: int = 50,
     **kwargs,
-):
+) -> dict[str, torch.Tensor]:
     """Compute the ranking loss and the flops loss for a single step.
 
     Parameters
@@ -34,6 +38,10 @@ def train_splade(
         Flops loss weight. Defaults to 1e-4.
     in_batch_negatives
         Whether to use in batch negatives or not. Defaults to True.
+    step
+        Training step, if specified, will enable gradient_accumulation_steps.
+    gradient_accumulation_steps
+        Gradient accumulation steps. Defaults to 50.
 
     Examples
     --------
@@ -44,7 +52,7 @@ def train_splade(
 
     >>> model = models.Splade(
     ...     model_name_or_path="distilbert-base-uncased",
-    ...     device="mps",
+    ...     device="cpu",
     ... )
 
     >>> optimizer = torch.optim.AdamW(
@@ -73,7 +81,7 @@ def train_splade(
     ...         positive=positive,
     ...         negative=negative,
     ...         flops_loss_weight=flops_scheduler.get(),
-    ...         in_batch_negatives=False,
+    ...         in_batch_negatives=True,
     ...     )
     ...     flops_scheduler.step()
 
@@ -114,13 +122,21 @@ def train_splade(
         positive_activations=positive_activations["sparse_activations"],
         negative_activations=negative_activations["sparse_activations"],
         threshold=threshold_flops,
+        max_flops_loss=max_flops_loss,
     )
 
     loss = sparse_loss_weight * sparse_loss + flops_loss_weight * flops_loss
 
-    if backward:
+    if step is not None:
+        (loss / gradient_accumulation_steps).backward()
+
+        if (step + 1) % gradient_accumulation_steps == 0:
+            optimizer.step()
+            optimizer.zero_grad(set_to_none=True)
+
+    else:
         loss.backward()
         optimizer.step()
-        optimizer.zero_grad()
+        optimizer.zero_grad(set_to_none=True)
 
     return {"sparse": sparse_loss, "flops": flops_loss, "loss": loss}

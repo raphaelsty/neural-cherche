@@ -97,8 +97,10 @@ class SparseEmbed(Splade):
         max_length_query: int = 128,
         max_length_document: int = 256,
         device: str = None,
-        query_prefix: str = "[Q] ",
-        document_prefix: str = "[D] ",
+        query_prefix: str = "",
+        document_prefix: str = "",
+        padding: str = "max_length",
+        truncation: bool | None = True,
         **kwargs,
     ) -> None:
         super(SparseEmbed, self).__init__(
@@ -107,6 +109,8 @@ class SparseEmbed(Splade):
             extra_files_to_load=["linear.pt", "metadata.json"],
             query_prefix=query_prefix,
             document_prefix=document_prefix,
+            padding=padding,
+            truncation=truncation,
             **kwargs,
         )
 
@@ -143,6 +147,8 @@ class SparseEmbed(Splade):
             max_length_document = metadata["max_length_document"]
             self.query_prefix = metadata.get("query_prefix", self.query_prefix)
             self.document_prefix = metadata.get("document_prefix", self.document_prefix)
+            self.padding = metadata.get("padding", self.padding)
+            self.truncation = metadata.get("truncation", self.truncation)
 
         self.max_length_query = max_length_query
         self.max_length_document = max_length_document
@@ -174,8 +180,8 @@ class SparseEmbed(Splade):
 
         logits, embeddings = self._encode(
             texts=texts,
-            truncation=True,
-            padding="max_length",
+            truncation=self.truncation,
+            padding=self.padding,
             max_length=k_tokens,
             add_special_tokens=True,
             **kwargs,
@@ -192,8 +198,8 @@ class SparseEmbed(Splade):
         )
 
         embeddings = torch.bmm(
-            attention,
-            embeddings,
+            input=attention,
+            mat2=embeddings,
         )
 
         return {
@@ -232,6 +238,8 @@ class SparseEmbed(Splade):
                     "max_length_document": self.max_length_document,
                     "query_prefix": self.query_prefix,
                     "document_prefix": self.document_prefix,
+                    "padding": self.padding,
+                    "truncation": self.truncation,
                 },
                 indent=4,
             )

@@ -39,7 +39,7 @@ class Ranking(torch.nn.Module):
     ... )
 
     >>> losses.Ranking()(**scores)
-    tensor(3.0617, grad_fn=<NllLossBackward0>)
+    tensor(5.5668e-05, grad_fn=<NllLossBackward0>)
 
     References
     ----------
@@ -57,12 +57,16 @@ class Ranking(torch.nn.Module):
         negative_scores: torch.Tensor,
     ) -> torch.Tensor:
         """Ranking loss."""
-        scores = torch.stack(
+        positive_scores = positive_scores.unsqueeze(dim=-1)
+        if negative_scores.ndim == 1:
+            negative_scores = negative_scores.unsqueeze(dim=-1)
+
+        scores = torch.cat(
             tensors=[
                 positive_scores,
                 negative_scores,
             ],
-            dim=1,
+            dim=-1,
         )
 
         return self.cross_entropy(

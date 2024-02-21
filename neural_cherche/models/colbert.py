@@ -113,7 +113,7 @@ class ColBERT(Base):
         self.max_length_document = max_length_document
         self.embedding_size = embedding_size
 
-        if os.path.exists(os.path.join(self.model_folder, "linear.pt")):
+        if os.path.exists(path=os.path.join(self.model_folder, "linear.pt")):
             linear = torch.load(
                 os.path.join(self.model_folder, "linear.pt"), map_location=self.device
             )
@@ -127,20 +127,23 @@ class ColBERT(Base):
         self.linear = torch.nn.Linear(
             in_features=in_features,
             out_features=self.embedding_size,
+            dtype=torch.float32,
             bias=False,
             device=self.device,
         )
 
-        if os.path.exists(os.path.join(self.model_folder, "metadata.json")):
-            with open(os.path.join(self.model_folder, "metadata.json"), "r") as f:
-                metadata = json.load(f)
+        if os.path.exists(path=os.path.join(self.model_folder, "metadata.json")):
+            with open(
+                file=os.path.join(self.model_folder, "metadata.json"), mode="r"
+            ) as f:
+                metadata = json.load(fp=f)
             self.max_length_document = metadata["max_length_document"]
             self.max_length_query = metadata["max_length_query"]
             self.query_prefix = metadata.get("query_prefix", self.query_prefix)
             self.document_prefix = metadata.get("document_prefix", self.document_prefix)
 
-        if os.path.exists(os.path.join(self.model_folder, "linear.pt")):
-            self.linear.load_state_dict(linear)
+        if os.path.exists(path=os.path.join(self.model_folder, "linear.pt")):
+            self.linear.load_state_dict(state_dict=linear)
 
     def encode(
         self,

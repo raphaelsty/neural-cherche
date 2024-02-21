@@ -80,8 +80,10 @@ class Splade(Base):
         max_length_query: int = 128,
         max_length_document: int = 256,
         extra_files_to_load: list[str] = ["metadata.json"],
-        query_prefix: str = "[Q] ",
-        document_prefix: str = "[D] ",
+        query_prefix: str = "",
+        document_prefix: str = "",
+        padding: str = "max_length",
+        truncation: bool | None = True,
         **kwargs,
     ) -> None:
         super(Splade, self).__init__(
@@ -90,19 +92,25 @@ class Splade(Base):
             extra_files_to_load=extra_files_to_load,
             query_prefix=query_prefix,
             document_prefix=document_prefix,
+            padding=padding,
+            truncation=truncation,
             **kwargs,
         )
 
         self.relu = torch.nn.ReLU().to(self.device)
 
-        if os.path.exists(os.path.join(self.model_folder, "metadata.json")):
-            with open(os.path.join(self.model_folder, "metadata.json"), "r") as file:
-                metadata = json.load(file)
+        if os.path.exists(path=os.path.join(self.model_folder, "metadata.json")):
+            with open(
+                file=os.path.join(self.model_folder, "metadata.json"), mode="r"
+            ) as file:
+                metadata = json.load(fp=file)
 
             max_length_query = metadata["max_length_query"]
             max_length_document = metadata["max_length_document"]
             self.query_prefix = metadata.get("query_prefix", self.query_prefix)
             self.document_prefix = metadata.get("document_prefix", self.document_prefix)
+            self.padding = metadata.get("padding", self.padding)
+            self.truncation = metadata.get("truncation", self.truncation)
 
         self.max_length_query = max_length_query
         self.max_length_document = max_length_document
@@ -163,7 +171,7 @@ class Splade(Base):
                 activation.translate(str.maketrans("", "", string.punctuation)).split()
             )
             for activation in self.tokenizer.batch_decode(
-                activations,
+                sequences=activations,
                 clean_up_tokenization_spaces=clean_up_tokenization_spaces,
                 skip_special_tokens=skip_special_tokens,
             )
@@ -197,7 +205,7 @@ class Splade(Base):
         logits, _ = self._encode(
             texts=texts,
             truncation=True,
-            padding="max_length",
+            padding=self.padding,
             max_length=k_tokens,
             add_special_tokens=True,
             **kwargs,
@@ -212,7 +220,7 @@ class Splade(Base):
 
         return {"sparse_activations": activations["sparse_activations"]}
 
-    def save_pretrained(self, path: str):
+    def save_pretrained(self, path: str) -> "Splade":
         """Save model the model.
 
         Parameters
@@ -223,9 +231,9 @@ class Splade(Base):
         """
         self.model.save_pretrained(path)
         self.tokenizer.pad_token = self.original_pad_token
-        self.tokenizer.save_pretrained(path)
+        self.tokenizer.save_pretrained(save_directory=path)
 
-        with open(os.path.join(path, "metadata.json"), "w") as file:
+        with open(file=os.path.join(path, "metadata.json"), mode="w") as file:
             json.dump(
                 fp=file,
                 obj={
@@ -233,6 +241,8 @@ class Splade(Base):
                     "max_length_document": self.max_length_document,
                     "query_prefix": self.query_prefix,
                     "document_prefix": self.document_prefix,
+                    "padding": self.padding,
+                    "truncation": self.truncation,
                 },
                 indent=4,
             )
@@ -272,13 +282,13 @@ class Splade(Base):
             utils.batchify(X=documents, batch_size=batch_size, tqdm_bar=False),
         ):
             queries_embeddings = self.encode(
-                batch_queries,
+                texts=batch_queries,
                 query_mode=True,
                 **kwargs,
             )
 
             documents_embeddings = self.encode(
-                batch_documents,
+                texts=batch_documents,
                 query_mode=False,
                 **kwargs,
             )

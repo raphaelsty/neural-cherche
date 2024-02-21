@@ -182,7 +182,7 @@ class ColBERT(ColBERTRanker):
                     query_documents_scores.max(dim=2).values.sum(axis=1)
                 )
 
-            scores.append(torch.cat(query_scores, dim=0))
+            scores.append(torch.cat(tensors=query_scores, dim=0))
 
         return self._rank(scores=scores, documents=self.documents, k=k)
 

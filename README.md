@@ -14,7 +14,8 @@
 
 Neural-Cherche is a library designed to fine-tune neural search models such as Splade, ColBERT, and SparseEmbed on a specific dataset. Neural-Cherche also provide classes to run efficient inference on a fine-tuned retriever or ranker. Neural-Cherche aims to offer a straightforward and effective method for fine-tuning and utilizing neural search models in both offline and online settings. It also enables users to save all computed embeddings to prevent redundant computations.
 
-Neural-Cherche is compatible with CPU, GPU and MPS devices.
+Neural-Cherche is compatible with CPU, GPU and MPS devices. We can fine-tune ColBERT from any
+Sentence Transformer pre-trained checkpoint. Splade and SparseEmbed are more tricky to fine-tune and need a MLM pre-trained model.
 
 ## Installation
 
@@ -58,7 +59,7 @@ model = models.ColBERT(
     device="cuda" if torch.cuda.is_available() else "cpu" # mps is also supported
 )
 
-optimizer = torch.optim.AdamW(model.parameters(), lr=3e-5)
+optimizer = torch.optim.AdamW(model.parameters(), lr=3e-6)
 
 X = [
     ("query", "positive document", "negative document"),
@@ -66,12 +67,12 @@ X = [
     ("query", "positive document", "negative document"),
 ]
 
-for anchor, positive, negative in utils.iter(
+for step, (anchor, positive, negative) in enumerate(utils.iter(
         X,
-        epochs=1,
-        batch_size=32,
+        epochs=1, # number of epochs
+        batch_size=8, # number of triples per batch
         shuffle=True
-    ):
+    )):
 
     loss = train.train_colbert(
         model=model,
@@ -79,9 +80,14 @@ for anchor, positive, negative in utils.iter(
         anchor=anchor,
         positive=positive,
         negative=negative,
+        step=step,
+        gradient_accumulation_steps=50,
     )
 
-model.save_pretrained("checkpoint")
+    
+    if (step + 1) % 1000 == 0:
+        # Save the model every 1000 steps
+        model.save_pretrained("checkpoint")
 ```
 
 ## Retrieval
@@ -108,7 +114,7 @@ model = models.ColBERT(
 
 retriever = retrieve.ColBERT(
     key="id",
-    on=["document"],
+    on=["document"], # the field to search on, can be a list of fields
     model=model,
 )
 
@@ -126,7 +132,7 @@ Now we can retrieve documents using the fine-tuned model:
 
 ```python
 queries_embeddings = retriever.encode_queries(
-    queries=["Food", "Sports", "Cinema"],
+    queries=["Food", "Sports", "Cinema"], # list of queries
     batch_size=batch_size,
 )
 
