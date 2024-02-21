@@ -16,6 +16,7 @@ def train_sparse_embed(
     dense_loss_weight: float = 1.0,
     in_batch_negatives: bool = False,
     threshold_flops: float = 30,
+    backward: bool = True,
     **kwargs,
 ):
     """Compute the ranking loss and the flops loss for a single step.
@@ -147,12 +148,14 @@ def train_sparse_embed(
         + flops_loss_weight * flops_loss
     )
 
-    loss.backward()
-    optimizer.step()
-    optimizer.zero_grad()
+    if backward:
+        loss.backward()
+        optimizer.step()
+        optimizer.zero_grad()
 
     return {
         "dense": dense_ranking_loss,
         "sparse": sparse_ranking_loss,
         "flops": flops_loss,
+        "loss": loss,
     }

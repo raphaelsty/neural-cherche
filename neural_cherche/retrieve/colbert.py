@@ -8,7 +8,7 @@ __all__ = ["ColBERT"]
 
 
 class ColBERT(ColBERTRanker):
-    """ColBERT ranker.
+    """ColBERT retriever.
 
     Parameters
     ----------

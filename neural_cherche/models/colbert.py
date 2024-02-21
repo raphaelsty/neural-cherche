@@ -94,7 +94,7 @@ class ColBERT(Base):
         embedding_size: int = 128,
         device: str = None,
         max_length_query: int = 32,
-        max_length_document: int = 350,
+        max_length_document: int = 256,
         query_prefix: str = "[Q] ",
         document_prefix: str = "[D] ",
         **kwargs,

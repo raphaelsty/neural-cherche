@@ -10,6 +10,7 @@ def train_colbert(
     positive: list[str],
     negative: list[str],
     in_batch_negatives: bool = False,
+    backward: bool = True,
     **kwargs,
 ):
     """Compute the ranking loss and the flops loss for a single step.
@@ -98,8 +99,9 @@ def train_colbert(
 
     loss = losses.Ranking()(**scores)
 
-    loss.backward()
-    optimizer.step()
-    optimizer.zero_grad()
+    if backward:
+        loss.backward()
+        optimizer.step()
+        optimizer.zero_grad()
 
     return {"loss": loss}
