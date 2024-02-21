@@ -13,7 +13,7 @@ class Ranking(torch.nn.Module):
 
     >>> model = models.Splade(
     ...     model_name_or_path="raphaelsty/splade-max",
-    ...     device="mps",
+    ...     device="cpu",
     ... )
 
     >>> queries_activations = model(
@@ -39,7 +39,7 @@ class Ranking(torch.nn.Module):
     ... )
 
     >>> losses.Ranking()(**scores)
-    tensor(1., device='mps:0', grad_fn=<ClampBackward1>)
+    tensor(3.0617, grad_fn=<NllLossBackward0>)
 
     References
     ----------
@@ -47,9 +47,9 @@ class Ranking(torch.nn.Module):
 
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         super(Ranking, self).__init__()
-        self.log_softmax = torch.nn.LogSoftmax(dim=1)
+        self.cross_entropy = torch.nn.CrossEntropyLoss()
 
     def __call__(
         self,
@@ -58,17 +58,18 @@ class Ranking(torch.nn.Module):
     ) -> torch.Tensor:
         """Ranking loss."""
         scores = torch.stack(
-            [
+            tensors=[
                 positive_scores,
                 negative_scores,
             ],
             dim=1,
         )
 
-        loss = torch.index_select(
-            input=-self.log_softmax(scores),
-            dim=1,
-            index=torch.zeros(1, dtype=torch.int64).to(scores.device),
-        ).mean()
-
-        return torch.clip(loss, min=0.0, max=1.0)
+        return self.cross_entropy(
+            scores,
+            torch.zeros(
+                scores.shape[0],
+                dtype=torch.long,
+                device=scores.device,
+            ),
+        )

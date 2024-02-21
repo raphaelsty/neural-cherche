@@ -14,6 +14,8 @@
 
 Neural-Cherche is a library designed to fine-tune neural search models such as Splade, ColBERT, and SparseEmbed on a specific dataset. Neural-Cherche also provide classes to run efficient inference on a fine-tuned retriever or ranker. Neural-Cherche aims to offer a straightforward and effective method for fine-tuning and utilizing neural search models in both offline and online settings. It also enables users to save all computed embeddings to prevent redundant computations.
 
+Neural-Cherche is compatible with CPU, GPU and MPS devices.
+
 ## Installation
 
 We can install neural-cherche using:
@@ -53,7 +55,7 @@ from neural_cherche import models, utils, train
 
 model = models.ColBERT(
     model_name_or_path="sentence-transformers/all-mpnet-base-v2",
-    device="cuda" if torch.cuda.is_available() else "cpu"
+    device="cuda" if torch.cuda.is_available() else "cpu" # mps is also supported
 )
 
 optimizer = torch.optim.AdamW(model.parameters(), lr=3e-5)
@@ -82,7 +84,76 @@ for anchor, positive, negative in utils.iter(
 model.save_pretrained("checkpoint")
 ```
 
-## Neural-Cherche Contributors 
+## Retrieval
+
+Here is how to use the fine-tuned ColBERT model to retrieve documents:
+
+```python
+from neural_cherche import models, retrieve
+import torch
+
+device = "cuda" if torch.cuda.is_available() else "cpu" # mps is also supported
+batch_size = 32
+
+documents = [
+    {"id": 0, "document": "Food"},
+    {"id": 1, "document": "Sports"},
+    {"id": 2, "document": "Cinema"},
+]
+
+model = models.ColBERT(
+    model_name_or_path="sentence-transformers/all-mpnet-base-v2",
+    device=device,
+)
+
+retriever = retrieve.ColBERT(
+    key="id",
+    on=["document"],
+    model=model,
+)
+
+documents_embeddings = retriever.encode_documents(
+    documents=documents,
+    batch_size=batch_size,
+)
+
+retriever = retriever.add(
+    documents_embeddings=documents_embeddings,
+)
+```
+
+Now we can retrieve documents using the fine-tuned model:
+
+```python
+queries_embeddings = retriever.encode_queries(
+    queries=["Food", "Sports", "Cinema"],
+    batch_size=batch_size,
+)
+
+scores = retriever(
+    queries_embeddings=queries_embeddings,
+    batch_size=batch_size,
+    k=10, # number of documents to retrieve
+)
+
+scores
+```
+
+```python
+[[{'id': 0, 'similarity': 22.825355529785156},
+  {'id': 1, 'similarity': 11.201947212219238},
+  {'id': 2, 'similarity': 10.748161315917969}],
+ [{'id': 1, 'similarity': 23.21628189086914},
+  {'id': 0, 'similarity': 9.9658203125},
+  {'id': 2, 'similarity': 7.308732509613037}],
+ [{'id': 1, 'similarity': 6.4031805992126465},
+  {'id': 0, 'similarity': 5.601611137390137},
+  {'id': 2, 'similarity': 5.599479675292969}]]
+```
+
+Neural-Cherche also provides a `SparseEmbed`, a `SPLADE`, a `TFIDF` retriever and a `ColBERT` ranker which can be used to re-order output of a retriever. For more information, please refer to the [documentation](https://raphaelsty.github.io/neural-cherche/).
+
+### Neural-Cherche Contributors
 
 - [Benjamin Clavié](https://github.com/bclavie)
 

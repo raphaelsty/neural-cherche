@@ -1,11 +1,13 @@
 import torch
+import tqdm
 
 from .. import models, utils
+from ..rank import ColBERT as ColBERTRanker
 
 __all__ = ["ColBERT"]
 
 
-class ColBERT:
+class ColBERT(ColBERTRanker):
     """ColBERT ranker.
 
     Parameters
@@ -19,7 +21,7 @@ class ColBERT:
 
     Examples
     --------
-    >>> from neural_cherche import models, rank
+    >>> from neural_cherche import models, retrieve
     >>> from pprint import pprint
     >>> import torch
 
@@ -38,41 +40,43 @@ class ColBERT:
 
     >>> queries = ["Food", "Sports", "Cinema"]
 
-    >>> ranker = rank.ColBERT(
+    >>> retriever = retrieve.ColBERT(
     ...    key="id",
     ...    on=["document"],
     ...    model=encoder,
     ... )
 
-    >>> queries_embeddings = ranker.encode_queries(
-    ...     queries=queries,
-    ...     batch_size=3,
-    ... )
-
-    >>> documents_embeddings = ranker.encode_documents(
+    >>> documents_embeddings = retriever.encode_documents(
     ...     documents=documents,
     ...     batch_size=3,
     ... )
 
-    >>> scores = ranker(
-    ...     documents=[documents for _ in queries],
-    ...     queries_embeddings=queries_embeddings,
+    >>> retriever = retriever.add(
     ...     documents_embeddings=documents_embeddings,
+    ... )
+
+    >>> queries_embeddings = retriever.encode_queries(
+    ...     queries=queries,
+    ...     batch_size=3,
+    ... )
+
+    >>> scores = retriever(
+    ...     queries_embeddings=queries_embeddings,
     ...     batch_size=3,
     ...     tqdm_bar=True,
     ...     k=3,
     ... )
 
     >>> pprint(scores)
-    [[{'document': 'Food', 'id': 0, 'similarity': 20.23601531982422},
-      {'document': 'Cinema', 'id': 2, 'similarity': 7.255690574645996},
-      {'document': 'Sports', 'id': 1, 'similarity': 6.666046142578125}],
-     [{'document': 'Sports', 'id': 1, 'similarity': 21.373430252075195},
-      {'document': 'Cinema', 'id': 2, 'similarity': 5.494492053985596},
-      {'document': 'Food', 'id': 0, 'similarity': 4.814355850219727}],
-     [{'document': 'Sports', 'id': 1, 'similarity': 9.25660228729248},
-      {'document': 'Food', 'id': 0, 'similarity': 8.206350326538086},
-      {'document': 'Cinema', 'id': 2, 'similarity': 5.496612548828125}]]
+    [[{'id': 0, 'similarity': 20.23601531982422},
+      {'id': 2, 'similarity': 7.255690574645996},
+      {'id': 1, 'similarity': 6.666046142578125}],
+     [{'id': 1, 'similarity': 21.373430252075195},
+      {'id': 2, 'similarity': 5.494492053985596},
+      {'id': 0, 'similarity': 4.814355850219727}],
+     [{'id': 1, 'similarity': 9.25660228729248},
+      {'id': 0, 'similarity': 8.206350326538086},
+      {'id': 2, 'similarity': 5.496612548828125}]]
 
     """
 
@@ -86,87 +90,31 @@ class ColBERT:
         self.on = on if isinstance(on, list) else [on]
         self.model = model
         self.device = self.model.device
+        self.documents = []
+        self.documents_embeddings = {}
 
-    def encode_documents(
+    def add(
         self,
-        documents: list[str],
-        batch_size: int = 32,
-        tqdm_bar: bool = True,
-        query_mode: bool = False,
-        **kwargs,
-    ) -> dict[str, torch.Tensor]:
-        """Encode documents.
+        documents_embeddings: dict[str, torch.Tensor],
+    ) -> "ColBERT":
+        """Add documents embeddings.
 
         Parameters
         ----------
+        documents_embeddings
+            Documents embeddings.
         documents
             Documents.
-        batch_size
-            Batch size.
-        tqdm_bar
-            Show tqdm bar.
         """
-        # Documents embeddings must be composed of more tokens than queries embeddings
-        embeddings = self.encode_queries(
-            queries=[
-                " ".join([document[field] for field in self.on])
-                for document in documents
-            ],
-            batch_size=batch_size,
-            tqdm_bar=tqdm_bar,
-            query_mode=query_mode,
-            **kwargs,
-        )
-
-        return {
-            document[self.key]: embedding
-            for document, embedding in zip(documents, embeddings.values())
-        }
-
-    def encode_queries(
-        self,
-        queries: list[str],
-        batch_size: int = 32,
-        tqdm_bar: bool = True,
-        query_mode: bool = True,
-        **kwargs,
-    ) -> dict[str, torch.Tensor]:
-        """Encode queries.
-
-        Parameters
-        ----------
-        queries
-            Queries.
-        batch_size
-            Batch size.
-        tqdm_bar
-            Show tqdm bar.
-        """
-        embeddings = {}
-
-        for batch_texts in utils.batchify(
-            X=queries, batch_size=batch_size, tqdm_bar=tqdm_bar
-        ):
-            batch_embeddings = self.model.encode(
-                texts=batch_texts,
-                query_mode=query_mode,
-                **kwargs,
-            )
-
-            batch_embeddings = (
-                batch_embeddings["embeddings"].cpu().detach().numpy().astype("float32")
-            )
-
-            for query, embedding in zip(batch_texts, batch_embeddings):
-                embeddings[query] = embedding
-
-        return embeddings
+        for document_key, tokens_embeddings in documents_embeddings.items():
+            if document_key not in self.documents_embeddings:
+                self.documents.append({self.key: document_key})
+                self.documents_embeddings[document_key] = tokens_embeddings
+        return self
 
     def __call__(
         self,
-        documents: list[list[dict]],
         queries_embeddings: dict[str, torch.Tensor],
-        documents_embeddings: dict[str, torch.Tensor],
         batch_size: int = 32,
         tqdm_bar: bool = True,
         k: int = None,
@@ -192,26 +140,30 @@ class ColBERT:
         """
         scores = []
 
-        for (query, query_embedding), query_documents in zip(
-            queries_embeddings.items(), documents
-        ):
+        bar = (
+            tqdm.tqdm(iterable=queries_embeddings.items(), position=0)
+            if tqdm_bar
+            else queries_embeddings.items()
+        )
+
+        for query, query_embedding in bar:
             query_scores = []
 
             embedding_query = torch.tensor(
-                query_embedding,
+                data=query_embedding,
                 device=self.device,
                 dtype=torch.float32,
             )
 
             for batch_query_documents in utils.batchify(
-                X=query_documents,
+                X=self.documents,
                 batch_size=batch_size,
-                tqdm_bar=tqdm_bar,
+                tqdm_bar=False,
             ):
                 embeddings_batch_documents = torch.stack(
-                    [
+                    tensors=[
                         torch.tensor(
-                            documents_embeddings[document[self.key]],
+                            data=self.documents_embeddings[document[self.key]],
                             device=self.device,
                             dtype=torch.float32,
                         )
@@ -232,7 +184,7 @@ class ColBERT:
 
             scores.append(torch.cat(query_scores, dim=0))
 
-        return self._rank(scores=scores, documents=documents, k=k)
+        return self._rank(scores=scores, documents=self.documents, k=k)
 
     def _rank(
         self, scores: torch.Tensor, documents: list[list[dict]], k: int
@@ -250,18 +202,16 @@ class ColBERT:
         """
         ranked = []
 
-        for query_scores, query_documents in zip(scores, documents):
+        for query_scores in scores:
             top_k = torch.topk(
                 input=query_scores,
-                k=min(k, len(query_documents))
-                if k is not None
-                else len(query_documents),
+                k=min(k, len(documents)) if k is not None else len(documents),
                 dim=-1,
             )
 
             ranked.append(
                 [
-                    {**query_documents[indice], "similarity": similarity}
+                    {**documents[indice], "similarity": similarity}
                     for indice, similarity in zip(top_k.indices, top_k.values.tolist())
                 ]
             )
