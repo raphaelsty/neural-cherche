@@ -34,6 +34,8 @@ class SparseEmbed(Splade):
     >>> model = models.SparseEmbed(
     ...     model_name_or_path="distilbert-base-uncased",
     ...     device=device,
+    ...     padding="longest",
+    ...     truncation=None,
     ... )
 
     >>> queries_embeddings = model.encode(
@@ -198,7 +200,7 @@ class SparseEmbed(Splade):
         )
 
         embeddings = torch.bmm(
-            input=attention,
+            input=attention.transpose(dim0=1, dim1=2),
             mat2=embeddings,
         )
 
