@@ -34,22 +34,20 @@ class SparseEmbed(Splade):
     >>> model = models.SparseEmbed(
     ...     model_name_or_path="distilbert-base-uncased",
     ...     device=device,
-    ...     padding="longest",
-    ...     truncation=None,
     ... )
 
     >>> queries_embeddings = model.encode(
-    ...     ["Sports", "Music"],
+    ...     [" ".join(["Sports"]) * 500, "Music"],
     ... )
 
     >>> queries_embeddings["activations"].shape
-    torch.Size([2, 128])
+    torch.Size([2, 64])
 
     >>> queries_embeddings["sparse_activations"].shape
     torch.Size([2, 30522])
 
     >>> queries_embeddings["embeddings"].shape
-    torch.Size([2, 128, 128])
+    torch.Size([2, 64, 128])
 
     >>> documents_embeddings = model.encode(
     ...    ["Music is great.", "Sports is great."],
@@ -70,7 +68,7 @@ class SparseEmbed(Splade):
     ...     documents=["Sports is great.", "Music is great."],
     ...     batch_size=1,
     ... )
-    tensor([64.2330, 54.0180], device='mps:0')
+    tensor([7.6264, 1.7118], device='mps:0')
 
     >>> _ = model.save_pretrained("checkpoint")
 
@@ -84,7 +82,7 @@ class SparseEmbed(Splade):
     ...     documents=["Sports is great.", "Music is great."],
     ...     batch_size=2,
     ... )
-    tensor([64.2330, 54.0180])
+    tensor([7.6264, 1.7118])
 
     References
     ----------
@@ -96,13 +94,14 @@ class SparseEmbed(Splade):
         self,
         model_name_or_path: str = None,
         embedding_size: int = 128,
-        max_length_query: int = 128,
+        max_length_query: int = 64,
         max_length_document: int = 256,
         device: str = None,
         query_prefix: str = "",
         document_prefix: str = "",
-        padding: str = "max_length",
+        padding: str = "longest",
         truncation: bool | None = True,
+        add_special_tokens: bool = True,
         **kwargs,
     ) -> None:
         super(SparseEmbed, self).__init__(
@@ -113,6 +112,7 @@ class SparseEmbed(Splade):
             document_prefix=document_prefix,
             padding=padding,
             truncation=truncation,
+            add_special_tokens=add_special_tokens,
             **kwargs,
         )
 
@@ -151,6 +151,9 @@ class SparseEmbed(Splade):
             self.document_prefix = metadata.get("document_prefix", self.document_prefix)
             self.padding = metadata.get("padding", self.padding)
             self.truncation = metadata.get("truncation", self.truncation)
+            self.add_special_tokens = metadata.get(
+                "add_special_tokens", self.add_special_tokens
+            )
 
         self.max_length_query = max_length_query
         self.max_length_document = max_length_document
@@ -184,8 +187,7 @@ class SparseEmbed(Splade):
             texts=texts,
             truncation=self.truncation,
             padding=self.padding,
-            max_length=k_tokens,
-            add_special_tokens=True,
+            add_special_tokens=self.add_special_tokens,
             **kwargs,
         )
 
@@ -217,8 +219,8 @@ class SparseEmbed(Splade):
         attention = logits.gather(
             dim=2,
             index=torch.stack(
-                [
-                    torch.stack([token for _ in range(logits.shape[1])])
+                tensors=[
+                    torch.stack(tensors=[token for _ in range(logits.shape[1])])
                     for token in activations
                 ]
             ),
@@ -230,9 +232,9 @@ class SparseEmbed(Splade):
         """Save model the model."""
         self.model.save_pretrained(path)
         self.tokenizer.pad_token = self.original_pad_token
-        self.tokenizer.save_pretrained(path)
-        torch.save(self.linear.state_dict(), os.path.join(path, "linear.pt"))
-        with open(os.path.join(path, "metadata.json"), "w") as file:
+        self.tokenizer.save_pretrained(save_directory=path)
+        torch.save(obj=self.linear.state_dict(), f=os.path.join(path, "linear.pt"))
+        with open(file=os.path.join(path, "metadata.json"), mode="w") as file:
             json.dump(
                 fp=file,
                 obj={
@@ -242,6 +244,7 @@ class SparseEmbed(Splade):
                     "document_prefix": self.document_prefix,
                     "padding": self.padding,
                     "truncation": self.truncation,
+                    "add_special_tokens": self.add_special_tokens,
                 },
                 indent=4,
             )
@@ -289,4 +292,4 @@ class SparseEmbed(Splade):
                 )
             )
 
-        return torch.cat(dense_scores, dim=0)
+        return torch.cat(tensors=dense_scores, dim=0)

@@ -67,15 +67,15 @@ class Splade(TfIdf):
     ... )
 
     >>> pprint(scores)
-    [[{'id': 0, 'similarity': 489.65244},
-      {'id': 2, 'similarity': 338.9705},
-      {'id': 1, 'similarity': 332.3472}],
-     [{'id': 1, 'similarity': 470.40497},
-      {'id': 2, 'similarity': 301.56982},
-      {'id': 0, 'similarity': 278.8062}],
-     [{'id': 2, 'similarity': 472.487},
-      {'id': 1, 'similarity': 341.8396},
-      {'id': 0, 'similarity': 319.97287}]]
+    [[{'id': 0, 'similarity': 271.5977},
+      {'id': 1, 'similarity': 179.7869},
+      {'id': 2, 'similarity': 170.84427}],
+     [{'id': 1, 'similarity': 299.60446},
+      {'id': 0, 'similarity': 180.30473},
+      {'id': 2, 'similarity': 177.38213}],
+     [{'id': 2, 'similarity': 255.4204},
+      {'id': 0, 'similarity': 183.49498},
+      {'id': 1, 'similarity': 182.6861}]]
 
     """
 

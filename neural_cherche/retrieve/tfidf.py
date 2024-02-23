@@ -106,12 +106,14 @@ class TfIdf:
             " ".join([doc.get(field, "") for field in self.on]) for doc in documents
         ]
 
+        matrix = None
         if self.fit:
-            self.tfidf.fit(content)
+            matrix = self.tfidf.fit_transform(raw_documents=content)
             self.fit = False
 
         # matrix is a csr matrix of shape (n_documents, n_features)
-        matrix = self.tfidf.transform(content)
+        if matrix is None:
+            matrix = self.tfidf.transform(raw_documents=content)
         return {document[self.key]: row for document, row in zip(documents, matrix)}
 
     def encode_queries(self, queries: list[str]) -> dict[str, csr_matrix]:
@@ -127,35 +129,37 @@ class TfIdf:
             raise ValueError("You must call the `encode_documents` method first.")
 
         # matrix is a csr matrix of shape (n_queries, n_features)
-        matrix = self.tfidf.transform(queries)
+        matrix = self.tfidf.transform(raw_documents=queries)
         return {query: row for query, row in zip(queries, matrix)}
 
     def add(
         self,
         documents_embeddings: dict[str, csr_matrix],
-    ):
+    ) -> "TfIdf":
         """Add new documents to the TFIDF retriever. The tfidf won't be refitted."""
-        matrix = vstack([row for row in documents_embeddings.values()]).T.tocsr()
+        matrix = vstack(blocks=[row for row in documents_embeddings.values()]).T.tocsr()
 
         for document_key in documents_embeddings:
             self.documents.append({self.key: document_key})
 
         self.n_documents += len(documents_embeddings)
-        self.matrix = matrix if self.matrix is None else hstack((self.matrix, matrix))
+        self.matrix = (
+            matrix if self.matrix is None else hstack(blocks=(self.matrix, matrix))
+        )
 
         return self
 
-    def top_k(self, similarities: csc_matrix, k: int):
+    def top_k(self, similarities: csc_matrix, k: int) -> tuple[list, list]:
         """Return the top k documents for each query."""
         matchs, scores = [], []
         for row in similarities:
             _k = min(row.data.shape[0] - 1, k)
-            ind = np.argpartition(row.data, kth=_k, axis=0)[:k]
-            similarity = np.take_along_axis(row.data, ind, axis=0)
-            indices = np.take_along_axis(row.indices, ind, axis=0)
-            ind = np.argsort(similarity, axis=0)
-            scores.append(-1 * np.take_along_axis(similarity, ind, axis=0))
-            matchs.append(np.take_along_axis(indices, ind, axis=0))
+            ind = np.argpartition(a=row.data, kth=_k, axis=0)[:k]
+            similarity = np.take_along_axis(arr=row.data, indices=ind, axis=0)
+            indices = np.take_along_axis(arr=row.indices, indices=ind, axis=0)
+            ind = np.argsort(a=similarity, axis=0)
+            scores.append(-1 * np.take_along_axis(arr=similarity, indices=ind, axis=0))
+            matchs.append(np.take_along_axis(arr=indices, indices=ind, axis=0))
         return matchs, scores
 
     def __call__(
@@ -189,7 +193,7 @@ class TfIdf:
         ):
             # self.matrix is a csr matrix of shape (n_features, n_documents)
             # Transform output a csr matrix of shape (n_queries, n_features)
-            similarities = -1 * vstack(batch_embeddings).dot(self.matrix)
+            similarities = -1 * vstack(blocks=batch_embeddings).dot(self.matrix)
             batch_match, batch_similarities = self.top_k(similarities=similarities, k=k)
 
             for match, similarities in zip(batch_match, batch_similarities):

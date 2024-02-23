@@ -49,9 +49,9 @@ class Splade(Base):
     >>> model.scores(
     ...     queries=["Sports", "Music"],
     ...     documents=["Sports is great.", "Music is great."],
-    ...     batch_size=1
+    ...     batch_size=2
     ... )
-    tensor([318.1384, 271.8006], device='mps:0')
+    tensor([242.5254, 171.2982], device='mps:0')
 
     >>> _ = model.save_pretrained("checkpoint")
 
@@ -63,9 +63,22 @@ class Splade(Base):
     >>> model.scores(
     ...     queries=["Sports", "Music"],
     ...     documents=["Sports is great.", "Music is great."],
-    ...     batch_size=1
+    ...     batch_size=2
     ... )
-    tensor([318.1384, 271.8006], device='mps:0')
+    tensor([242.5254, 171.2982], device='mps:0')
+
+    >>> model = models.Splade(
+    ...     model_name_or_path="distilbert-base-uncased",
+    ...     device="cpu",
+    ...     add_special_tokens=True,
+    ... )
+
+    >>> queries_activations = model.encode(
+    ...     ["paris tours eiffel arc de triomphe musé du louvre"],
+    ... )
+
+    >>> model.decode(**queries_activations)
+
 
     References
     ----------
@@ -82,8 +95,9 @@ class Splade(Base):
         extra_files_to_load: list[str] = ["metadata.json"],
         query_prefix: str = "",
         document_prefix: str = "",
-        padding: str = "max_length",
+        padding: str = "longest",
         truncation: bool | None = True,
+        add_special_tokens: bool = True,
         **kwargs,
     ) -> None:
         super(Splade, self).__init__(
@@ -94,6 +108,7 @@ class Splade(Base):
             document_prefix=document_prefix,
             padding=padding,
             truncation=truncation,
+            add_special_tokens=add_special_tokens,
             **kwargs,
         )
 
@@ -111,6 +126,9 @@ class Splade(Base):
             self.document_prefix = metadata.get("document_prefix", self.document_prefix)
             self.padding = metadata.get("padding", self.padding)
             self.truncation = metadata.get("truncation", self.truncation)
+            self.add_special_tokens = metadata.get(
+                "add_special_tokens", self.add_special_tokens
+            )
 
         self.max_length_query = max_length_query
         self.max_length_document = max_length_document
@@ -204,10 +222,9 @@ class Splade(Base):
 
         logits, _ = self._encode(
             texts=texts,
-            truncation=True,
+            truncation=self.truncation,
             padding=self.padding,
-            max_length=k_tokens,
-            add_special_tokens=True,
+            add_special_tokens=self.add_special_tokens,
             **kwargs,
         )
 
@@ -243,6 +260,7 @@ class Splade(Base):
                     "document_prefix": self.document_prefix,
                     "padding": self.padding,
                     "truncation": self.truncation,
+                    "add_special_tokens": self.add_special_tokens,
                 },
                 indent=4,
             )
@@ -301,11 +319,15 @@ class Splade(Base):
                 )
             )
 
-        return torch.cat(sparse_scores, dim=0)
+        return torch.cat(tensors=sparse_scores, dim=0)
 
     def _get_activation(self, logits: torch.Tensor) -> dict[str, torch.Tensor]:
         """Returns activated tokens."""
-        return {"sparse_activations": torch.amax(torch.log1p(self.relu(logits)), dim=1)}
+        return {
+            "sparse_activations": torch.amax(
+                input=torch.log1p(input=self.relu(logits)), dim=1
+            )
+        }
 
     def _filter_activations(
         self, sparse_activations: torch.Tensor, k_tokens: int
@@ -314,7 +336,9 @@ class Splade(Base):
         scores, activations = torch.topk(input=sparse_activations, k=k_tokens, dim=-1)
         return [
             torch.index_select(
-                activation, dim=-1, index=torch.nonzero(score, as_tuple=True)[0]
+                input=activation,
+                dim=-1,
+                index=torch.nonzero(input=score, as_tuple=True)[0],
             )
             for score, activation in zip(scores, activations)
         ]

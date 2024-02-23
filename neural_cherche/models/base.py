@@ -28,6 +28,7 @@ class Base(ABC, torch.nn.Module):
         document_prefix: str = "[D] ",
         padding: str = "max_length",
         truncation: bool | None = True,
+        add_special_tokens: bool = False,
         **kwargs,
     ) -> None:
         """Initialize the model."""
@@ -37,6 +38,7 @@ class Base(ABC, torch.nn.Module):
         self.document_prefix = document_prefix
         self.padding = padding
         self.truncation = truncation
+        self.add_special_tokens = add_special_tokens
 
         if device is not None:
             self.device = device
