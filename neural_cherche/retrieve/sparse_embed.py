@@ -258,6 +258,7 @@ class SparseEmbed(TfIdf):
         self,
         queries_embeddings: dict[str, dict[str, torch.Tensor]],
         k: int = None,
+        k_rank: int = None,
         batch_size: int = 64,
         tqdm_bar: bool = True,
     ) -> list:
@@ -275,6 +276,7 @@ class SparseEmbed(TfIdf):
             Display a tqdm bar.
         """
         k = k if k is not None else self.n_documents
+        k_rank = k_rank if k_rank is not None else k
 
         ranked = []
 
@@ -310,13 +312,14 @@ class SparseEmbed(TfIdf):
                 self._retrieve(
                     embeddings=embeddings,
                     k=k,
+                    k_rank=k_rank,
                 )
             )
 
         return ranked
 
     def _retrieve(
-        self, embeddings: dict[str, torch.Tensor], k: int
+        self, embeddings: dict[str, torch.Tensor], k: int, k_rank: int
     ) -> list[list[dict]]:
         """Retrieve documents from input embeddings.
 
@@ -368,7 +371,7 @@ class SparseEmbed(TfIdf):
         return self._rank(
             dense_scores=dense_scores,
             sparse_matchs=sparse_matchs,
-            k=k,
+            k=k_rank,
         )
 
     def _rank(

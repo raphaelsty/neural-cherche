@@ -5,6 +5,8 @@ import torch
 from huggingface_hub import hf_hub_download
 from transformers import AutoModelForMaskedLM, AutoTokenizer
 
+from .. import utils
+
 
 class Base(ABC, torch.nn.Module):
     """Base class from which all models inherit.
@@ -28,7 +30,9 @@ class Base(ABC, torch.nn.Module):
         document_prefix: str = "[D] ",
         padding: str = "max_length",
         truncation: bool | None = True,
-        add_special_tokens: bool = False,
+        add_special_tokens: bool = True,
+        n_mask_tokens: int = 5,
+        freeze_layers_except_last_n: int = None,
         **kwargs,
     ) -> None:
         """Initialize the model."""
@@ -39,6 +43,7 @@ class Base(ABC, torch.nn.Module):
         self.padding = padding
         self.truncation = truncation
         self.add_special_tokens = add_special_tokens
+        self.n_mask_tokens = n_mask_tokens
 
         if device is not None:
             self.device = device
@@ -84,6 +89,12 @@ class Base(ABC, torch.nn.Module):
         self.query_pad_token = self.tokenizer.mask_token
         self.original_pad_token = self.tokenizer.pad_token
 
+        if freeze_layers_except_last_n is not None:
+            self.model = utils.freeze_layers(
+                model=self.model,
+                n_layers=freeze_layers_except_last_n,
+            )
+
     def _encode(self, texts: list[str], **kwargs) -> tuple[torch.Tensor, torch.Tensor]:
         """Encode sentences.
 
@@ -93,7 +104,7 @@ class Base(ABC, torch.nn.Module):
             List of sentences to encode.
         """
         encoded_input = self.tokenizer.batch_encode_plus(
-            texts, return_tensors="pt", **kwargs
+            batch_text_or_text_pairs=texts, return_tensors="pt", **kwargs
         )
 
         if self.device != "cpu":
@@ -102,7 +113,12 @@ class Base(ABC, torch.nn.Module):
             }
 
         output = self.model(**encoded_input)
-        return output.logits, output.hidden_states[-1]
+
+        return (
+            output.logits,
+            output.hidden_states[-1],
+            encoded_input["attention_mask"].unsqueeze(-1),
+        )
 
     @abstractmethod
     def forward(self, *args, **kwargs):

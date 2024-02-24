@@ -68,7 +68,7 @@ class SparseEmbed(Splade):
     ...     documents=["Sports is great.", "Music is great."],
     ...     batch_size=1,
     ... )
-    tensor([7.6264, 1.7118], device='mps:0')
+    tensor([8.9900, 8.5581], device='mps:0')
 
     >>> _ = model.save_pretrained("checkpoint")
 
@@ -82,7 +82,7 @@ class SparseEmbed(Splade):
     ...     documents=["Sports is great.", "Music is great."],
     ...     batch_size=2,
     ... )
-    tensor([7.6264, 1.7118])
+    tensor([8.9900, 8.5581], device='mps:0')
 
     References
     ----------
@@ -99,9 +99,11 @@ class SparseEmbed(Splade):
         device: str = None,
         query_prefix: str = "",
         document_prefix: str = "",
-        padding: str = "longest",
+        padding: str = "max_length",
         truncation: bool | None = True,
         add_special_tokens: bool = True,
+        n_mask_tokens: int = 3,
+        freeze_layers_except_last_n: int = None,
         **kwargs,
     ) -> None:
         super(SparseEmbed, self).__init__(
@@ -113,6 +115,8 @@ class SparseEmbed(Splade):
             padding=padding,
             truncation=truncation,
             add_special_tokens=add_special_tokens,
+            n_mask_tokens=n_mask_tokens,
+            freeze_layers_except_last_n=freeze_layers_except_last_n,
             **kwargs,
         )
 
@@ -120,15 +124,15 @@ class SparseEmbed(Splade):
 
         self.softmax = torch.nn.Softmax(dim=2).to(self.device)
 
-        if os.path.exists(os.path.join(self.model_folder, "linear.pt")):
+        if os.path.exists(path=os.path.join(self.model_folder, "linear.pt")):
             linear = torch.load(
-                os.path.join(self.model_folder, "linear.pt"), map_location=self.device
+                f=os.path.join(self.model_folder, "linear.pt"), map_location=self.device
             )
             self.embedding_size = linear["weight"].shape[0]
             in_features = linear["weight"].shape[1]
         else:
             with torch.no_grad():
-                _, embeddings = self._encode(texts=["test"])
+                _, embeddings, _ = self._encode(texts=["test"])
                 in_features = embeddings.shape[2]
 
         self.linear = torch.nn.Linear(
@@ -136,14 +140,22 @@ class SparseEmbed(Splade):
             out_features=self.embedding_size,
             bias=False,
             device=self.device,
+            dtype=torch.float32,
         )
 
-        if os.path.exists(os.path.join(self.model_folder, "linear.pt")):
-            self.linear.load_state_dict(linear)
+        torch.nn.init.xavier_uniform_(
+            tensor=self.linear.weight,
+            gain=torch.nn.init.calculate_gain(nonlinearity="relu"),
+        )
 
-        if os.path.exists(os.path.join(self.model_folder, "metadata.json")):
-            with open(os.path.join(self.model_folder, "metadata.json"), "r") as file:
-                metadata = json.load(file)
+        if os.path.exists(path=os.path.join(self.model_folder, "linear.pt")):
+            self.linear.load_state_dict(state_dict=linear)
+
+        if os.path.exists(path=os.path.join(self.model_folder, "metadata.json")):
+            with open(
+                file=os.path.join(self.model_folder, "metadata.json"), mode="r"
+            ) as file:
+                metadata = json.load(fp=file)
 
             max_length_query = metadata["max_length_query"]
             max_length_document = metadata["max_length_document"]
@@ -154,6 +166,7 @@ class SparseEmbed(Splade):
             self.add_special_tokens = metadata.get(
                 "add_special_tokens", self.add_special_tokens
             )
+            self.n_mask_tokens = metadata.get("n_mask_tokens", self.n_mask_tokens)
 
         self.max_length_query = max_length_query
         self.max_length_document = max_length_document
@@ -174,8 +187,8 @@ class SparseEmbed(Splade):
             Whether to encode queries or documents.
         """
         prefix = self.query_prefix if query_mode else self.document_prefix
-
-        texts = [prefix + text for text in texts]
+        suffix = " ".join([self.tokenizer.mask_token] * self.n_mask_tokens)
+        texts = [prefix + text + " " + suffix for text in texts]
 
         self.tokenizer.pad_token = (
             self.query_pad_token if query_mode else self.original_pad_token
@@ -183,13 +196,19 @@ class SparseEmbed(Splade):
 
         k_tokens = self.max_length_query if query_mode else self.max_length_document
 
-        logits, embeddings = self._encode(
+        logits, embeddings, attention_mask = self._encode(
             texts=texts,
             truncation=self.truncation,
             padding=self.padding,
             add_special_tokens=self.add_special_tokens,
+            max_length=self.max_length_query
+            if query_mode
+            else self.max_length_document,
             **kwargs,
         )
+
+        logits = logits * attention_mask
+        embeddings = embeddings * attention_mask
 
         activations = self._update_activations(
             **self._get_activation(logits=logits),
@@ -245,6 +264,7 @@ class SparseEmbed(Splade):
                     "padding": self.padding,
                     "truncation": self.truncation,
                     "add_special_tokens": self.add_special_tokens,
+                    "n_mask_tokens": self.n_mask_tokens,
                 },
                 indent=4,
             )

@@ -12,20 +12,18 @@ class FlopsScheduler:
     2. [SPLADE: Sparse Lexical and Expansion Model for First Stage Ranking](https://arxiv.org/pdf/2107.05720.pdf)
     """
 
-    def __init__(self, weight: float = 3e-5, steps: int = 10000):
+    def __init__(self, weight: float = 3e-6, steps: int = 10000):
         self._weight = weight
-        self.weight = 0
+        self.weight = 0.0
         self.steps = steps
-        self._step = 0
+        self._step = 1
 
-    def step(self) -> None:
+    def get(self) -> float:
         if self._step >= self.steps:
             pass
         else:
             self._step += 1
             self.weight = self._weight * (self._step / self.steps) ** 2
-
-    def get(self):
         return self.weight
 
 

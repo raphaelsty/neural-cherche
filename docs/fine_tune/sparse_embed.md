@@ -5,7 +5,7 @@ each time we call `train.train_sparse_embed` function. It's higly recommended to
 and to use a Masked Language Model as the base model.
 
 ```python
-from neural_cherche import models, utils, train
+from neural_cherche import models, utils, train, losses
 import torch
 
 device = "cuda" if torch.cuda.is_available() else "cpu"
@@ -18,6 +18,7 @@ model = models.SparseEmbed(
 )
 
 optimizer = torch.optim.AdamW(model.parameters(), lr=3e-5)
+flops_scheduler = losses.FlopsScheduler()
 
 X = [
     ("query", "positive document", "negative document"),
@@ -39,6 +40,7 @@ for step, (anchor, positive, negative) in enumerate(utils.iter(
         positive=positive,
         negative=negative,
         threshold_flops=30,
+        flops_loss_weight=flops_scheduler.get(),
         step=step,
         gradient_accumulation_steps=50,
     )

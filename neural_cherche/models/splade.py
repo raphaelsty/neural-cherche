@@ -51,7 +51,7 @@ class Splade(Base):
     ...     documents=["Sports is great.", "Music is great."],
     ...     batch_size=2
     ... )
-    tensor([242.5254, 171.2982], device='mps:0')
+    tensor([119.7001, 105.5925], device='mps:0')
 
     >>> _ = model.save_pretrained("checkpoint")
 
@@ -65,16 +65,16 @@ class Splade(Base):
     ...     documents=["Sports is great.", "Music is great."],
     ...     batch_size=2
     ... )
-    tensor([242.5254, 171.2982], device='mps:0')
+    tensor([119.7001, 105.5925], device='mps:0')
 
     >>> model = models.Splade(
-    ...     model_name_or_path="distilbert-base-uncased",
+    ...     model_name_or_path="google-bert/bert-base-uncased",
     ...     device="cpu",
-    ...     add_special_tokens=True,
+    ...     add_special_tokens=False,
     ... )
 
     >>> queries_activations = model.encode(
-    ...     ["paris tours eiffel arc de triomphe musé du louvre"],
+    ...     ["paris tours eiffel arc de triomphe musee du louvre"],
     ... )
 
     >>> model.decode(**queries_activations)
@@ -90,14 +90,16 @@ class Splade(Base):
         self,
         model_name_or_path: str = None,
         device: str = None,
-        max_length_query: int = 128,
+        max_length_query: int = 64,
         max_length_document: int = 256,
         extra_files_to_load: list[str] = ["metadata.json"],
         query_prefix: str = "",
         document_prefix: str = "",
-        padding: str = "longest",
+        padding: str = "max_length",
         truncation: bool | None = True,
         add_special_tokens: bool = True,
+        n_mask_tokens: int = 3,
+        freeze_layers_except_last_n: int = None,
         **kwargs,
     ) -> None:
         super(Splade, self).__init__(
@@ -109,6 +111,8 @@ class Splade(Base):
             padding=padding,
             truncation=truncation,
             add_special_tokens=add_special_tokens,
+            n_mask_tokens=n_mask_tokens,
+            freeze_layers_except_last_n=freeze_layers_except_last_n,
             **kwargs,
         )
 
@@ -129,10 +133,12 @@ class Splade(Base):
             self.add_special_tokens = metadata.get(
                 "add_special_tokens", self.add_special_tokens
             )
+            self.n_mask_tokens = metadata.get("n_mask_tokens", self.n_mask_tokens)
 
         self.max_length_query = max_length_query
         self.max_length_document = max_length_document
 
+    @torch.no_grad()
     def encode(
         self,
         texts: list[str],
@@ -152,12 +158,11 @@ class Splade(Base):
         max_length
             Maximum length of the documents.
         """
-        with torch.no_grad():
-            return self(
-                texts=texts,
-                query_mode=query_mode,
-                **kwargs,
-            )
+        return self(
+            texts=texts,
+            query_mode=query_mode,
+            **kwargs,
+        )
 
     def decode(
         self,
@@ -211,8 +216,8 @@ class Splade(Base):
             Whether to encode queries or documents.
         """
         prefix = self.query_prefix if query_mode else self.document_prefix
-
-        texts = [prefix + text for text in texts]
+        suffix = " ".join([self.tokenizer.mask_token] * self.n_mask_tokens)
+        texts = [prefix + text + " " + suffix for text in texts]
 
         self.tokenizer.pad_token = (
             self.query_pad_token if query_mode else self.original_pad_token
@@ -220,15 +225,18 @@ class Splade(Base):
 
         k_tokens = self.max_length_query if query_mode else self.max_length_document
 
-        logits, _ = self._encode(
+        logits, _, attention_mask = self._encode(
             texts=texts,
             truncation=self.truncation,
             padding=self.padding,
             add_special_tokens=self.add_special_tokens,
+            max_length=self.max_length_query
+            if query_mode
+            else self.max_length_document,
             **kwargs,
         )
 
-        activations = self._get_activation(logits=logits)
+        activations = self._get_activation(logits=logits * attention_mask)
 
         activations = self._update_activations(
             **activations,
@@ -261,6 +269,7 @@ class Splade(Base):
                     "padding": self.padding,
                     "truncation": self.truncation,
                     "add_special_tokens": self.add_special_tokens,
+                    "n_mask_tokens": self.n_mask_tokens,
                 },
                 indent=4,
             )
