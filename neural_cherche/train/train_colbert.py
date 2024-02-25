@@ -1,3 +1,5 @@
+import torch
+
 from .. import losses, utils
 
 __all__ = ["train_colbert"]
@@ -13,7 +15,7 @@ def train_colbert(
     step: int = None,
     gradient_accumulation_steps: int = 50,
     **kwargs,
-):
+) -> dict[str, torch.Tensor]:
     """Compute the ranking loss and the flops loss for a single step.
 
     Parameters
