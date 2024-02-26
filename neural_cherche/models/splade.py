@@ -51,7 +51,7 @@ class Splade(Base):
     ...     documents=["Sports is great.", "Music is great."],
     ...     batch_size=2
     ... )
-    tensor([119.7001, 105.5925], device='mps:0')
+    tensor([14.4703, 13.9852], device='mps:0')
 
     >>> _ = model.save_pretrained("checkpoint")
 
@@ -65,20 +65,7 @@ class Splade(Base):
     ...     documents=["Sports is great.", "Music is great."],
     ...     batch_size=2
     ... )
-    tensor([119.7001, 105.5925], device='mps:0')
-
-    >>> model = models.Splade(
-    ...     model_name_or_path="google-bert/bert-base-uncased",
-    ...     device="cpu",
-    ...     add_special_tokens=False,
-    ... )
-
-    >>> queries_activations = model.encode(
-    ...     ["paris tours eiffel arc de triomphe musee du louvre"],
-    ... )
-
-    >>> model.decode(**queries_activations)
-
+    tensor([14.4703, 13.9852], device='mps:0')
 
     References
     ----------

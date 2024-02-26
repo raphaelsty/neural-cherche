@@ -56,7 +56,7 @@ from neural_cherche import models, utils, train
 
 model = models.ColBERT(
     model_name_or_path="raphaelsty/neural-cherche-colbert",
-    device="cuda" if torch.cuda.is_available() else "cpu" # mps is also supported
+    device="cuda" if torch.cuda.is_available() else "cpu" # or mps
 )
 
 optimizer = torch.optim.AdamW(model.parameters(), lr=3e-6)
@@ -98,7 +98,6 @@ Here is how to use the fine-tuned ColBERT model to retrieve documents:
 from neural_cherche import models, retrieve
 import torch
 
-device = "cuda" if torch.cuda.is_available() else "cpu" # mps is also supported
 batch_size = 32
 
 documents = [
@@ -109,7 +108,7 @@ documents = [
 
 model = models.ColBERT(
     model_name_or_path="raphaelsty/neural-cherche-colbert",
-    device=device,
+    device="cuda" if torch.cuda.is_available() else "cpu", # or mps
 )
 
 retriever = retrieve.ColBERT(
@@ -157,7 +156,68 @@ scores
   {'id': 2, 'similarity': 5.599479675292969}]]
 ```
 
+Please note that neural-cherche provide documentation to use [ColBERT as a ranker](https://raphaelsty.github.io/neural-cherche/retrieve/colbert/) which is much more efficient.
+
+
 Neural-Cherche also provides a `SparseEmbed`, a `SPLADE`, a `TFIDF` retriever and a `ColBERT` ranker which can be used to re-order output of a retriever. For more information, please refer to the [documentation](https://raphaelsty.github.io/neural-cherche/).
+
+### Pre-trained Models
+
+We provide to pre-trained checkpoints specifically designed for neural-cherche: [raphaelsty/neural-cherche-sparse-embed](https://huggingface.co/raphaelsty/neural-cherche-sparse-embed) and [raphaelsty/neural-cherche-colbert](https://huggingface.co/raphaelsty/neural-cherche-colbert). Those checkpoints are fine-tuned on a subset of the MS-MARCO dataset and would benefit from being fine-tuned on your specific dataset. You can fine-tune ColBERT from any Sentence Transformer pre-trained checkpoint in order to fit your specific language. You shoukd use a MLM based-checkpoint to fine-tune SparseEmbed.
+
+<table class="tg">
+<thead>
+  <tr>
+    <th class="tg-0pky"></th>
+    <th class="tg-0pky"></th>
+    <th class="tg-rvyq" colspan="3">scifact dataset</th>
+  </tr>
+</thead>
+<tbody>
+  <tr>
+    <td class="tg-7btt">model</td>
+    <td class="tg-7btt">HuggingFace Checkpoint</td>
+    <td class="tg-rvyq">ndcg@10</td>
+    <td class="tg-rvyq">hits@10</td>
+    <td class="tg-rvyq">hits@1</td>
+  </tr>
+  <tr>
+    <td class="tg-c3ow">TfIdf</td>
+    <td class="tg-c3ow">-</td>
+    <td class="tg-c3ow">0,61</td>
+    <td class="tg-c3ow">0,85</td>
+    <td class="tg-c3ow">0,47</td>
+  </tr>
+  <tr>
+    <td class="tg-c3ow">SparseEmbed</td>
+    <td class="tg-c3ow">raphaelsty/neural-cherche-sparse-embed</td>
+    <td class="tg-c3ow">0,62</td>
+    <td class="tg-c3ow">0,87</td>
+    <td class="tg-c3ow">0,48</td>
+  </tr>
+  <tr>
+    <td class="tg-c3ow">Sentence Transformer</td>
+    <td class="tg-c3ow">sentence-transformers/all-mpnet-base-v2</td>
+    <td class="tg-c3ow">0,66</td>
+    <td class="tg-c3ow">0,89</td>
+    <td class="tg-c3ow">0,53</td>
+  </tr>
+  <tr>
+    <td class="tg-c3ow">ColBERT</td>
+    <td class="tg-c3ow">raphaelsty/neural-cherche-colbert</td>
+    <td class="tg-7btt">0,70</td>
+    <td class="tg-7btt">0,92</td>
+    <td class="tg-7btt">0,58</td>
+  </tr>
+  <tr>
+    <td class="tg-c3ow">TfIDF Retriever + ColBERT Ranker</td>
+    <td class="tg-c3ow">raphaelsty/neural-cherche-colbert</td>
+    <td class="tg-7btt">0,71</td>
+    <td class="tg-7btt">0,94</td>
+    <td class="tg-7btt">0,59</td>
+  </tr>
+</tbody>
+</table>
 
 ### Neural-Cherche Contributors
 

@@ -8,16 +8,12 @@ and to use a Masked Language Model as the base model.
 from neural_cherche import models, utils, train, losses
 import torch
 
-device = "cuda" if torch.cuda.is_available() else "cpu"
-batch_size = 32
-epochs = 2
-
 model = models.Splade(
     model_name_or_path="raphaelsty/neural-cherche-sparse-embed",
-    device=device
+    device="cuda" if torch.cuda.is_available() else "cpu"
 )
 
-optimizer = torch.optim.AdamW(model.parameters(), lr=3e-5)
+optimizer = torch.optim.AdamW(model.parameters(), lr=3e-6)
 flops_scheduler = losses.FlopsScheduler()
 
 X = [
@@ -28,9 +24,9 @@ X = [
 
 for step, (anchor, positive, negative) in enumerate(utils.iter(
         X,
-        epochs=epochs,
-        batch_size=batch_size,
-        shuffle=False
+        epochs=2,
+        batch_size=32,
+        shuffle=True
     )):
 
     loss = train.train_splade(
@@ -56,10 +52,8 @@ We can load the checkpoint using:
 from neural_cherche import models
 import torch
 
-device = "cuda" if torch.cuda.is_available() else "cpu"
-
 model = models.Splade(
     model_name_or_path="checkpoint",
-    device=device
+    device="cuda" if torch.cuda.is_available() else "cpu",
 )
 ```

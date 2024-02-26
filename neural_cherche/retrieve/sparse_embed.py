@@ -71,15 +71,15 @@ class SparseEmbed(TfIdf):
     ... )
 
     >>> pprint(scores)
-    [[{'id': 1, 'similarity': 125.59788513183594},
-      {'id': 0, 'similarity': 16.557334899902344},
-      {'id': 2, 'similarity': 5.212235927581787}],
-     [{'id': 1, 'similarity': 132.3382110595703},
-      {'id': 2, 'similarity': 5.683358669281006},
-      {'id': 0, 'similarity': 3.149585247039795}],
-     [{'id': 1, 'similarity': 133.29345703125},
-      {'id': 2, 'similarity': 6.271602153778076},
-      {'id': 0, 'similarity': 3.2582881450653076}]]
+    [[{'id': 0, 'similarity': 650.8814697265625},
+      {'id': 2, 'similarity': 63.36189270019531},
+      {'id': 1, 'similarity': 55.061676025390625}],
+     [{'id': 1, 'similarity': 139.74667358398438},
+      {'id': 2, 'similarity': 63.8810920715332},
+      {'id': 0, 'similarity': 42.96449661254883}],
+     [{'id': 2, 'similarity': 158.86715698242188},
+      {'id': 0, 'similarity': 68.95826721191406},
+      {'id': 1, 'similarity': 63.872554779052734}]]
 
     """
 

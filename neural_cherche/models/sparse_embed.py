@@ -29,11 +29,9 @@ class SparseEmbed(Splade):
 
     >>> _ = torch.manual_seed(42)
 
-    >>> device = "mps"
-
     >>> model = models.SparseEmbed(
     ...     model_name_or_path="raphaelsty/neural-cherche-sparse-embed",
-    ...     device=device,
+    ...     device="cpu",
     ... )
 
     >>> queries_embeddings = model.encode(
@@ -68,7 +66,7 @@ class SparseEmbed(Splade):
     ...     documents=["Sports is great.", "Music is great."],
     ...     batch_size=1,
     ... )
-    tensor([8.9900, 8.5581], device='mps:0')
+    tensor([101.4910, 196.2314])
 
     >>> _ = model.save_pretrained("checkpoint")
 
@@ -82,7 +80,7 @@ class SparseEmbed(Splade):
     ...     documents=["Sports is great.", "Music is great."],
     ...     batch_size=2,
     ... )
-    tensor([8.9900, 8.5581], device='mps:0')
+    tensor([101.4910, 196.2314])
 
     References
     ----------

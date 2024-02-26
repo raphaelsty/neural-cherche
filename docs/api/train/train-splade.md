@@ -83,7 +83,6 @@ Compute the ranking loss and the flops loss for a single step.
 ...         flops_loss_weight=flops_scheduler.get(),
 ...         in_batch_negatives=False,
 ...     )
-...     flops_scheduler.step()
 
 >>> loss
 {'sparse': tensor(0., device='mps:0', grad_fn=<ClampBackward1>), 'flops': tensor(10., device='mps:0', grad_fn=<ClampBackward1>)}

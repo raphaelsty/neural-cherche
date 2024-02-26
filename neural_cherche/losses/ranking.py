@@ -39,7 +39,7 @@ class Ranking(torch.nn.Module):
     ... )
 
     >>> losses.Ranking()(**scores)
-    tensor(5.5668e-05, grad_fn=<NllLossBackward0>)
+    tensor(6.8423e-05, grad_fn=<NllLossBackward0>)
 
     References
     ----------

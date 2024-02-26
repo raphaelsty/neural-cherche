@@ -68,15 +68,15 @@ class ColBERT(ColBERTRanker):
     ... )
 
     >>> pprint(scores)
-    [[{'id': 0, 'similarity': 20.23601531982422},
-      {'id': 2, 'similarity': 7.255690574645996},
-      {'id': 1, 'similarity': 6.666046142578125}],
-     [{'id': 1, 'similarity': 21.373430252075195},
-      {'id': 2, 'similarity': 5.494492053985596},
-      {'id': 0, 'similarity': 4.814355850219727}],
-     [{'id': 1, 'similarity': 9.25660228729248},
-      {'id': 0, 'similarity': 8.206350326538086},
-      {'id': 2, 'similarity': 5.496612548828125}]]
+    [[{'id': 0, 'similarity': 4.7243194580078125},
+      {'id': 2, 'similarity': 2.403003692626953},
+      {'id': 1, 'similarity': 2.286036252975464}],
+     [{'id': 1, 'similarity': 4.792296886444092},
+      {'id': 2, 'similarity': 2.6001152992248535},
+      {'id': 0, 'similarity': 2.312016487121582}],
+     [{'id': 2, 'similarity': 5.069696426391602},
+      {'id': 1, 'similarity': 2.5587477684020996},
+      {'id': 0, 'similarity': 2.4474282264709473}]]
 
     """
 

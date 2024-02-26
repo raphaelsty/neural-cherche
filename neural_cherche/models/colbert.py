@@ -50,7 +50,7 @@ class ColBERT(Base):
     ... )
 
     >>> scores
-    tensor([26.7031,  3.1413,  3.6223])
+    tensor([19.2999,  3.6684,  3.5832])
 
     >>> _ = encoder.save_pretrained("checkpoint")
 
@@ -66,7 +66,7 @@ class ColBERT(Base):
     ... )
 
     >>> scores
-    tensor([26.7031,  3.1413,  3.6223])
+    tensor([19.2999,  3.6684,  3.5832])
 
     >>> embeddings = encoder(
     ...     texts=queries,
@@ -74,7 +74,7 @@ class ColBERT(Base):
     ... )
 
     >>> embeddings["embeddings"].shape
-    torch.Size([3, 64, 128])
+    torch.Size([3, 32, 128])
 
     >>> embeddings = encoder(
     ...     texts=queries,

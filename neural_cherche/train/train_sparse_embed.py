@@ -87,12 +87,10 @@ def train_sparse_embed(
     ...         positive=positive,
     ...         negative=negative,
     ...         flops_loss_weight=flops_scheduler.get(),
-    ...         in_batch_negatives=False,
     ...     )
-    ...     flops_scheduler.step()
 
     >>> loss
-    {'dense': tensor(0.0015, device='mps:0', grad_fn=<ClampBackward1>), 'sparse': tensor(1.1921e-07, device='mps:0', grad_fn=<ClampBackward1>), 'flops': tensor(10., device='mps:0', grad_fn=<ClampBackward1>)}
+    {'dense': tensor(0., grad_fn=<NllLossBackward0>), 'sparse': tensor(0.0243, grad_fn=<NllLossBackward0>), 'flops': tensor(10., grad_fn=<ClampBackward1>), 'loss': tensor(0.0024, grad_fn=<AddBackward0>)}
 
     """
 

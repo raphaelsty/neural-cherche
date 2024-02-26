@@ -83,10 +83,9 @@ def train_splade(
     ...         flops_loss_weight=flops_scheduler.get(),
     ...         in_batch_negatives=True,
     ...     )
-    ...     flops_scheduler.step()
 
     >>> loss
-    {'sparse': tensor(0., device='mps:0', grad_fn=<ClampBackward1>), 'flops': tensor(10., device='mps:0', grad_fn=<ClampBackward1>)}
+    {'sparse': tensor(0.7054, grad_fn=<NllLossBackward0>), 'flops': tensor(10., grad_fn=<ClampBackward1>), 'loss': tensor(0.7054, grad_fn=<AddBackward0>)}
 
     """
 
