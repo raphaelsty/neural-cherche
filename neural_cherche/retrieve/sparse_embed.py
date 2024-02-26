@@ -32,7 +32,7 @@ class SparseEmbed(TfIdf):
     >>> _ = torch.manual_seed(42)
 
     >>> model = models.SparseEmbed(
-    ...     model_name_or_path="distilbert-base-uncased",
+    ...     model_name_or_path="raphaelsty/neural-cherche-sparse-embed",
     ...     device="cpu",
     ...     embedding_size=64,
     ... )

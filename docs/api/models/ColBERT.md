@@ -45,7 +45,7 @@ ColBERT model.
 ... ]
 
 >>> encoder = models.ColBERT(
-...     model_name_or_path="sentence-transformers/all-mpnet-base-v2",
+...     model_name_or_path="raphaelsty/neural-cherche-colbert",
 ...     embedding_size=128,
 ...     max_length_query=32,
 ...     max_length_document=350,

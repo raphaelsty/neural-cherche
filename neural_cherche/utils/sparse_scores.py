@@ -28,7 +28,7 @@ def sparse_scores(
     >>> from neural_cherche import models
 
     >>> model = models.Splade(
-    ...     model_name_or_path="distilbert-base-uncased",
+    ...     model_name_or_path="raphaelsty/neural-cherche-sparse-embed",
     ...     device="mps"
     ... )
 

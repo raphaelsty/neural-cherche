@@ -45,7 +45,7 @@ Compute the ranking loss and the flops loss for a single step.
 >>> device = "mps"
 
 >>> model = models.ColBERT(
-...     model_name_or_path="sentence-transformers/all-mpnet-base-v2",
+...     model_name_or_path="raphaelsty/neural-cherche-colbert",
 ...     device=device
 ... )
 

@@ -33,7 +33,7 @@ ColBERT scoring function for training.
 >>> _ = torch.manual_seed(42)
 
 >>> model = models.ColBERT(
-...     model_name_or_path="sentence-transformers/all-mpnet-base-v2",
+...     model_name_or_path="raphaelsty/neural-cherche-colbert",
 ...     device="mps",
 ... )
 

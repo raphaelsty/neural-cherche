@@ -25,7 +25,7 @@ documents = [
 queries = ["Food", "Sports", "Cinema"]
 
 model = models.ColBERT(
-    model_name_or_path="sentence-transformers/all-mpnet-base-v2",
+    model_name_or_path="raphaelsty/neural-cherche-colbert",
     device=device,
 )
 
@@ -58,6 +58,18 @@ scores = retriever(
 scores
 ```
 
+```python
+[[{'id': 0, 'similarity': 22.825355529785156},
+  {'id': 1, 'similarity': 11.201947212219238},
+  {'id': 2, 'similarity': 10.748161315917969}],
+ [{'id': 1, 'similarity': 23.21628189086914},
+  {'id': 0, 'similarity': 9.9658203125},
+  {'id': 2, 'similarity': 7.308732509613037}],
+ [{'id': 1, 'similarity': 6.4031805992126465},
+  {'id': 0, 'similarity': 5.601611137390137},
+  {'id': 2, 'similarity': 5.599479675292969}]]
+```
+
 ## Colbert ranker with TfIdf retriever
 
 ColBERT ranker can be used to re-rank candidates in output of a retriever following the
@@ -88,7 +100,7 @@ retriever = retrieve.TfIdf(
 )
 
 model = models.ColBERT(
-    model_name_or_path="sentence-transformers/all-mpnet-base-v2",
+    model_name_or_path="raphaelsty/neural-cherche-colbert",
     device=device,
 )
 

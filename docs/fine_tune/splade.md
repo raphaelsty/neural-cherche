@@ -13,7 +13,7 @@ batch_size = 32
 epochs = 2
 
 model = models.Splade(
-    model_name_or_path="distilbert-base-uncased",
+    model_name_or_path="raphaelsty/neural-cherche-sparse-embed",
     device=device
 )
 
