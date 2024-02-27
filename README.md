@@ -163,7 +163,7 @@ Neural-Cherche also provides a `SparseEmbed`, a `SPLADE`, a `TFIDF` retriever an
 
 ### Pre-trained Models
 
-We provide to pre-trained checkpoints specifically designed for neural-cherche: [raphaelsty/neural-cherche-sparse-embed](https://huggingface.co/raphaelsty/neural-cherche-sparse-embed) and [raphaelsty/neural-cherche-colbert](https://huggingface.co/raphaelsty/neural-cherche-colbert). Those checkpoints are fine-tuned on a subset of the MS-MARCO dataset and would benefit from being fine-tuned on your specific dataset. You can fine-tune ColBERT from any Sentence Transformer pre-trained checkpoint in order to fit your specific language. You shoukd use a MLM based-checkpoint to fine-tune SparseEmbed.
+We provide pre-trained checkpoints specifically designed for neural-cherche: [raphaelsty/neural-cherche-sparse-embed](https://huggingface.co/raphaelsty/neural-cherche-sparse-embed) and [raphaelsty/neural-cherche-colbert](https://huggingface.co/raphaelsty/neural-cherche-colbert). Those checkpoints are fine-tuned on a subset of the MS-MARCO dataset and would benefit from being fine-tuned on your specific dataset. You can fine-tune ColBERT from any Sentence Transformer pre-trained checkpoint in order to fit your specific language. You should use a MLM based-checkpoint to fine-tune SparseEmbed.
 
 <table class="tg">
 <thead>
