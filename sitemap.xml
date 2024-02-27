@@ -2,177 +2,177 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
     <url>
          <loc>https://raphaelsty.github.io/neural-cherche/</loc>
-         <lastmod>2023-11-16</lastmod>
+         <lastmod>2024-02-27</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>https://raphaelsty.github.io/neural-cherche/api/overview/</loc>
-         <lastmod>2023-11-16</lastmod>
+         <lastmod>2024-02-27</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>https://raphaelsty.github.io/neural-cherche/api/losses/Flops/</loc>
-         <lastmod>2023-11-16</lastmod>
+         <lastmod>2024-02-27</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>https://raphaelsty.github.io/neural-cherche/api/losses/FlopsScheduler/</loc>
-         <lastmod>2023-11-16</lastmod>
+         <lastmod>2024-02-27</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>https://raphaelsty.github.io/neural-cherche/api/losses/Ranking/</loc>
-         <lastmod>2023-11-16</lastmod>
+         <lastmod>2024-02-27</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>https://raphaelsty.github.io/neural-cherche/api/models/ColBERT/</loc>
-         <lastmod>2023-11-16</lastmod>
+         <lastmod>2024-02-27</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>https://raphaelsty.github.io/neural-cherche/api/models/SparseEmbed/</loc>
-         <lastmod>2023-11-16</lastmod>
+         <lastmod>2024-02-27</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>https://raphaelsty.github.io/neural-cherche/api/models/Splade/</loc>
-         <lastmod>2023-11-16</lastmod>
+         <lastmod>2024-02-27</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>https://raphaelsty.github.io/neural-cherche/api/rank/ColBERT/</loc>
-         <lastmod>2023-11-16</lastmod>
+         <lastmod>2024-02-27</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>https://raphaelsty.github.io/neural-cherche/api/retrieve/SparseEmbed/</loc>
-         <lastmod>2023-11-16</lastmod>
+         <lastmod>2024-02-27</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>https://raphaelsty.github.io/neural-cherche/api/retrieve/Splade/</loc>
-         <lastmod>2023-11-16</lastmod>
+         <lastmod>2024-02-27</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>https://raphaelsty.github.io/neural-cherche/api/retrieve/TfIdf/</loc>
-         <lastmod>2023-11-16</lastmod>
+         <lastmod>2024-02-27</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>https://raphaelsty.github.io/neural-cherche/api/train/train-colbert/</loc>
-         <lastmod>2023-11-16</lastmod>
+         <lastmod>2024-02-27</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>https://raphaelsty.github.io/neural-cherche/api/train/train-sparse-embed/</loc>
-         <lastmod>2023-11-16</lastmod>
+         <lastmod>2024-02-27</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>https://raphaelsty.github.io/neural-cherche/api/train/train-splade/</loc>
-         <lastmod>2023-11-16</lastmod>
+         <lastmod>2024-02-27</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>https://raphaelsty.github.io/neural-cherche/api/utils/batchify/</loc>
-         <lastmod>2023-11-16</lastmod>
+         <lastmod>2024-02-27</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>https://raphaelsty.github.io/neural-cherche/api/utils/colbert-scores/</loc>
-         <lastmod>2023-11-16</lastmod>
+         <lastmod>2024-02-27</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>https://raphaelsty.github.io/neural-cherche/api/utils/dense-scores/</loc>
-         <lastmod>2023-11-16</lastmod>
+         <lastmod>2024-02-27</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>https://raphaelsty.github.io/neural-cherche/api/utils/evaluate/</loc>
-         <lastmod>2023-11-16</lastmod>
+         <lastmod>2024-02-27</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>https://raphaelsty.github.io/neural-cherche/api/utils/in-batch-sparse-scores/</loc>
-         <lastmod>2023-11-16</lastmod>
+         <lastmod>2024-02-27</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>https://raphaelsty.github.io/neural-cherche/api/utils/iter/</loc>
-         <lastmod>2023-11-16</lastmod>
+         <lastmod>2024-02-27</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>https://raphaelsty.github.io/neural-cherche/api/utils/load-beir/</loc>
-         <lastmod>2023-11-16</lastmod>
+         <lastmod>2024-02-27</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>https://raphaelsty.github.io/neural-cherche/api/utils/pairs-dense-scores/</loc>
-         <lastmod>2023-11-16</lastmod>
+         <lastmod>2024-02-27</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>https://raphaelsty.github.io/neural-cherche/api/utils/sparse-scores/</loc>
-         <lastmod>2023-11-16</lastmod>
+         <lastmod>2024-02-27</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>https://raphaelsty.github.io/neural-cherche/evaluate/evaluate/</loc>
-         <lastmod>2023-11-16</lastmod>
+         <lastmod>2024-02-27</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>https://raphaelsty.github.io/neural-cherche/fine_tune/colbert/</loc>
-         <lastmod>2023-11-16</lastmod>
+         <lastmod>2024-02-27</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>https://raphaelsty.github.io/neural-cherche/fine_tune/sparse_embed/</loc>
-         <lastmod>2023-11-16</lastmod>
+         <lastmod>2024-02-27</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>https://raphaelsty.github.io/neural-cherche/fine_tune/splade/</loc>
-         <lastmod>2023-11-16</lastmod>
+         <lastmod>2024-02-27</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>https://raphaelsty.github.io/neural-cherche/pre_trained_models/pre_trained_models/</loc>
-         <lastmod>2023-11-16</lastmod>
+         <lastmod>2024-02-27</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>https://raphaelsty.github.io/neural-cherche/retrieve/colbert/</loc>
-         <lastmod>2023-11-16</lastmod>
+         <lastmod>2024-02-27</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>https://raphaelsty.github.io/neural-cherche/retrieve/sparse_embed/</loc>
-         <lastmod>2023-11-16</lastmod>
+         <lastmod>2024-02-27</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>https://raphaelsty.github.io/neural-cherche/retrieve/splade/</loc>
-         <lastmod>2023-11-16</lastmod>
+         <lastmod>2024-02-27</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>https://raphaelsty.github.io/neural-cherche/retrieve/tfidf/</loc>
-         <lastmod>2023-11-16</lastmod>
+         <lastmod>2024-02-27</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>https://raphaelsty.github.io/neural-cherche/scoring/scoring/</loc>
-         <lastmod>2023-11-16</lastmod>
+         <lastmod>2024-02-27</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>https://raphaelsty.github.io/neural-cherche/scripts/</loc>
-         <lastmod>2023-11-16</lastmod>
+         <lastmod>2024-02-27</lastmod>
          <changefreq>daily</changefreq>
     </url>
 </urlset>
