@@ -14,6 +14,9 @@
 
 Neural-Cherche is a library designed to fine-tune neural search models such as Splade, ColBERT, and SparseEmbed on a specific dataset. Neural-Cherche also provide classes to run efficient inference on a fine-tuned retriever or ranker. Neural-Cherche aims to offer a straightforward and effective method for fine-tuning and utilizing neural search models in both offline and online settings. It also enables users to save all computed embeddings to prevent redundant computations.
 
+Neural-Cherche is compatible with CPU, GPU and MPS devices. We can fine-tune ColBERT from any
+Sentence Transformer pre-trained checkpoint. Splade and SparseEmbed are more tricky to fine-tune and need a MLM pre-trained model.
+
 ## Installation
 
 We can install neural-cherche using:
@@ -52,11 +55,11 @@ import torch
 from neural_cherche import models, utils, train
 
 model = models.ColBERT(
-    model_name_or_path="sentence-transformers/all-mpnet-base-v2",
-    device="cuda" if torch.cuda.is_available() else "cpu"
+    model_name_or_path="raphaelsty/neural-cherche-colbert",
+    device="cuda" if torch.cuda.is_available() else "cpu" # or mps
 )
 
-optimizer = torch.optim.AdamW(model.parameters(), lr=3e-5)
+optimizer = torch.optim.AdamW(model.parameters(), lr=3e-6)
 
 X = [
     ("query", "positive document", "negative document"),
@@ -64,12 +67,12 @@ X = [
     ("query", "positive document", "negative document"),
 ]
 
-for anchor, positive, negative in utils.iter(
+for step, (anchor, positive, negative) in enumerate(utils.iter(
         X,
-        epochs=1,
-        batch_size=32,
+        epochs=1, # number of epochs
+        batch_size=8, # number of triples per batch
         shuffle=True
-    ):
+    )):
 
     loss = train.train_colbert(
         model=model,
@@ -77,12 +80,146 @@ for anchor, positive, negative in utils.iter(
         anchor=anchor,
         positive=positive,
         negative=negative,
+        step=step,
+        gradient_accumulation_steps=50,
     )
 
-model.save_pretrained("checkpoint")
+    
+    if (step + 1) % 1000 == 0:
+        # Save the model every 1000 steps
+        model.save_pretrained("checkpoint")
 ```
 
-## Neural-Cherche Contributors 
+## Retrieval
+
+Here is how to use the fine-tuned ColBERT model to retrieve documents:
+
+```python
+from neural_cherche import models, retrieve
+import torch
+
+batch_size = 32
+
+documents = [
+    {"id": 0, "document": "Food"},
+    {"id": 1, "document": "Sports"},
+    {"id": 2, "document": "Cinema"},
+]
+
+model = models.ColBERT(
+    model_name_or_path="raphaelsty/neural-cherche-colbert",
+    device="cuda" if torch.cuda.is_available() else "cpu", # or mps
+)
+
+retriever = retrieve.ColBERT(
+    key="id",
+    on=["document"], # the field to search on, can be a list of fields
+    model=model,
+)
+
+documents_embeddings = retriever.encode_documents(
+    documents=documents,
+    batch_size=batch_size,
+)
+
+retriever = retriever.add(
+    documents_embeddings=documents_embeddings,
+)
+```
+
+Now we can retrieve documents using the fine-tuned model:
+
+```python
+queries_embeddings = retriever.encode_queries(
+    queries=["Food", "Sports", "Cinema"], # list of queries
+    batch_size=batch_size,
+)
+
+scores = retriever(
+    queries_embeddings=queries_embeddings,
+    batch_size=batch_size,
+    k=10, # number of documents to retrieve
+)
+
+scores
+```
+
+```python
+[[{'id': 0, 'similarity': 22.825355529785156},
+  {'id': 1, 'similarity': 11.201947212219238},
+  {'id': 2, 'similarity': 10.748161315917969}],
+ [{'id': 1, 'similarity': 23.21628189086914},
+  {'id': 0, 'similarity': 9.9658203125},
+  {'id': 2, 'similarity': 7.308732509613037}],
+ [{'id': 1, 'similarity': 6.4031805992126465},
+  {'id': 0, 'similarity': 5.601611137390137},
+  {'id': 2, 'similarity': 5.599479675292969}]]
+```
+
+Please note that neural-cherche provide documentation to use [ColBERT as a ranker](https://raphaelsty.github.io/neural-cherche/retrieve/colbert/) which is much more efficient.
+
+
+Neural-Cherche also provides a `SparseEmbed`, a `SPLADE`, a `TFIDF` retriever and a `ColBERT` ranker which can be used to re-order output of a retriever. For more information, please refer to the [documentation](https://raphaelsty.github.io/neural-cherche/).
+
+### Pre-trained Models
+
+We provide to pre-trained checkpoints specifically designed for neural-cherche: [raphaelsty/neural-cherche-sparse-embed](https://huggingface.co/raphaelsty/neural-cherche-sparse-embed) and [raphaelsty/neural-cherche-colbert](https://huggingface.co/raphaelsty/neural-cherche-colbert). Those checkpoints are fine-tuned on a subset of the MS-MARCO dataset and would benefit from being fine-tuned on your specific dataset. You can fine-tune ColBERT from any Sentence Transformer pre-trained checkpoint in order to fit your specific language. You shoukd use a MLM based-checkpoint to fine-tune SparseEmbed.
+
+<table class="tg">
+<thead>
+  <tr>
+    <th class="tg-0pky"></th>
+    <th class="tg-0pky"></th>
+    <th class="tg-rvyq" colspan="3">scifact dataset</th>
+  </tr>
+</thead>
+<tbody>
+  <tr>
+    <td class="tg-7btt">model</td>
+    <td class="tg-7btt">HuggingFace Checkpoint</td>
+    <td class="tg-rvyq">ndcg@10</td>
+    <td class="tg-rvyq">hits@10</td>
+    <td class="tg-rvyq">hits@1</td>
+  </tr>
+  <tr>
+    <td class="tg-c3ow">TfIdf</td>
+    <td class="tg-c3ow">-</td>
+    <td class="tg-c3ow">0,61</td>
+    <td class="tg-c3ow">0,85</td>
+    <td class="tg-c3ow">0,47</td>
+  </tr>
+  <tr>
+    <td class="tg-c3ow">SparseEmbed</td>
+    <td class="tg-c3ow">raphaelsty/neural-cherche-sparse-embed</td>
+    <td class="tg-c3ow">0,62</td>
+    <td class="tg-c3ow">0,87</td>
+    <td class="tg-c3ow">0,48</td>
+  </tr>
+  <tr>
+    <td class="tg-c3ow">Sentence Transformer</td>
+    <td class="tg-c3ow">sentence-transformers/all-mpnet-base-v2</td>
+    <td class="tg-c3ow">0,66</td>
+    <td class="tg-c3ow">0,89</td>
+    <td class="tg-c3ow">0,53</td>
+  </tr>
+  <tr>
+    <td class="tg-c3ow">ColBERT</td>
+    <td class="tg-c3ow">raphaelsty/neural-cherche-colbert</td>
+    <td class="tg-7btt">0,70</td>
+    <td class="tg-7btt">0,92</td>
+    <td class="tg-7btt">0,58</td>
+  </tr>
+  <tr>
+    <td class="tg-c3ow">TfIDF Retriever + ColBERT Ranker</td>
+    <td class="tg-c3ow">raphaelsty/neural-cherche-colbert</td>
+    <td class="tg-7btt">0,71</td>
+    <td class="tg-7btt">0,94</td>
+    <td class="tg-7btt">0,59</td>
+  </tr>
+</tbody>
+</table>
+
+### Neural-Cherche Contributors
 
 - [Benjamin Clavié](https://github.com/bclavie)
 

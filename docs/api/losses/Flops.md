@@ -15,7 +15,7 @@ Flops loss, act as regularization loss over sparse activations.
 >>> _ = torch.manual_seed(42)
 
 >>> model = models.Splade(
-...     model_name_or_path="distilbert-base-uncased",
+...     model_name_or_path="raphaelsty/neural-cherche-sparse-embed",
 ...     device="mps",
 ... )
 

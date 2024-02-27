@@ -1,7 +1,5 @@
 import torch
 
-from .in_batch import in_batch_sparse_scores
-
 __all__ = ["sparse_scores"]
 
 
@@ -10,7 +8,7 @@ def sparse_scores(
     positive_activations: torch.Tensor,
     negative_activations: torch.Tensor,
     in_batch_negatives: bool = False,
-):
+) -> dict[str, torch.Tensor]:
     """Computes dot product between anchor, positive and negative activations.
 
     Parameters
@@ -30,7 +28,7 @@ def sparse_scores(
     >>> from neural_cherche import models
 
     >>> model = models.Splade(
-    ...     model_name_or_path="distilbert-base-uncased",
+    ...     model_name_or_path="raphaelsty/neural-cherche-sparse-embed",
     ...     device="mps"
     ... )
 
@@ -61,8 +59,12 @@ def sparse_scores(
     negative_scores = torch.sum(anchor_activations * negative_activations, axis=1)
 
     if in_batch_negatives:
-        negative_scores += in_batch_sparse_scores(
-            activations=positive_activations,
+        in_batch_negative_scores = torch.sum(
+            anchor_activations * positive_activations.roll(shifts=1, dims=0), axis=1
+        )
+
+        negative_scores = torch.stack(
+            tensors=[negative_scores, in_batch_negative_scores], axis=1
         )
 
     return {

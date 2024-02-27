@@ -37,7 +37,7 @@ class Splade(TfIdf):
     >>> queries = ["Food", "Sports", "Cinema"]
 
     >>> model = models.Splade(
-    ...     model_name_or_path="distilbert-base-uncased",
+    ...     model_name_or_path="raphaelsty/neural-cherche-sparse-embed",
     ...     device="mps",
     ... )
 
@@ -67,15 +67,15 @@ class Splade(TfIdf):
     ... )
 
     >>> pprint(scores)
-    [[{'id': 0, 'similarity': 489.65244},
-      {'id': 2, 'similarity': 338.9705},
-      {'id': 1, 'similarity': 332.3472}],
-     [{'id': 1, 'similarity': 470.40497},
-      {'id': 2, 'similarity': 301.56982},
-      {'id': 0, 'similarity': 278.8062}],
-     [{'id': 2, 'similarity': 472.487},
-      {'id': 1, 'similarity': 341.8396},
-      {'id': 0, 'similarity': 319.97287}]]
+    [[{'id': 0, 'similarity': 19.365147},
+      {'id': 1, 'similarity': 4.440977},
+      {'id': 2, 'similarity': 3.9301493}],
+     [{'id': 1, 'similarity': 18.055237},
+      {'id': 0, 'similarity': 4.440977},
+      {'id': 2, 'similarity': 3.6559556}],
+     [{'id': 2, 'similarity': 16.21696},
+      {'id': 0, 'similarity': 3.9301493},
+      {'id': 1, 'similarity': 3.6559556}]]
 
     """
 

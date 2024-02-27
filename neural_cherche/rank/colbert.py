@@ -26,7 +26,7 @@ class ColBERT:
     >>> _ = torch.manual_seed(42)
 
     >>> encoder = models.ColBERT(
-    ...     model_name_or_path="sentence-transformers/all-mpnet-base-v2",
+    ...     model_name_or_path="raphaelsty/neural-cherche-colbert",
     ...     device="mps",
     ... )
 
@@ -64,15 +64,15 @@ class ColBERT:
     ... )
 
     >>> pprint(scores)
-    [[{'document': 'Food', 'id': 0, 'similarity': 20.23601531982422},
-      {'document': 'Cinema', 'id': 2, 'similarity': 7.255690574645996},
-      {'document': 'Sports', 'id': 1, 'similarity': 6.666046142578125}],
-     [{'document': 'Sports', 'id': 1, 'similarity': 21.373430252075195},
-      {'document': 'Cinema', 'id': 2, 'similarity': 5.494492053985596},
-      {'document': 'Food', 'id': 0, 'similarity': 4.814355850219727}],
-     [{'document': 'Sports', 'id': 1, 'similarity': 9.25660228729248},
-      {'document': 'Food', 'id': 0, 'similarity': 8.206350326538086},
-      {'document': 'Cinema', 'id': 2, 'similarity': 5.496612548828125}]]
+    [[{'document': 'Food', 'id': 0, 'similarity': 4.7243194580078125},
+      {'document': 'Cinema', 'id': 2, 'similarity': 2.403003692626953},
+      {'document': 'Sports', 'id': 1, 'similarity': 2.286036252975464}],
+     [{'document': 'Sports', 'id': 1, 'similarity': 4.792296886444092},
+      {'document': 'Cinema', 'id': 2, 'similarity': 2.6001152992248535},
+      {'document': 'Food', 'id': 0, 'similarity': 2.312016487121582}],
+     [{'document': 'Cinema', 'id': 2, 'similarity': 5.069696426391602},
+      {'document': 'Sports', 'id': 1, 'similarity': 2.5587477684020996},
+      {'document': 'Food', 'id': 0, 'similarity': 2.4474282264709473}]]
 
     """
 
@@ -117,10 +117,6 @@ class ColBERT:
             query_mode=query_mode,
             **kwargs,
         )
-
-        for _, embedding in embeddings.items():
-            if embedding.shape[0] < self.model.max_length_document:
-                raise ValueError(embedding.shape)
 
         return {
             document[self.key]: embedding

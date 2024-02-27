@@ -63,14 +63,14 @@ def _get_scores(
             positive_scores.append(
                 func(
                     torch.stack(
-                        [
+                        tensors=[
                             anchor_embedding_index[token]
                             for token in positive_intersection
                         ],
                         dim=0,
                     )
                     * torch.stack(
-                        [
+                        tensors=[
                             positive_embedding_index[token]
                             for token in positive_intersection
                         ],
@@ -82,14 +82,14 @@ def _get_scores(
             negative_scores.append(
                 func(
                     torch.stack(
-                        [
+                        tensors=[
                             anchor_embedding_index[token]
                             for token in negative_intersection
                         ],
                         dim=0,
                     )
                     * torch.stack(
-                        [
+                        tensors=[
                             negative_embedding_index[token]
                             for token in negative_intersection
                         ],
@@ -147,7 +147,7 @@ def dense_scores(
     >>> _ = torch.manual_seed(42)
 
     >>> model = models.SparseEmbed(
-    ...     model_name_or_path="distilbert-base-uncased",
+    ...     model_name_or_path="raphaelsty/neural-cherche-sparse-embed",
     ...     device="mps",
     ... )
 

@@ -30,7 +30,7 @@ class Splade(Base):
     >>> _ = torch.manual_seed(42)
 
     >>> model = models.Splade(
-    ...     model_name_or_path="distilbert-base-uncased",
+    ...     model_name_or_path="raphaelsty/neural-cherche-sparse-embed",
     ...     device="mps",
     ... )
 
@@ -49,9 +49,9 @@ class Splade(Base):
     >>> model.scores(
     ...     queries=["Sports", "Music"],
     ...     documents=["Sports is great.", "Music is great."],
-    ...     batch_size=1
+    ...     batch_size=2
     ... )
-    tensor([318.1384, 271.8006], device='mps:0')
+    tensor([14.4703, 13.9852], device='mps:0')
 
     >>> _ = model.save_pretrained("checkpoint")
 
@@ -63,9 +63,9 @@ class Splade(Base):
     >>> model.scores(
     ...     queries=["Sports", "Music"],
     ...     documents=["Sports is great.", "Music is great."],
-    ...     batch_size=1
+    ...     batch_size=2
     ... )
-    tensor([318.1384, 271.8006], device='mps:0')
+    tensor([14.4703, 13.9852], device='mps:0')
 
     References
     ----------
@@ -77,11 +77,16 @@ class Splade(Base):
         self,
         model_name_or_path: str = None,
         device: str = None,
-        max_length_query: int = 128,
+        max_length_query: int = 64,
         max_length_document: int = 256,
         extra_files_to_load: list[str] = ["metadata.json"],
-        query_prefix: str = "[Q] ",
-        document_prefix: str = "[D] ",
+        query_prefix: str = "",
+        document_prefix: str = "",
+        padding: str = "max_length",
+        truncation: bool | None = True,
+        add_special_tokens: bool = True,
+        n_mask_tokens: int = 3,
+        freeze_layers_except_last_n: int = None,
         **kwargs,
     ) -> None:
         super(Splade, self).__init__(
@@ -90,23 +95,37 @@ class Splade(Base):
             extra_files_to_load=extra_files_to_load,
             query_prefix=query_prefix,
             document_prefix=document_prefix,
+            padding=padding,
+            truncation=truncation,
+            add_special_tokens=add_special_tokens,
+            n_mask_tokens=n_mask_tokens,
+            freeze_layers_except_last_n=freeze_layers_except_last_n,
             **kwargs,
         )
 
         self.relu = torch.nn.ReLU().to(self.device)
 
-        if os.path.exists(os.path.join(self.model_folder, "metadata.json")):
-            with open(os.path.join(self.model_folder, "metadata.json"), "r") as file:
-                metadata = json.load(file)
+        if os.path.exists(path=os.path.join(self.model_folder, "metadata.json")):
+            with open(
+                file=os.path.join(self.model_folder, "metadata.json"), mode="r"
+            ) as file:
+                metadata = json.load(fp=file)
 
             max_length_query = metadata["max_length_query"]
             max_length_document = metadata["max_length_document"]
             self.query_prefix = metadata.get("query_prefix", self.query_prefix)
             self.document_prefix = metadata.get("document_prefix", self.document_prefix)
+            self.padding = metadata.get("padding", self.padding)
+            self.truncation = metadata.get("truncation", self.truncation)
+            self.add_special_tokens = metadata.get(
+                "add_special_tokens", self.add_special_tokens
+            )
+            self.n_mask_tokens = metadata.get("n_mask_tokens", self.n_mask_tokens)
 
         self.max_length_query = max_length_query
         self.max_length_document = max_length_document
 
+    @torch.no_grad()
     def encode(
         self,
         texts: list[str],
@@ -126,12 +145,11 @@ class Splade(Base):
         max_length
             Maximum length of the documents.
         """
-        with torch.no_grad():
-            return self(
-                texts=texts,
-                query_mode=query_mode,
-                **kwargs,
-            )
+        return self(
+            texts=texts,
+            query_mode=query_mode,
+            **kwargs,
+        )
 
     def decode(
         self,
@@ -163,7 +181,7 @@ class Splade(Base):
                 activation.translate(str.maketrans("", "", string.punctuation)).split()
             )
             for activation in self.tokenizer.batch_decode(
-                activations,
+                sequences=activations,
                 clean_up_tokenization_spaces=clean_up_tokenization_spaces,
                 skip_special_tokens=skip_special_tokens,
             )
@@ -185,8 +203,8 @@ class Splade(Base):
             Whether to encode queries or documents.
         """
         prefix = self.query_prefix if query_mode else self.document_prefix
-
-        texts = [prefix + text for text in texts]
+        suffix = " ".join([self.tokenizer.mask_token] * self.n_mask_tokens)
+        texts = [prefix + text + " " + suffix for text in texts]
 
         self.tokenizer.pad_token = (
             self.query_pad_token if query_mode else self.original_pad_token
@@ -194,16 +212,18 @@ class Splade(Base):
 
         k_tokens = self.max_length_query if query_mode else self.max_length_document
 
-        logits, _ = self._encode(
+        logits, _, attention_mask = self._encode(
             texts=texts,
-            truncation=True,
-            padding="max_length",
-            max_length=k_tokens,
-            add_special_tokens=True,
+            truncation=self.truncation,
+            padding=self.padding,
+            add_special_tokens=self.add_special_tokens,
+            max_length=self.max_length_query
+            if query_mode
+            else self.max_length_document,
             **kwargs,
         )
 
-        activations = self._get_activation(logits=logits)
+        activations = self._get_activation(logits=logits * attention_mask)
 
         activations = self._update_activations(
             **activations,
@@ -212,7 +232,7 @@ class Splade(Base):
 
         return {"sparse_activations": activations["sparse_activations"]}
 
-    def save_pretrained(self, path: str):
+    def save_pretrained(self, path: str) -> "Splade":
         """Save model the model.
 
         Parameters
@@ -223,9 +243,9 @@ class Splade(Base):
         """
         self.model.save_pretrained(path)
         self.tokenizer.pad_token = self.original_pad_token
-        self.tokenizer.save_pretrained(path)
+        self.tokenizer.save_pretrained(save_directory=path)
 
-        with open(os.path.join(path, "metadata.json"), "w") as file:
+        with open(file=os.path.join(path, "metadata.json"), mode="w") as file:
             json.dump(
                 fp=file,
                 obj={
@@ -233,6 +253,10 @@ class Splade(Base):
                     "max_length_document": self.max_length_document,
                     "query_prefix": self.query_prefix,
                     "document_prefix": self.document_prefix,
+                    "padding": self.padding,
+                    "truncation": self.truncation,
+                    "add_special_tokens": self.add_special_tokens,
+                    "n_mask_tokens": self.n_mask_tokens,
                 },
                 indent=4,
             )
@@ -272,13 +296,13 @@ class Splade(Base):
             utils.batchify(X=documents, batch_size=batch_size, tqdm_bar=False),
         ):
             queries_embeddings = self.encode(
-                batch_queries,
+                texts=batch_queries,
                 query_mode=True,
                 **kwargs,
             )
 
             documents_embeddings = self.encode(
-                batch_documents,
+                texts=batch_documents,
                 query_mode=False,
                 **kwargs,
             )
@@ -291,11 +315,15 @@ class Splade(Base):
                 )
             )
 
-        return torch.cat(sparse_scores, dim=0)
+        return torch.cat(tensors=sparse_scores, dim=0)
 
     def _get_activation(self, logits: torch.Tensor) -> dict[str, torch.Tensor]:
         """Returns activated tokens."""
-        return {"sparse_activations": torch.amax(torch.log1p(self.relu(logits)), dim=1)}
+        return {
+            "sparse_activations": torch.amax(
+                input=torch.log1p(input=self.relu(logits)), dim=1
+            )
+        }
 
     def _filter_activations(
         self, sparse_activations: torch.Tensor, k_tokens: int
@@ -304,7 +332,9 @@ class Splade(Base):
         scores, activations = torch.topk(input=sparse_activations, k=k_tokens, dim=-1)
         return [
             torch.index_select(
-                activation, dim=-1, index=torch.nonzero(score, as_tuple=True)[0]
+                input=activation,
+                dim=-1,
+                index=torch.nonzero(input=score, as_tuple=True)[0],
             )
             for score, activation in zip(scores, activations)
         ]

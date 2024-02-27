@@ -5,6 +5,8 @@ import torch
 from huggingface_hub import hf_hub_download
 from transformers import AutoModelForMaskedLM, AutoTokenizer
 
+from .. import utils
+
 
 class Base(ABC, torch.nn.Module):
     """Base class from which all models inherit.
@@ -26,6 +28,11 @@ class Base(ABC, torch.nn.Module):
         extra_files_to_load: list[str] = [],
         query_prefix: str = "[Q] ",
         document_prefix: str = "[D] ",
+        padding: str = "max_length",
+        truncation: bool | None = True,
+        add_special_tokens: bool = True,
+        n_mask_tokens: int = 5,
+        freeze_layers_except_last_n: int = None,
         **kwargs,
     ) -> None:
         """Initialize the model."""
@@ -33,10 +40,13 @@ class Base(ABC, torch.nn.Module):
 
         self.query_prefix = query_prefix
         self.document_prefix = document_prefix
+        self.padding = padding
+        self.truncation = truncation
+        self.add_special_tokens = add_special_tokens
+        self.n_mask_tokens = n_mask_tokens
 
         if device is not None:
             self.device = device
-
         elif torch.cuda.is_available():
             self.device = "cuda"
         else:
@@ -44,23 +54,28 @@ class Base(ABC, torch.nn.Module):
 
         os.environ["TRANSFORMERS_CACHE"] = "."
         self.model = AutoModelForMaskedLM.from_pretrained(
-            model_name_or_path, cache_dir="./", **kwargs
+            pretrained_model_name_or_path=model_name_or_path, cache_dir="./", **kwargs
         ).to(self.device)
 
         # Download linear layer if exists
         for file in extra_files_to_load:
             try:
-                _ = hf_hub_download(model_name_or_path, filename=file, cache_dir=".")
+                _ = hf_hub_download(
+                    repo_id=model_name_or_path, filename=file, cache_dir="."
+                )
             except:
                 pass
 
         self.tokenizer = AutoTokenizer.from_pretrained(
-            model_name_or_path, device=self.device, cache_dir="./", **kwargs
+            pretrained_model_name_or_path=model_name_or_path,
+            device=self.device,
+            cache_dir="./",
+            **kwargs,
         )
 
         self.model.config.output_hidden_states = True
 
-        if os.path.exists(model_name_or_path):
+        if os.path.exists(path=model_name_or_path):
             # Local checkpoint
             self.model_folder = model_name_or_path
         else:
@@ -74,6 +89,12 @@ class Base(ABC, torch.nn.Module):
         self.query_pad_token = self.tokenizer.mask_token
         self.original_pad_token = self.tokenizer.pad_token
 
+        if freeze_layers_except_last_n is not None:
+            self.model = utils.freeze_layers(
+                model=self.model,
+                n_layers=freeze_layers_except_last_n,
+            )
+
     def _encode(self, texts: list[str], **kwargs) -> tuple[torch.Tensor, torch.Tensor]:
         """Encode sentences.
 
@@ -83,7 +104,7 @@ class Base(ABC, torch.nn.Module):
             List of sentences to encode.
         """
         encoded_input = self.tokenizer.batch_encode_plus(
-            texts, return_tensors="pt", **kwargs
+            batch_text_or_text_pairs=texts, return_tensors="pt", **kwargs
         )
 
         if self.device != "cpu":
@@ -92,7 +113,12 @@ class Base(ABC, torch.nn.Module):
             }
 
         output = self.model(**encoded_input)
-        return output.logits, output.hidden_states[-1]
+
+        return (
+            output.logits,
+            output.hidden_states[-1],
+            encoded_input["attention_mask"].unsqueeze(-1),
+        )
 
     @abstractmethod
     def forward(self, *args, **kwargs):

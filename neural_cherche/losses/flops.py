@@ -12,20 +12,18 @@ class FlopsScheduler:
     2. [SPLADE: Sparse Lexical and Expansion Model for First Stage Ranking](https://arxiv.org/pdf/2107.05720.pdf)
     """
 
-    def __init__(self, weight: float = 3e-5, steps: int = 10000):
+    def __init__(self, weight: float = 3e-6, steps: int = 10000):
         self._weight = weight
-        self.weight = 0
+        self.weight = 0.0
         self.steps = steps
-        self._step = 0
+        self._step = 1
 
-    def step(self) -> None:
+    def get(self) -> float:
         if self._step >= self.steps:
             pass
         else:
             self._step += 1
             self.weight = self._weight * (self._step / self.steps) ** 2
-
-    def get(self):
         return self.weight
 
 
@@ -40,8 +38,8 @@ class Flops(torch.nn.Module):
     >>> _ = torch.manual_seed(42)
 
     >>> model = models.Splade(
-    ...     model_name_or_path="distilbert-base-uncased",
-    ...     device="mps",
+    ...     model_name_or_path="raphaelsty/neural-cherche-sparse-embed",
+    ...     device="cpu",
     ... )
 
     >>> anchor_activations = model(
@@ -64,7 +62,7 @@ class Flops(torch.nn.Module):
     ...     positive_activations=positive_activations["sparse_activations"],
     ...     negative_activations=negative_activations["sparse_activations"],
     ... )
-    tensor(1., device='mps:0', grad_fn=<ClampBackward1>)
+    tensor(1., grad_fn=<ClampBackward1>)
 
     References
     ----------
@@ -73,7 +71,7 @@ class Flops(torch.nn.Module):
 
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         super(Flops, self).__init__()
 
     def __call__(
@@ -82,12 +80,17 @@ class Flops(torch.nn.Module):
         positive_activations: torch.Tensor,
         negative_activations: torch.Tensor,
         threshold: float = 30.0,
+        max_flops_loss: float = 1.0,
     ) -> torch.Tensor:
         """Loss which tend to reduce sparse activation."""
         activations = torch.cat(
-            [anchor_activations, positive_activations, negative_activations], dim=0
+            tensors=[anchor_activations, positive_activations, negative_activations],
+            dim=0,
         )
 
         return torch.abs(
-            threshold - torch.sum(torch.mean(torch.abs(activations), dim=0) ** 2, dim=0)
-        )
+            input=threshold
+            - torch.sum(
+                input=torch.mean(input=torch.abs(input=activations), dim=0) ** 2, dim=0
+            )
+        ).clip(min=0.0, max=max_flops_loss)

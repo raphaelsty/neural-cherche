@@ -26,7 +26,7 @@ ColBERT ranker.
 >>> _ = torch.manual_seed(42)
 
 >>> encoder = models.ColBERT(
-...     model_name_or_path="sentence-transformers/all-mpnet-base-v2",
+...     model_name_or_path="raphaelsty/neural-cherche-colbert",
 ...     device="mps",
 ... )
 

@@ -37,7 +37,7 @@ SparseEmbed model.
 >>> device = "mps"
 
 >>> model = models.SparseEmbed(
-...     model_name_or_path="distilbert-base-uncased",
+...     model_name_or_path="raphaelsty/neural-cherche-sparse-embed",
 ...     device=device,
 ... )
 

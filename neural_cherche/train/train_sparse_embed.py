@@ -11,13 +11,16 @@ def train_sparse_embed(
     anchor: list[str],
     positive: list[str],
     negative: list[str],
-    flops_loss_weight: float = 1e-4,
+    flops_loss_weight: float = 3e-6,
     sparse_loss_weight: float = 0.1,
     dense_loss_weight: float = 1.0,
     in_batch_negatives: bool = False,
-    threshold_flops: float = 30,
+    threshold_flops: float = 100.0,
+    max_flops_loss: float = 10.0,
+    step: int = None,
+    gradient_accumulation_steps: int = 50,
     **kwargs,
-):
+) -> dict[str, torch.Tensor]:
     """Compute the ranking loss and the flops loss for a single step.
 
     Parameters
@@ -44,6 +47,10 @@ def train_sparse_embed(
         Threshold margin for the flops loss. Defaults to 10.
     max_loss
         Maximum loss value for the flops loss. Defaults to 1.0.
+    step
+        Training step, if specified, will enable gradient_accumulation_steps.
+    gradient_accumulation_steps
+        Gradient accumulation steps. Defaults to 50.
 
     Examples
     --------
@@ -53,8 +60,8 @@ def train_sparse_embed(
     >>> _ = torch.manual_seed(42)
 
     >>> model = models.SparseEmbed(
-    ...     model_name_or_path="distilbert-base-uncased",
-    ...     device="mps",
+    ...     model_name_or_path="raphaelsty/neural-cherche-sparse-embed",
+    ...     device="cpu",
     ... )
 
     >>> optimizer = torch.optim.AdamW(model.parameters(), lr=1e-6)
@@ -80,12 +87,10 @@ def train_sparse_embed(
     ...         positive=positive,
     ...         negative=negative,
     ...         flops_loss_weight=flops_scheduler.get(),
-    ...         in_batch_negatives=False,
     ...     )
-    ...     flops_scheduler.step()
 
     >>> loss
-    {'dense': tensor(0.0015, device='mps:0', grad_fn=<ClampBackward1>), 'sparse': tensor(1.1921e-07, device='mps:0', grad_fn=<ClampBackward1>), 'flops': tensor(10., device='mps:0', grad_fn=<ClampBackward1>)}
+    {'dense': tensor(0., grad_fn=<NllLossBackward0>), 'sparse': tensor(0.0243, grad_fn=<NllLossBackward0>), 'flops': tensor(10., grad_fn=<ClampBackward1>), 'loss': tensor(0.0024, grad_fn=<AddBackward0>)}
 
     """
 
@@ -139,6 +144,7 @@ def train_sparse_embed(
         positive_activations=positive_activations["sparse_activations"],
         negative_activations=negative_activations["sparse_activations"],
         threshold=threshold_flops,
+        max_flops_loss=max_flops_loss,
     )
 
     loss = (
@@ -147,12 +153,21 @@ def train_sparse_embed(
         + flops_loss_weight * flops_loss
     )
 
-    loss.backward()
-    optimizer.step()
-    optimizer.zero_grad()
+    if step is not None:
+        (loss / gradient_accumulation_steps).backward()
+
+        if (step + 1) % gradient_accumulation_steps == 0:
+            optimizer.step()
+            optimizer.zero_grad(set_to_none=True)
+
+    else:
+        loss.backward()
+        optimizer.step()
+        optimizer.zero_grad(set_to_none=True)
 
     return {
         "dense": dense_ranking_loss,
         "sparse": sparse_ranking_loss,
         "flops": flops_loss,
+        "loss": loss,
     }

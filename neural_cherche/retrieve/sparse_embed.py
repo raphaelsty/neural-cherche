@@ -31,11 +31,9 @@ class SparseEmbed(TfIdf):
 
     >>> _ = torch.manual_seed(42)
 
-    >>> device = "mps"
-
     >>> model = models.SparseEmbed(
-    ...     model_name_or_path="distilbert-base-uncased",
-    ...     device=device,
+    ...     model_name_or_path="raphaelsty/neural-cherche-sparse-embed",
+    ...     device="cpu",
     ...     embedding_size=64,
     ... )
 
@@ -46,7 +44,7 @@ class SparseEmbed(TfIdf):
     ... )
 
     >>> documents = [
-    ...     {"id": 0, "document": "Food Hello world"},
+    ...     {"id": 0, "document": " ".join(["Food Hello world"] * 200)},
     ...     {"id": 1, "document": "Sports"},
     ...     {"id": 2, "document": "Cinema"},
     ... ]
@@ -73,15 +71,15 @@ class SparseEmbed(TfIdf):
     ... )
 
     >>> pprint(scores)
-    [[{'id': 0, 'similarity': 65.11363983154297},
-      {'id': 1, 'similarity': 59.01810836791992},
-      {'id': 2, 'similarity': 40.613182067871094}],
-     [{'id': 1, 'similarity': 97.81436920166016},
-      {'id': 0, 'similarity': 42.08279037475586},
-      {'id': 2, 'similarity': 32.50034713745117}],
-     [{'id': 2, 'similarity': 56.019283294677734},
-      {'id': 1, 'similarity': 37.612735748291016},
-      {'id': 0, 'similarity': 31.05425453186035}]]
+    [[{'id': 0, 'similarity': 650.8814697265625},
+      {'id': 2, 'similarity': 63.36189270019531},
+      {'id': 1, 'similarity': 55.061676025390625}],
+     [{'id': 1, 'similarity': 139.74667358398438},
+      {'id': 2, 'similarity': 63.8810920715332},
+      {'id': 0, 'similarity': 42.96449661254883}],
+     [{'id': 2, 'similarity': 158.86715698242188},
+      {'id': 0, 'similarity': 68.95826721191406},
+      {'id': 1, 'similarity': 63.872554779052734}]]
 
     """
 
@@ -260,6 +258,7 @@ class SparseEmbed(TfIdf):
         self,
         queries_embeddings: dict[str, dict[str, torch.Tensor]],
         k: int = None,
+        k_rank: int = None,
         batch_size: int = 64,
         tqdm_bar: bool = True,
     ) -> list:
@@ -277,32 +276,35 @@ class SparseEmbed(TfIdf):
             Display a tqdm bar.
         """
         k = k if k is not None else self.n_documents
+        k_rank = k_rank if k_rank is not None else k
 
         ranked = []
 
         for queries_batch in utils.batchify(
-            list(queries_embeddings.values()),
+            X=list(queries_embeddings.values()),
             batch_size=batch_size,
             desc=f"{self.__class__.__name__} retriever",
             tqdm_bar=tqdm_bar,
         ):
             embeddings = {
                 "activations": torch.stack(
-                    [
-                        torch.tensor(query["activations"], device=self.model.device)
+                    tensors=[
+                        torch.tensor(
+                            data=query["activations"], device=self.model.device
+                        )
                         for query in queries_batch
                     ],
                     dim=0,
                 ),
                 "embeddings": torch.stack(
-                    [
-                        torch.tensor(query["embeddings"], device=self.model.device)
+                    tensors=[
+                        torch.tensor(data=query["embeddings"], device=self.model.device)
                         for query in queries_batch
                     ],
                     dim=0,
                 ),
                 "sparse_activations": vstack(
-                    [query["sparse_activations"] for query in queries_batch]
+                    blocks=[query["sparse_activations"] for query in queries_batch]
                 ),
             }
 
@@ -310,13 +312,14 @@ class SparseEmbed(TfIdf):
                 self._retrieve(
                     embeddings=embeddings,
                     k=k,
+                    k_rank=k_rank,
                 )
             )
 
         return ranked
 
     def _retrieve(
-        self, embeddings: dict[str, torch.Tensor], k: int
+        self, embeddings: dict[str, torch.Tensor], k: int, k_rank: int
     ) -> list[list[dict]]:
         """Retrieve documents from input embeddings.
 
@@ -333,7 +336,7 @@ class SparseEmbed(TfIdf):
         documents_activations = [
             [
                 torch.tensor(
-                    self.documents_activations[document], device=self.model.device
+                    data=self.documents_activations[document], device=self.model.device
                 )
                 for document in query_matchs
             ]
@@ -368,7 +371,7 @@ class SparseEmbed(TfIdf):
         return self._rank(
             dense_scores=dense_scores,
             sparse_matchs=sparse_matchs,
-            k=k,
+            k=k_rank,
         )
 
     def _rank(
@@ -419,7 +422,7 @@ class SparseEmbed(TfIdf):
         """Retrieve intersection of activated tokens between queries and documents."""
         return [
             [
-                cls._intersection(query_activations, document_activations)
+                cls._intersection(t1=query_activations, t2=document_activations)
                 for document_activations in query_documents_activations
             ]
             for query_activations, query_documents_activations in zip(
@@ -430,7 +433,7 @@ class SparseEmbed(TfIdf):
     @staticmethod
     def _intersection(t1: torch.Tensor, t2: torch.Tensor) -> list[int]:
         t1, t2 = t1.flatten(), t2.flatten()
-        combined = torch.cat((t1, t2), dim=0)
+        combined = torch.cat(tensors=(t1, t2), dim=0)
         uniques, counts = combined.unique(return_counts=True, sorted=False)
         return uniques[counts > 1].tolist()
 
@@ -463,10 +466,10 @@ class SparseEmbed(TfIdf):
                 if len(intersection) > 0:
                     query_documents_scores.append(
                         torch.sum(
-                            torch.stack(
-                                [
+                            input=torch.stack(
+                                tensors=[
                                     torch.tensor(
-                                        document_embedding[token],
+                                        data=document_embedding[token],
                                         device=self.model.device,
                                     )
                                     for token in intersection
@@ -474,7 +477,9 @@ class SparseEmbed(TfIdf):
                                 dim=0,
                             )
                             * torch.stack(
-                                [query_embeddings[token] for token in intersection],
+                                tensors=[
+                                    query_embeddings[token] for token in intersection
+                                ],
                                 dim=0,
                             )
                         )
@@ -482,9 +487,11 @@ class SparseEmbed(TfIdf):
 
                 else:
                     query_documents_scores.append(
-                        torch.tensor(0.0, device=self.model.device)
+                        torch.tensor(data=0.0, device=self.model.device)
                     )
 
-            queries_documents_scores.append(torch.stack(query_documents_scores, dim=0))
+            queries_documents_scores.append(
+                torch.stack(tensors=query_documents_scores, dim=0)
+            )
 
         return queries_documents_scores

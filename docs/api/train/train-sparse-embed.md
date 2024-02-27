@@ -59,7 +59,7 @@ Compute the ranking loss and the flops loss for a single step.
 >>> _ = torch.manual_seed(42)
 
 >>> model = models.SparseEmbed(
-...     model_name_or_path="distilbert-base-uncased",
+...     model_name_or_path="raphaelsty/neural-cherche-sparse-embed",
 ...     device="mps",
 ... )
 
@@ -88,7 +88,6 @@ Compute the ranking loss and the flops loss for a single step.
 ...         flops_loss_weight=flops_scheduler.get(),
 ...         in_batch_negatives=False,
 ...     )
-...     flops_scheduler.step()
 
 >>> loss
 {'dense': tensor(0.0015, device='mps:0', grad_fn=<ClampBackward1>), 'sparse': tensor(1.1921e-07, device='mps:0', grad_fn=<ClampBackward1>), 'flops': tensor(10., device='mps:0', grad_fn=<ClampBackward1>)}
