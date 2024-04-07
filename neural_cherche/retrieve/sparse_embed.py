@@ -330,8 +330,10 @@ class SparseEmbed(TfIdf):
         k
             Number of documents to retrieve.
         """
-        similarities = -1 * embeddings["sparse_activations"].dot(self.matrix)
-        sparse_matchs, _ = self.top_k(similarities=similarities, k=k)
+        #similarities = -1 * embeddings["sparse_activations"].dot(self.matrix)
+        #sparse_matchs, _ = self.top_k(similarities=similarities, k=k)
+        sparse_matchs=[ i.indices for i in  (embeddings["sparse_activations"].dot(self.matrix))]
+
 
         documents_activations = [
             [
