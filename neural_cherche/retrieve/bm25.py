@@ -1,9 +1,11 @@
-
-from sklearn.feature_extraction.text import CountVectorizer
-from scipy.sparse import csc_matrix, csr_matrix
 import numpy as np
+from scipy.sparse import csc_matrix, csr_matrix
+from sklearn.feature_extraction.text import CountVectorizer
+
 from .. import utils
+
 __all__ = ["BM25"]
+
 
 class BM25:
     """BM25 .
@@ -20,6 +22,10 @@ class BM25:
     k
         Number of documents to retrieve. Default is `None`, i.e all documents that match the query
         will be retrieved.
+    b
+        The impact of document length normalization.  Default is `0.75`, Higher --> penalize longer documents more.
+    k1
+        How quickly the impact of term frequency saturates.  Default is `1.5`, Higher --> make term frequency more influential.
     CountVectorizer
         CountVectorizer class of Sklearn to create a custom CountVectorizer counter.
 
@@ -69,24 +75,24 @@ class BM25:
     2. [Python: tf-idf-cosine: to find document similarity](https://stackoverflow.com/questions/12118720/python-tf-idf-cosine-to-find-document-similarity)
 
     """
+
     def __init__(
         self,
         key: str,
         on: list[str],
-        b=0.75, 
-        k1=1.5,
-        countVector=None,
+        b: float = 0.75,
+        k1: float = 1.5,
+        count_vectorizer=None,
     ) -> None:
         self.key = key
         self.on = [on] if isinstance(on, str) else on
-        self.countVector=(
-            CountVectorizer(lowercase=True,ngram_range=(3, 7), analyzer="char")
-            if countVector is None
-            else countVector
+        self.count_vectorizer = (
+            CountVectorizer(lowercase=True, ngram_range=(3, 7), analyzer="char")
+            if count_vectorizer is None
+            else count_vectorizer
         )
-        #Tunable parameters
-        self.b = b # The impact of document length normalization, Higher --> penalize longer documents more.
-        self.k1 = k1 #how quickly the impact of term frequency saturates, Higher --> make term frequency more influential
+        self.b = b
+        self.k1 = k1
         self.matrix = None
         self.documents = []
         self.n_documents = 0
@@ -104,10 +110,13 @@ class BM25:
             " ".join([doc.get(field, "") for field in self.on]) for doc in documents
         ]
 
-        self.matrix = self.countVector.fit_transform(raw_documents=content)
-        self.fit=True
+        self.matrix = self.count_vectorizer.fit_transform(raw_documents=content)
+        self.fit = True
 
-        return {document[self.key]: row for document, row in zip(documents, self.matrix)}
+        return {
+            document[self.key]: row for document, row in zip(documents, self.matrix)
+        }
+
     def add(
         self,
         documents_embeddings: dict[str, csr_matrix],
@@ -117,15 +126,19 @@ class BM25:
             self.documents.append({self.key: document_key})
 
         self.n_documents += len(documents_embeddings)
-        n_samples,n_features  = self.matrix.shape
-        df = np.bincount(self.matrix.indices, minlength=n_features)#Count the number of non-zero values for each feature in sparse X
-        idf = np.log(n_samples / (df)) #compute the log of idf
-        avdl  = self.matrix.sum(1).mean() # mean of all 
-        len_X = self.matrix.sum(1).A1 # the length of each doc
-        self.denom =  (self.k1 * (1 - self.b + self.b * len_X / avdl))
-        self.numer = self.matrix.multiply(np.broadcast_to(idf, (n_samples,n_features) )) 
+        n_samples, n_features = self.matrix.shape
+        df = np.bincount(
+            self.matrix.indices, minlength=n_features
+        )  # Count the number of non-zero values for each feature in sparse X
+        idf = np.log(n_samples / (df))  # compute the log of idf
+        sum_mat_vocab = self.matrix.sum(1)
+        avdl = sum_mat_vocab.mean()  # mean of all
+        len_X = sum_mat_vocab.A1  # the length of each doc
+        self.denom = self.k1 * (1 - self.b + self.b * len_X / avdl)
+        self.numer = self.matrix.multiply(np.broadcast_to(idf, (n_samples, n_features)))
 
         return self
+
     def encode_queries(self, queries: list[dict]) -> dict[str, csr_matrix]:
         """Encode queries into sparse matrix.
 
@@ -140,11 +153,12 @@ class BM25:
 
         # matrix is a csr matrix of shape (n_queries, n_features)
         content = [
-                " ".join([doc.get(field, "") for field in self.on]) for doc in queries
-            ]
-        matrix = self.countVector.transform(raw_documents=content)
+            " ".join([doc.get(field, "") for field in self.on]) for doc in queries
+        ]
+        matrix = self.count_vectorizer.transform(raw_documents=content)
 
         return {query[self.key]: row for query, row in zip(queries, matrix)}
+
     def __call__(
         self,
         queries_embeddings: dict[str, csr_matrix],
@@ -167,37 +181,45 @@ class BM25:
         k = k if k is not None else self.n_documents
 
         ranked = []
-        count_batch=0
+        count_batch = 0
         for batch_queries in utils.batchify(
             list(queries_embeddings.values()),
             batch_size=batch_size,
             desc=f"{self.__class__.__name__} retriever",
             tqdm_bar=tqdm_bar,
         ):
-            
-            batch_match, batch_similarities = self.top_k(batch_queries=batch_queries, k=k)
+
+            batch_match, batch_similarities = self.top_k(
+                batch_queries=batch_queries, k=k
+            )
 
             for match, similarities in zip(batch_match, batch_similarities):
-                
+
                 ranked.append(
                     [
                         {**self.documents[idx], "similarity": similarity}
                         for idx, similarity in zip(match, similarities)
-                        #if similarity > 0
+                        if similarity > 0
                     ]
                 )
-                
+
         return ranked
+
     def top_k(self, batch_queries: csc_matrix, k: int) -> tuple[list, list]:
         """Return the top k documents for each query."""
-        
+
         matchs, scores = [], []
         for row in batch_queries:
-           #apply only on row indices 
-            distances_retriever=((self.numer.tocsc()[:,row.indices]* (self.k1 + 1)) /(
-                 self.matrix[:,row.indices]+ self.denom[:, None])).sum(1).A1
-            ind = np.argsort(-1*distances_retriever)[:k]
-            scores.append( distances_retriever[ind])
+            # apply only on row indices
+            distances_retriever = (
+                (
+                    (self.numer.tocsc()[:, row.indices] * (self.k1 + 1))
+                    / (self.matrix[:, row.indices] + self.denom[:, None])
+                )
+                .sum(1)
+                .A1
+            )
+            ind = np.argsort(-1 * distances_retriever)[:k]
+            scores.append(distances_retriever[ind])
             matchs.append(ind)
         return matchs, scores
-
