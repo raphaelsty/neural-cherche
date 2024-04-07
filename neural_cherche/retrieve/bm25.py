@@ -82,7 +82,7 @@ class BM25:
         on: list[str],
         b: float = 0.75,
         k1: float = 1.5,
-        count_vectorizer=None,
+        count_vectorizer:CountVectorizer=None,
     ) -> None:
         self.key = key
         self.on = [on] if isinstance(on, str) else on
