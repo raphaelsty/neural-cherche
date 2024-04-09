@@ -30,6 +30,8 @@ class BM25:
         will make term frequency more influential.
     CountVectorizer
         CountVectorizer class of Sklearn to create a custom CountVectorizer counter.
+    fit
+        Fit the CountVectorizer on the documents. Default is `True`.
 
     Examples
     --------
@@ -87,6 +89,7 @@ class BM25:
         b: float = 0.75,
         k1: float = 1.5,
         count_vectorizer=None,
+        fit: bool = True,
     ) -> None:
         self.key = key
         self.on = [on] if isinstance(on, str) else on
@@ -98,6 +101,7 @@ class BM25:
         self.b = b
         self.k1 = k1
         self.matrix = None
+        self.fit = fit
         self.documents = []
         self.n_documents = 0
 
@@ -114,8 +118,13 @@ class BM25:
             " ".join([doc.get(field, "") for field in self.on]) for doc in documents
         ]
 
-        self.matrix = self.count_vectorizer.fit_transform(raw_documents=content)
-        self.fit = False
+        matrix = None
+        if self.fit:
+            self.matrix = self.count_vectorizer.fit_transform(raw_documents=content)
+            self.fit = False
+
+        if matrix is None:
+            matrix = self.count_vectorizer.transform(raw_documents=content)
 
         return {
             document[self.key]: row for document, row in zip(documents, self.matrix)
