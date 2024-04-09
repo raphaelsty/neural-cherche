@@ -222,6 +222,7 @@ We provide pre-trained checkpoints specifically designed for neural-cherche: [ra
 ### Neural-Cherche Contributors
 
 - [Benjamin Clavié](https://github.com/bclavie)
+- [Arthur Satouf](https://github.com/arthur-75)
 
 ## References
 
