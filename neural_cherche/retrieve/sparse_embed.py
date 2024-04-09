@@ -157,6 +157,9 @@ class SparseEmbed(TfIdf):
                 embeddings[query]["activations"] = activations
                 embeddings[query]["embeddings"] = tokens_embeddings
 
+        if len(embeddings) != len(queries):
+            utils.duplicates_queries_warning()
+
         return embeddings
 
     def encode_documents(
@@ -330,10 +333,10 @@ class SparseEmbed(TfIdf):
         k
             Number of documents to retrieve.
         """
-        #similarities = -1 * embeddings["sparse_activations"].dot(self.matrix)
-        #sparse_matchs, _ = self.top_k(similarities=similarities, k=k)
-        sparse_matchs=[ i.indices for i in  (embeddings["sparse_activations"].dot(self.matrix))]
-
+        sparse_matchs = [
+            activations.indices
+            for activations in (embeddings["sparse_activations"].dot(self.matrix))
+        ]
 
         documents_activations = [
             [

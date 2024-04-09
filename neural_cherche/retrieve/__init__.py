@@ -1,8 +1,8 @@
+from .bm25 import BM25
 from .colbert import ColBERT
 from .sparse_embed import SparseEmbed
 from .splade import Splade
 from .tfidf import TfIdf
-from .bm25 import BM25
 
 __all__ = [
     "ColBERT",
@@ -11,4 +11,3 @@ __all__ = [
     "TfIdf",
     "BM25",
 ]
-

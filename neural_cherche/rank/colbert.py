@@ -160,6 +160,9 @@ class ColBERT:
             for query, embedding in zip(batch_texts, batch_embeddings):
                 embeddings[query] = embedding
 
+        if len(embeddings) != len(queries):
+            utils.duplicates_queries_warning()
+
         return embeddings
 
     def __call__(

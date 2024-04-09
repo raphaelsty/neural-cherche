@@ -60,6 +60,10 @@ class TfIdf:
     ...     k=4
     ... )
 
+    >>> queries_embeddings = retriever.encode_queries(
+    ...     queries=["hello world", "hello world"]
+    ... )
+
     >>> pprint(scores)
     [[{'id': 0, 'similarity': 1.0}],
      [{'id': 1, 'similarity': 0.9999999999999999}],
@@ -130,7 +134,12 @@ class TfIdf:
 
         # matrix is a csr matrix of shape (n_queries, n_features)
         matrix = self.tfidf.transform(raw_documents=queries)
-        return {query: row for query, row in zip(queries, matrix)}
+        embeddings = {query: row for query, row in zip(queries, matrix)}
+
+        if len(embeddings) != len(queries):
+            utils.duplicates_queries_warning()
+
+        return embeddings
 
     def add(
         self,

@@ -177,4 +177,7 @@ class Splade(TfIdf):
             for query, sparse_activation in zip(batch_queries, sparse_activations):
                 queries_embeddings[query] = sparse_activation
 
+        if len(embeddings) != len(queries):
+            utils.duplicates_queries_warning()
+
         return queries_embeddings

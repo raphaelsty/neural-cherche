@@ -20,12 +20,14 @@ class BM25:
         Documents in TFIdf retriever are static. The retriever must be reseted to index new
         documents.
     k
-        Number of documents to retrieve. Default is `None`, i.e all documents that match the query
-        will be retrieved.
+        Number of documents to retrieve. Default is `None`, i.e all documents that match
+        the query will be retrieved.
     b
-        The impact of document length normalization.  Default is `0.75`, Higher --> penalize longer documents more.
+        The impact of document length normalization.  Default is `0.75`, Higher will
+        penalize longer documents more.
     k1
-        How quickly the impact of term frequency saturates.  Default is `1.5`, Higher --> make term frequency more influential.
+        How quickly the impact of term frequency saturates.  Default is `1.5`, Higher
+        will make term frequency more influential.
     CountVectorizer
         CountVectorizer class of Sklearn to create a custom CountVectorizer counter.
 
@@ -40,9 +42,9 @@ class BM25:
     ...     {"id": 2, "document": "Cinema"},
     ... ]
 
-    >>> queries = ["Food", "Sports", "Cinema"]
+    >>> queries = ["Food", "Sports", "Cinema food sports"]
 
-    >>> retriever = retrieve.bm25(
+    >>> retriever = retrieve.BM25(
     ...     key="id",
     ...     on=["document"],
     ... )
@@ -65,9 +67,11 @@ class BM25:
     ... )
 
     >>> pprint(scores)
-    [[{'id': 0, 'similarity': 1.0}],
-     [{'id': 1, 'similarity': 0.9999999999999999}],
-     [{'id': 2, 'similarity': 0.9999999999999999}]]
+    [[{'id': 0, 'similarity': 4.539176522041891}],
+     [{'id': 1, 'similarity': 9.662746707214732}],
+     [{'id': 1, 'similarity': 9.662746707214732},
+      {'id': 2, 'similarity': 9.662746707214732},
+      {'id': 0, 'similarity': 4.539176522041891}]]
 
     References
     ----------
@@ -121,21 +125,28 @@ class BM25:
         self,
         documents_embeddings: dict[str, csr_matrix],
     ) -> "CountVectorizer":
-        """Add new documents to the CountVectorizer retriever."""
+        """Add new documents to the CountVectorizer retriever.
+
+        Parameters
+        ----------
+        documents_embeddings
+            Documents embeddings to add to the retriever.
+
+        """
         for document_key in documents_embeddings:
             self.documents.append({self.key: document_key})
 
         self.n_documents += len(documents_embeddings)
         n_samples, n_features = self.matrix.shape
-        df = np.bincount(
-            self.matrix.indices, minlength=n_features
-        )  # Count the number of non-zero values for each feature in sparse X
-        idf = np.log(n_samples / (df))  # compute the log of idf
+        df = np.bincount(self.matrix.indices, minlength=n_features)
+        idf = np.log(n_samples / (df))
         sum_mat_vocab = self.matrix.sum(1)
-        avdl = sum_mat_vocab.mean()  # mean of all
-        len_X = sum_mat_vocab.A1  # the length of each doc
+        avdl = sum_mat_vocab.mean()
+        len_X = sum_mat_vocab.A1
         self.denom = self.k1 * (1 - self.b + self.b * len_X / avdl)
-        self.numer = self.matrix.multiply(np.broadcast_to(idf, (n_samples, n_features)))
+        self.numer = self.matrix.multiply(
+            np.broadcast_to(array=idf, shape=(n_samples, n_features))
+        ).tocsc()
 
         return self
 
@@ -153,19 +164,11 @@ class BM25:
 
         # matrix is a csr matrix of shape (n_queries, n_features)
         matrix = self.count_vectorizer.transform(raw_documents=queries)
-        queries_transform = {query: row for query, row in zip(queries, matrix)
-                             }
+        embeddings = {query: row for query, row in zip(queries, matrix)}
+        if len(embeddings) != len(queries):
+            utils.duplicates_queries_warning()
 
-        if len(queries) != len(queries_transform):
-            print("The size of your queries is", len(queries),
-                "and the size of the queries after transformation is", len(queries_transform)
-                )
-            raise ValueError("""After transforming your queries, the sizes of your 
-                       queries and queries_transform are not equal. There 
-                       might be duplicate queries or empty queries."""
-                             )
-            
-        return queries_transform
+        return embeddings
 
     def __call__(
         self,
@@ -181,27 +184,28 @@ class BM25:
         queries_embeddings
             Queries embeddings.
         k
-            Number of documents to retrieve. Default is `None`, i.e all documents that match the
-            query will be retrieved.
+            Number of documents to retrieve. Default is `None`, i.e all documents that
+            match the query will be retrieved.
         batch_size
             Batch size to use to retrieve documents.
+        tqdm_bar
+            Display a progress bar.
+
         """
         k = k if k is not None else self.n_documents
 
         ranked = []
         for batch_queries in utils.batchify(
-            list(queries_embeddings.values()),
+            X=list(queries_embeddings.values()),
             batch_size=batch_size,
             desc=f"{self.__class__.__name__} retriever",
             tqdm_bar=tqdm_bar,
         ):
-
             batch_match, batch_similarities = self.top_k(
                 batch_queries=batch_queries, k=k
             )
 
             for match, similarities in zip(batch_match, batch_similarities):
-
                 ranked.append(
                     [
                         {**self.documents[idx], "similarity": similarity}
@@ -217,16 +221,15 @@ class BM25:
 
         matchs, scores = [], []
         for row in batch_queries:
-            # apply only on row indices
             distances_retriever = (
                 (
-                    (self.numer.tocsc()[:, row.indices] * (self.k1 + 1))
+                    (self.numer[:, row.indices] * (self.k1 + 1))
                     / (self.matrix[:, row.indices] + self.denom[:, None])
                 )
                 .sum(1)
                 .A1
             )
-            ind = np.argsort(-1 * distances_retriever)[:k]
+            ind = np.argsort(a=-1 * distances_retriever)[:k]
             scores.append(distances_retriever[ind])
             matchs.append(ind)
         return matchs, scores
