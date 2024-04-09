@@ -82,7 +82,7 @@ class BM25:
         on: list[str],
         b: float = 0.75,
         k1: float = 1.5,
-        count_vectorizer:CountVectorizer=None,
+        count_vectorizer=None,
     ) -> None:
         self.key = key
         self.on = [on] if isinstance(on, str) else on
@@ -111,7 +111,7 @@ class BM25:
         ]
 
         self.matrix = self.count_vectorizer.fit_transform(raw_documents=content)
-        self.fit = True
+        self.fit = False
 
         return {
             document[self.key]: row for document, row in zip(documents, self.matrix)
@@ -139,7 +139,7 @@ class BM25:
 
         return self
 
-    def encode_queries(self, queries: list[dict]) -> dict[str, csr_matrix]:
+    def encode_queries(self, queries: list[str]) -> dict[str, csr_matrix]:
         """Encode queries into sparse matrix.
 
         Parameters
@@ -148,16 +148,24 @@ class BM25:
             Queries to encode.
 
         """
-        if not self.fit:
+        if self.fit:
             raise ValueError("You must call the `encode_documents` method first.")
 
         # matrix is a csr matrix of shape (n_queries, n_features)
-        content = [
-            " ".join([doc.get(field, "") for field in self.on]) for doc in queries
-        ]
-        matrix = self.count_vectorizer.transform(raw_documents=content)
+        matrix = self.count_vectorizer.transform(raw_documents=queries)
+        queries_transform = {query: row for query, row in zip(queries, matrix)
+                             }
 
-        return {query[self.key]: row for query, row in zip(queries, matrix)}
+        if len(queries) != len(queries_transform):
+            print("The size of your queries is", len(queries),
+                "and the size of the queries after transformation is", len(queries_transform)
+                )
+            raise ValueError("""After transforming your queries, the sizes of your 
+                       queries and queries_transform are not equal. There 
+                       might be duplicate queries or empty queries."""
+                             )
+            
+        return queries_transform
 
     def __call__(
         self,
@@ -181,7 +189,6 @@ class BM25:
         k = k if k is not None else self.n_documents
 
         ranked = []
-        count_batch = 0
         for batch_queries in utils.batchify(
             list(queries_embeddings.values()),
             batch_size=batch_size,
