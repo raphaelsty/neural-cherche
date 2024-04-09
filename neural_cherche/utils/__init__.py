@@ -4,6 +4,7 @@ from .evaluate import evaluate, load_beir
 from .freeze import freeze_layers
 from .iter import batchify, iter
 from .sparse_scores import sparse_scores
+from .warnings import duplicates_queries_warning
 
 __all__ = [
     "colbert_scores",
@@ -15,4 +16,5 @@ __all__ = [
     "batchify",
     "iter",
     "sparse_scores",
+    "duplicates_queries_warning",
 ]
