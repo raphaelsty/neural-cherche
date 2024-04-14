@@ -1,5 +1,5 @@
 import numpy as np
-from scipy.sparse import csr_matrix, vstack
+from scipy.sparse import csc_matrix, csr_matrix, hstack, vstack
 from sklearn.feature_extraction.text import CountVectorizer
 
 from .. import utils
@@ -69,12 +69,12 @@ class BM25:
     ... )
 
     >>> pprint(scores)
-    [[{'id': 0, 'similarity': 4.539176522041891}],
-     [{'id': 1, 'similarity': 9.662746707214732}],
-     [{'id': 1, 'similarity': 9.662746707214732},
-      {'id': 2, 'similarity': 9.662746707214732},
-      {'id': 0, 'similarity': 4.539176522041891}],
-     [{'id': 2, 'similarity': 9.662746707214732}]]
+    [[{'id': 0, 'similarity': 4.0525277853012085}],
+     [{'id': 1, 'similarity': 8.626796007156372}],
+     [{'id': 1, 'similarity': 8.626796007156372},
+      {'id': 2, 'similarity': 8.626796007156372},
+      {'id': 0, 'similarity': 4.0525277853012085}],
+     [{'id': 2, 'similarity': 8.626796007156372}]]
 
     >>> documents = [
     ...     {"id": 3, "document": "Food"},
@@ -96,16 +96,16 @@ class BM25:
     ... )
 
     >>> pprint(scores)
-    [[{'id': 0, 'similarity': 4.539176522041891},
-      {'id': 3, 'similarity': 4.539176522041891}],
-     [{'id': 1, 'similarity': 9.662746707214732},
-      {'id': 4, 'similarity': 9.662746707214732}],
-     [{'id': 1, 'similarity': 9.662746707214732},
-      {'id': 2, 'similarity': 9.662746707214732},
-      {'id': 4, 'similarity': 9.662746707214732},
-      {'id': 5, 'similarity': 9.662746707214732}],
-     [{'id': 2, 'similarity': 9.662746707214732},
-      {'id': 5, 'similarity': 9.662746707214732}]]
+    [[{'id': 3, 'similarity': 4.254116535186768},
+      {'id': 0, 'similarity': 4.0525277853012085}],
+     [{'id': 4, 'similarity': 9.055926203727722},
+      {'id': 1, 'similarity': 8.626796007156372}],
+     [{'id': 5, 'similarity': 9.055926203727722},
+      {'id': 4, 'similarity': 9.055926203727722},
+      {'id': 2, 'similarity': 8.626796007156372},
+      {'id': 1, 'similarity': 8.626796007156372}],
+     [{'id': 5, 'similarity': 9.055926203727722},
+      {'id': 2, 'similarity': 8.626796007156372}]]
 
     References
     ----------
@@ -120,7 +120,8 @@ class BM25:
         on: list[str],
         b: float = 0.75,
         k1: float = 1.5,
-        count_vectorizer=None,
+        epsilon: float = 0,
+        count_vectorizer: CountVectorizer = None,
         fit: bool = True,
     ) -> None:
         self.key = key
@@ -132,30 +133,12 @@ class BM25:
         )
         self.b = b
         self.k1 = k1
+        self.epsilon = epsilon
         self.matrix = None
+        self.tf = None
         self.fit = fit
         self.documents = []
         self.n_documents = 0
-
-    def encode_queries(self, queries: list[str]) -> dict[str, csr_matrix]:
-        """Encode queries into sparse matrix.
-
-        Parameters
-        ----------
-        queries
-            Queries to encode.
-
-        """
-        if self.fit:
-            raise ValueError("You must call the `encode_documents` method first.")
-
-        # matrix is a csr matrix of shape (n_queries, n_features)
-        matrix = self.count_vectorizer.transform(raw_documents=queries)
-        embeddings = {query: row for query, row in zip(queries, matrix)}
-        if len(embeddings) != len(queries):
-            utils.duplicates_queries_warning()
-
-        return embeddings
 
     def encode_documents(self, documents: list[dict]) -> dict[str, csr_matrix]:
         """Encode queries into sparse matrix.
@@ -175,46 +158,96 @@ class BM25:
             matrix = self.count_vectorizer.fit_transform(raw_documents=content)
             self.fit = False
 
+        # matrix is a csr matrix of shape (n_documents, n_features)
         if matrix is None:
             matrix = self.count_vectorizer.transform(raw_documents=content)
-
         return {document[self.key]: row for document, row in zip(documents, matrix)}
+
+    def encode_queries(self, queries: list[str]) -> dict[str, csr_matrix]:
+        """Encode queries into sparse matrix.
+
+        Parameters
+        ----------
+        queries
+            Queries to encode.
+
+        """
+        if self.fit:
+            raise ValueError("You must call the `encode_documents` method first.")
+
+        # matrix is a csr matrix of shape (n_queries, n_features)
+        matrix = self.count_vectorizer.transform(raw_documents=queries)
+        embeddings = {query: row for query, row in zip(queries, matrix)}
+
+        if len(embeddings) != len(queries):
+            utils.duplicates_queries_warning()
+
+        return embeddings
 
     def add(
         self,
         documents_embeddings: dict[str, csr_matrix],
     ) -> "BM25":
         """Add new documents to the TFIDF retriever. The tfidf won't be refitted."""
-        matrix = vstack(blocks=[row for row in documents_embeddings.values()])
+        matrix = vstack(
+            blocks=[row for row in documents_embeddings.values()], dtype=np.float32
+        )
+
+        self.tf = (
+            matrix.sum(axis=0) if self.tf is None else self.tf + matrix.sum(axis=0)
+        )
+
+        len_documents = (matrix).sum(axis=1)
+
+        average_len_documents = len_documents.mean()
+
+        regularization = np.squeeze(
+            np.asarray(
+                (
+                    self.k1
+                    * (1 - self.b + self.b * (len_documents / average_len_documents))
+                ).flatten()
+            )
+        )
+
+        numerator = matrix.copy()
+        denominator = matrix.copy().tocsc()
+
+        numerator.data = numerator.data * (self.k1 + 1)
+        denominator.data += np.take(a=regularization, indices=denominator.indices)
+        matrix.data = (numerator.data / denominator.tocsr().data) + self.epsilon
 
         for document_key in documents_embeddings:
             self.documents.append({self.key: document_key})
 
         self.n_documents += len(documents_embeddings)
 
-        self.matrix = (
-            matrix if self.matrix is None else vstack(blocks=(self.matrix, matrix))
-        )
-
-        n_samples, n_features = self.matrix.shape
-        sum_matrix_vocab = self.matrix.sum(1)
-        self.denom = (
-            self.k1
-            * (1 - self.b + self.b * sum_matrix_vocab.A1 / sum_matrix_vocab.mean())[
-                :, None
-            ]
-        )
-
-        self.numer = self.matrix.multiply(
-            np.broadcast_to(
-                array=np.log(
-                    n_samples / np.bincount(self.matrix.indices, minlength=n_features)
-                ),
-                shape=(n_samples, n_features),
+        idf = np.squeeze(
+            a=np.asarray(
+                a=np.log((self.n_documents - self.tf + 0.5) / (self.tf + 0.5) + 1)
             )
-        ).tocsc()
+        )
+
+        matrix = matrix.multiply(idf).T.tocsr()
+
+        self.matrix = (
+            matrix if self.matrix is None else hstack(blocks=(self.matrix, matrix))
+        )
 
         return self
+
+    def top_k(self, similarities: csc_matrix, k: int) -> tuple[list, list]:
+        """Return the top k documents for each query."""
+        matchs, scores = [], []
+        for row in similarities:
+            _k = min(row.data.shape[0] - 1, k)
+            ind = np.argpartition(a=row.data, kth=_k, axis=0)[:k]
+            similarity = np.take_along_axis(arr=row.data, indices=ind, axis=0)
+            indices = np.take_along_axis(arr=row.indices, indices=ind, axis=0)
+            ind = np.argsort(a=similarity, axis=0)
+            scores.append(-1 * np.take_along_axis(arr=similarity, indices=ind, axis=0))
+            matchs.append(np.take_along_axis(arr=indices, indices=ind, axis=0))
+        return matchs, scores
 
     def __call__(
         self,
@@ -230,26 +263,25 @@ class BM25:
         queries_embeddings
             Queries embeddings.
         k
-            Number of documents to retrieve. Default is `None`, i.e all documents that
-            match the query will be retrieved.
+            Number of documents to retrieve. Default is `None`, i.e all documents that match the
+            query will be retrieved.
         batch_size
             Batch size to use to retrieve documents.
-        tqdm_bar
-            Display a progress bar.
-
         """
         k = k if k is not None else self.n_documents
 
         ranked = []
+
         for batch_embeddings in utils.batchify(
             X=list(queries_embeddings.values()),
             batch_size=batch_size,
             desc=f"{self.__class__.__name__} retriever",
             tqdm_bar=tqdm_bar,
         ):
-            batch_match, batch_similarities = self.top_k(
-                batch_embeddings=batch_embeddings, k=k
-            )
+            # self.matrix is a csr matrix of shape (n_features, n_documents)
+            # Transform output a csr matrix of shape (n_queries, n_features)
+            similarities = -1 * vstack(blocks=batch_embeddings).dot(self.matrix)
+            batch_match, batch_similarities = self.top_k(similarities=similarities, k=k)
 
             for match, similarities in zip(batch_match, batch_similarities):
                 ranked.append(
@@ -261,20 +293,3 @@ class BM25:
                 )
 
         return ranked
-
-    def top_k(self, batch_embeddings: list[csr_matrix], k: int) -> tuple[list, list]:
-        """Return the top k documents for each query."""
-        matchs, scores = [], []
-        for embedding in batch_embeddings:
-            query_scores = (
-                (
-                    (self.numer[:, embedding.indices] * (self.k1 + 1))
-                    / (self.matrix[:, embedding.indices] + self.denom)
-                )
-                .sum(1)
-                .A1
-            )
-            rank = np.argsort(a=-1 * query_scores)[:k]
-            scores.append(query_scores[rank])
-            matchs.append(rank)
-        return matchs, scores
