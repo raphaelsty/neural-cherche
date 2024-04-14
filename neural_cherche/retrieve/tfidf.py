@@ -86,7 +86,7 @@ class TfIdf:
         self.key = key
         self.on = [on] if isinstance(on, str) else on
 
-        self.tfidf = (
+        self.vectorizer = (
             TfidfVectorizer(lowercase=True, ngram_range=(3, 7), analyzer="char")
             if tfidf is None
             else tfidf
@@ -112,12 +112,12 @@ class TfIdf:
 
         matrix = None
         if self.fit:
-            matrix = self.tfidf.fit_transform(raw_documents=content)
+            matrix = self.vectorizer.fit_transform(raw_documents=content)
             self.fit = False
 
         # matrix is a csr matrix of shape (n_documents, n_features)
         if matrix is None:
-            matrix = self.tfidf.transform(raw_documents=content)
+            matrix = self.vectorizer.transform(raw_documents=content)
         return {document[self.key]: row for document, row in zip(documents, matrix)}
 
     def encode_queries(self, queries: list[str]) -> dict[str, csr_matrix]:
@@ -133,7 +133,7 @@ class TfIdf:
             raise ValueError("You must call the `encode_documents` method first.")
 
         # matrix is a csr matrix of shape (n_queries, n_features)
-        matrix = self.tfidf.transform(raw_documents=queries)
+        matrix = self.vectorizer.transform(raw_documents=queries)
         embeddings = {query: row for query, row in zip(queries, matrix)}
 
         if len(embeddings) != len(queries):
