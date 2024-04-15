@@ -70,7 +70,7 @@ scores
   {'id': 2, 'similarity': 5.599479675292969}]]
 ```
 
-## Colbert ranker with TfIdf retriever
+## Colbert ranker with BM25 retriever
 
 ColBERT ranker can be used to re-rank candidates in output of a retriever following the
 code below. We can use a TfIdf retriever, a Splade retriever or a SparseEmbed retriever.
@@ -88,13 +88,7 @@ documents = [
     {"id": "doc3", "title": "Bordeaux", "text": "Bordeaux in Southwestern France."},
 ]
 
-queries = [
-    "What is the capital of France?",
-    "What is the largest city in Quebec?",
-    "Where is Bordeaux?",
-]
-
-retriever = retrieve.TfIdf(
+retriever = retrieve.BM25(
     key="id",
     on=["title", "text"],
 )
@@ -122,6 +116,16 @@ ranker_documents_embeddings = ranker.encode_documents(
     documents=documents,
     batch_size=batch_size,
 )
+```
+
+Once we have created our indexes, we can use the ranker to re-rank the candidates retrieved by the retriever.
+
+```python
+queries = [
+    "What is the capital of France?",
+    "What is the largest city in Quebec?",
+    "Where is Bordeaux?",
+]
 
 retriever_queries_embeddings = retriever.encode_queries(
     queries=queries,

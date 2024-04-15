@@ -19,9 +19,8 @@ class BM25(TfIdf):
     documents
         Documents in TFIdf retriever are static. The retriever must be reseted to index new
         documents.
-    k
-        Number of documents to retrieve. Default is `None`, i.e all documents that match
-        the query will be retrieved.
+    CountVectorizer
+        CountVectorizer class of Sklearn to create a custom CountVectorizer counter.
     b
         The impact of document length normalization.  Default is `0.75`, Higher will
         penalize longer documents more.
@@ -30,8 +29,6 @@ class BM25(TfIdf):
         will make term frequency more influential.
     epsilon
         Smoothing term. Default is `0`.
-    CountVectorizer
-        CountVectorizer class of Sklearn to create a custom CountVectorizer counter.
     fit
         Fit the CountVectorizer on the documents. Default is `True`.
 
@@ -120,10 +117,10 @@ class BM25(TfIdf):
         self,
         key: str,
         on: list[str],
+        count_vectorizer: CountVectorizer = None,
         b: float = 0.75,
         k1: float = 1.5,
         epsilon: float = 0,
-        count_vectorizer: CountVectorizer = None,
         fit: bool = True,
     ) -> None:
         super().__init__(

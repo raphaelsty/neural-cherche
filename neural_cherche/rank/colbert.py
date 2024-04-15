@@ -74,6 +74,13 @@ class ColBERT:
       {'document': 'Sports', 'id': 1, 'similarity': 2.5587477684020996},
       {'document': 'Food', 'id': 0, 'similarity': 2.4474282264709473}]]
 
+    >>> documents_embeddings = ranker.encode_documents(
+    ...     documents=[documents for _ in queries],
+    ...     batch_size=3,
+    ... )
+
+    >>> assert len(documents_embeddings) == len(documents)
+
     """
 
     def __init__(
@@ -81,15 +88,16 @@ class ColBERT:
         key: str,
         on: list[str],
         model: models.ColBERT,
+        device: str = None,
     ) -> None:
         self.key = key
         self.on = on if isinstance(on, list) else [on]
         self.model = model
-        self.device = self.model.device
+        self.device = self.model.device if device is None else device
 
     def encode_documents(
         self,
-        documents: list[str],
+        documents: list[dict] | list[list[dict]],
         batch_size: int = 32,
         tqdm_bar: bool = True,
         query_mode: bool = False,
@@ -106,6 +114,19 @@ class ColBERT:
         tqdm_bar
             Show tqdm bar.
         """
+        if not documents:
+            return {}
+
+        # Flatten documents
+        if isinstance(documents[0], list):
+            documents_flatten, duplicates = [], {}
+            for query_documents in documents:
+                for document in query_documents:
+                    if document[self.key] not in duplicates:
+                        duplicates[document[self.key]] = True
+                        documents_flatten.append(document)
+            documents = documents_flatten
+
         # Documents embeddings must be composed of more tokens than queries embeddings
         embeddings = self.encode_queries(
             queries=[
