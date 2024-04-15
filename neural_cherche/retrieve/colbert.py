@@ -85,13 +85,14 @@ class ColBERT(ColBERTRanker):
         key: str,
         on: list[str],
         model: models.ColBERT,
+        device: str = None,
     ) -> None:
         self.key = key
         self.on = on if isinstance(on, list) else [on]
         self.model = model
-        self.device = self.model.device
         self.documents = []
         self.documents_embeddings = {}
+        self.device = device if device is not None else self.model.device
 
     def add(
         self,

@@ -12,7 +12,7 @@ __all__ = ["SparseEmbed"]
 
 
 class SparseEmbed(TfIdf):
-    """Retriever class.
+    """SparseEmbed retriever.
 
     Parameters
     ----------
@@ -21,7 +21,7 @@ class SparseEmbed(TfIdf):
     on
         Document texts.
     model
-        SparsEmbed model.
+        SparseEmbed model.
 
     Examples
     --------
@@ -89,6 +89,7 @@ class SparseEmbed(TfIdf):
         on: list[str],
         model: models.SparseEmbed,
         tokenizer_parallelism: str = "false",
+        device: str = None,
     ) -> None:
         super().__init__(
             key=key,
@@ -104,6 +105,7 @@ class SparseEmbed(TfIdf):
         self.documents_embeddings, self.documents_activations = [], []
 
         os.environ["TOKENIZERS_PARALLELISM"] = tokenizer_parallelism
+        self.device = device if device is not None else self.model.device
 
     def encode_queries(
         self,
@@ -292,16 +294,14 @@ class SparseEmbed(TfIdf):
             embeddings = {
                 "activations": torch.stack(
                     tensors=[
-                        torch.tensor(
-                            data=query["activations"], device=self.model.device
-                        )
+                        torch.tensor(data=query["activations"], device=self.device)
                         for query in queries_batch
                     ],
                     dim=0,
                 ),
                 "embeddings": torch.stack(
                     tensors=[
-                        torch.tensor(data=query["embeddings"], device=self.model.device)
+                        torch.tensor(data=query["embeddings"], device=self.device)
                         for query in queries_batch
                     ],
                     dim=0,
@@ -341,7 +341,7 @@ class SparseEmbed(TfIdf):
         documents_activations = [
             [
                 torch.tensor(
-                    data=self.documents_activations[document], device=self.model.device
+                    data=self.documents_activations[document], device=self.device
                 )
                 for document in query_matchs
             ]
@@ -475,7 +475,7 @@ class SparseEmbed(TfIdf):
                                 tensors=[
                                     torch.tensor(
                                         data=document_embedding[token],
-                                        device=self.model.device,
+                                        device=self.device,
                                     )
                                     for token in intersection
                                 ],
@@ -492,7 +492,7 @@ class SparseEmbed(TfIdf):
 
                 else:
                     query_documents_scores.append(
-                        torch.tensor(data=0.0, device=self.model.device)
+                        torch.tensor(data=0.0, device=self.device)
                     )
 
             queries_documents_scores.append(

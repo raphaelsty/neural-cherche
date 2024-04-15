@@ -1,7 +1,7 @@
 # TfIdf
 
 Retrieving documents using TfIdf. We must always encode documents before queries when 
-using TfIdf retriever to fit it, otherwise the system will raise an error.
+using TfIdf retriever to fit the vectorizer, otherwise the system will raise an error.
 
 ```python
 from neural_cherche import retrieve
@@ -24,7 +24,11 @@ documents_embeddings = retriever.encode_documents(
 retriever.add(
     documents_embeddings=documents_embeddings,
 )
+```
 
+Once we have created our index, we can use the retriever to retrieve the candidates.
+
+```python
 queries = [
     "What is the capital of France?",
     "What is the largest city in Quebec?",
