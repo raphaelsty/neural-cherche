@@ -5,7 +5,7 @@ Neural-Cherche models such as ColBERT and SparseEmbed should be initialized with
 After having selected a pre-trained checkpoint, we should fine-tune it on our dataset. If we don't
 wan't to fine-tune the model, we can use the `raphaelsty/neural-cherche-sparse-embed` and `raphaelsty/neural-cherche-colbert` checkpoints.
 
-## Fine-tuning ColBERT on the Scifact Dataset
+## Fine-tuning models on Scifact
 
 Here is a sample code to fine-tune ColBERT on the Scifact Dataset. If we plan to run this code, we should install neural-cherche with the following command:
 
@@ -22,8 +22,10 @@ import random
 import torch
 from neural_cherche import models, retrieve, rank, train, utils
 
+dataset_name = "scifact"
+
 documents, queries_ids, queries, qrels = utils.load_beir(
-    "scifact",
+    dataset_name=dataset_name,
     split="train",
 )
 
@@ -32,32 +34,22 @@ model = models.ColBERT(
     device="cuda" if torch.cuda.is_available() else "cpu",
 )
 
-optimizer = torch.optim.AdamW(model.parameters(), lr=3e-4)
+optimizer = torch.optim.AdamW(model.parameters(), lr=3e-5)
 
-# Building dataset
-mapping_documents = {
-    document["id"]: " ".join([document[field] for field in ["title", "text"]])
-    for document in documents
-}
-
-X = []
-for query, (_, query_documents) in zip(queries, qrels.items()):
-    for query_document in list(query_documents.keys()):
-        # Building triples, query, positive document, random negative document
-        X.append(
-            (
-                query,
-                mapping_documents[query_document],
-                random.choice(list(mapping_documents.values())),
-            )
-        )
-# End building dataset
+triples = utils.get_beir_triples(
+    key="id",
+    on=["title", "text"],
+    documents=documents,
+    queries=queries,
+    qrels=qrels
+)
 
 # Training loop
-batch_size = 1
+batch_size = 10
+epochs = 10
 
 for step, (anchor, positive, negative) in enumerate(
-    utils.iter(X, epochs=1, batch_size=batch_size, shuffle=True)
+    utils.iter(triples, epochs=epochs, batch_size=batch_size, shuffle=True)
 ):
     loss = train.train_colbert(
         model=model,
@@ -66,13 +58,13 @@ for step, (anchor, positive, negative) in enumerate(
         positive=positive,
         negative=negative,
         step=step,
-        gradient_accumulation_steps=5,
+        gradient_accumulation_steps=50,
     )
 
     # Eval the model every 512 steps
-    if (step + 1) % 3 == 0:
+    if (step + 1) % 512 == 0:
         test_documents, queries_ids, queries, qrels = utils.load_beir(
-            dataset_name="scifact",
+            dataset_name=dataset_name,
             split="test",
         )
 
@@ -93,6 +85,7 @@ for step, (anchor, positive, negative) in enumerate(
         queries_embeddings = retriever.encode_queries(
             queries=queries,
         )
+        
 
         candidates = retriever(
             queries_embeddings=queries_embeddings,
@@ -102,8 +95,9 @@ for step, (anchor, positive, negative) in enumerate(
         # Setting up the ranker
         ranker = rank.ColBERT(key="id", on=["title", "text"], model=model)
 
-        ranker_documents_embeddings = ranker.encode_documents(
-            documents=candidates,
+        ranker_documents_embeddings = ranker.encode_candidates_documents(
+            documents=test_documents,
+            candidates=candidates,
             batch_size=batch_size,
         )
 

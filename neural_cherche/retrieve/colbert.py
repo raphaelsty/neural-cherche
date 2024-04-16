@@ -1,5 +1,4 @@
 import torch
-import tqdm
 
 from .. import models, utils
 from ..rank import ColBERT as ColBERTRanker
@@ -18,6 +17,8 @@ class ColBERT(ColBERTRanker):
         Document texts.
     model
         ColBERT model.
+    device
+        Device to use, default is model device.
 
     Examples
     --------
@@ -141,13 +142,15 @@ class ColBERT(ColBERTRanker):
         """
         scores = []
 
-        bar = (
-            tqdm.tqdm(iterable=queries_embeddings.items(), position=0)
-            if tqdm_bar
-            else queries_embeddings.items()
+        bar = utils.batchify(
+            X=[query_embedding for query_embedding in queries_embeddings.values()],
+            batch_size=1,
+            tqdm_bar=tqdm_bar,
+            desc=f"{self.__class__.__name__} retriever",
         )
 
-        for query, query_embedding in bar:
+        for query_embedding in bar:
+            query_embedding = query_embedding[0]
             query_scores = []
 
             embedding_query = torch.tensor(

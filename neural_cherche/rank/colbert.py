@@ -16,6 +16,8 @@ class ColBERT:
         Document texts.
     model
         ColBERT model.
+    device
+        Device to use. default is model device.
 
     Examples
     --------
@@ -74,13 +76,31 @@ class ColBERT:
       {'document': 'Sports', 'id': 1, 'similarity': 2.5587477684020996},
       {'document': 'Food', 'id': 0, 'similarity': 2.4474282264709473}]]
 
-    >>> documents_embeddings = ranker.encode_documents(
-    ...     documents=[documents for _ in queries],
+    >>> scores = ranker(
+    ...     documents=[documents, [], documents],
+    ...     queries_embeddings=queries_embeddings,
+    ...     documents_embeddings=documents_embeddings,
+    ...     batch_size=3,
+    ...     tqdm_bar=True,
+    ...     k=3,
+    ... )
+
+    >>> pprint(scores)
+    [[{'document': 'Food', 'id': 0, 'similarity': 4.7243194580078125},
+      {'document': 'Cinema', 'id': 2, 'similarity': 2.403003692626953},
+      {'document': 'Sports', 'id': 1, 'similarity': 2.286036252975464}],
+     [],
+     [{'document': 'Cinema', 'id': 2, 'similarity': 5.069696426391602},
+      {'document': 'Sports', 'id': 1, 'similarity': 2.5587477684020996},
+      {'document': 'Food', 'id': 0, 'similarity': 2.4474282264709473}]]
+
+    >>> documents_embeddings = ranker.encode_candidates_documents(
+    ...     documents=documents,
+    ...     candidates=[documents for _ in queries],
     ...     batch_size=3,
     ... )
 
-    >>> assert len(documents_embeddings) == len(documents)
-
+    >>> assert len(documents_embeddings) == 3
     """
 
     def __init__(
@@ -101,6 +121,7 @@ class ColBERT:
         batch_size: int = 32,
         tqdm_bar: bool = True,
         query_mode: bool = False,
+        desc: str = "documents embeddings",
         **kwargs,
     ) -> dict[str, torch.Tensor]:
         """Encode documents.
@@ -117,17 +138,6 @@ class ColBERT:
         if not documents:
             return {}
 
-        # Flatten documents
-        if isinstance(documents[0], list):
-            documents_flatten, duplicates = [], {}
-            for query_documents in documents:
-                for document in query_documents:
-                    if document[self.key] not in duplicates:
-                        duplicates[document[self.key]] = True
-                        documents_flatten.append(document)
-            documents = documents_flatten
-
-        # Documents embeddings must be composed of more tokens than queries embeddings
         embeddings = self.encode_queries(
             queries=[
                 " ".join([document[field] for field in self.on])
@@ -136,6 +146,8 @@ class ColBERT:
             batch_size=batch_size,
             tqdm_bar=tqdm_bar,
             query_mode=query_mode,
+            desc=desc,
+            warn_duplicates=False,
             **kwargs,
         )
 
@@ -144,12 +156,58 @@ class ColBERT:
             for document, embedding in zip(documents, embeddings.values())
         }
 
+    def encode_candidates_documents(
+        self,
+        documents: list[dict],
+        candidates: list[list[dict]],
+        batch_size: int = 32,
+        tqdm_bar: bool = True,
+        query_mode: bool = False,
+        **kwargs,
+    ) -> dict[str, torch.Tensor]:
+        """Map documents contents to candidates and encode them.
+        This method is useful when you have a list of candidates for each query without
+        their contents and you want to encode them.
+
+        Parameters
+        ----------
+        documents
+            Documents.
+        candidates
+            List of candidates for each query.
+        batch_size
+            Batch size.
+        tqdm_bar
+            Show tqdm bar.
+        query_mode
+            Query mode.
+        """
+        mapping_documents = {document[self.key]: document for document in documents}
+
+        documents_flatten, duplicates = [], {}
+        for query_documents in candidates:
+            for document in query_documents:
+                if document[self.key] not in duplicates:
+                    duplicates[document[self.key]] = True
+                    documents_flatten.append(mapping_documents[document[self.key]])
+        candidates = documents_flatten
+
+        return self.encode_documents(
+            documents=candidates,
+            batch_size=batch_size,
+            tqdm_bar=tqdm_bar,
+            query_mode=query_mode,
+            **kwargs,
+        )
+
     def encode_queries(
         self,
         queries: list[str],
         batch_size: int = 32,
         tqdm_bar: bool = True,
         query_mode: bool = True,
+        warn_duplicates: bool = True,
+        desc: str = "queries embeddings",
         **kwargs,
     ) -> dict[str, torch.Tensor]:
         """Encode queries.
@@ -166,7 +224,10 @@ class ColBERT:
         embeddings = {}
 
         for batch_texts in utils.batchify(
-            X=queries, batch_size=batch_size, tqdm_bar=tqdm_bar
+            X=queries,
+            batch_size=batch_size,
+            tqdm_bar=tqdm_bar,
+            desc=f"{self.__class__.__name__} {desc}",
         ):
             batch_embeddings = self.model.encode(
                 texts=batch_texts,
@@ -181,7 +242,7 @@ class ColBERT:
             for query, embedding in zip(batch_texts, batch_embeddings):
                 embeddings[query] = embedding
 
-        if len(embeddings) != len(queries):
+        if len(embeddings) != len(queries) and warn_duplicates:
             utils.duplicates_queries_warning()
 
         return embeddings
@@ -214,28 +275,35 @@ class ColBERT:
         k
             Number of documents to retrieve.
         """
+        bar = utils.batchify(
+            X=documents,
+            batch_size=1,
+            tqdm_bar=tqdm_bar,
+            desc=f"{self.__class__.__name__} ranker",
+        )
+
         scores = []
 
         for (query, query_embedding), query_documents in zip(
-            queries_embeddings.items(), documents
+            queries_embeddings.items(), bar
         ):
             query_scores = []
 
             embedding_query = torch.tensor(
-                query_embedding,
+                data=query_embedding,
                 device=self.device,
                 dtype=torch.float32,
             )
 
             for batch_query_documents in utils.batchify(
-                X=query_documents,
+                X=query_documents[0],
                 batch_size=batch_size,
-                tqdm_bar=tqdm_bar,
+                tqdm_bar=False,
             ):
                 embeddings_batch_documents = torch.stack(
-                    [
+                    tensors=[
                         torch.tensor(
-                            documents_embeddings[document[self.key]],
+                            data=documents_embeddings[document[self.key]],
                             device=self.device,
                             dtype=torch.float32,
                         )
@@ -254,7 +322,11 @@ class ColBERT:
                     query_documents_scores.max(dim=2).values.sum(axis=1)
                 )
 
-            scores.append(torch.cat(query_scores, dim=0))
+            if not query_scores:
+                scores.append([])
+                continue
+
+            scores.append(torch.cat(tensors=query_scores, dim=0))
 
         return self._rank(scores=scores, documents=documents, k=k)
 
@@ -275,6 +347,10 @@ class ColBERT:
         ranked = []
 
         for query_scores, query_documents in zip(scores, documents):
+            if not query_documents:
+                ranked.append([])
+                continue
+
             top_k = torch.topk(
                 input=query_scores,
                 k=min(k, len(query_documents))
