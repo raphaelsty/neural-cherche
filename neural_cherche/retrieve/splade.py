@@ -100,6 +100,7 @@ class Splade(TfIdf):
         batch_size: int = 32,
         tqdm_bar: bool = True,
         query_mode: bool = False,
+        desc: str = "documents embeddings",
         **kwargs,
     ) -> dict[str, csr_matrix]:
         """Encode queries into sparse matrix.
@@ -120,6 +121,7 @@ class Splade(TfIdf):
             documents,
             batch_size=batch_size,
             tqdm_bar=tqdm_bar,
+            desc=f"{self.__class__.__name__} {desc}",
         ):
             embeddings = self.model.encode(
                 [
@@ -144,6 +146,8 @@ class Splade(TfIdf):
         batch_size: int = 32,
         tqdm_bar: bool = True,
         query_mode: bool = True,
+        desc: str = "queries embeddings",
+        warn_duplicates: bool = True,
         **kwargs,
     ) -> dict[str, csr_matrix]:
         """Encode queries into sparse matrix.
@@ -164,6 +168,7 @@ class Splade(TfIdf):
             queries,
             batch_size=batch_size,
             tqdm_bar=tqdm_bar,
+            desc=f"{self.__class__.__name__}  {desc}",
         ):
             embeddings = self.model.encode(
                 batch_queries,
@@ -177,7 +182,7 @@ class Splade(TfIdf):
             for query, sparse_activation in zip(batch_queries, sparse_activations):
                 queries_embeddings[query] = sparse_activation
 
-        if len(embeddings) != len(queries):
+        if len(embeddings) != len(queries) and warn_duplicates:
             utils.duplicates_queries_warning()
 
         return queries_embeddings

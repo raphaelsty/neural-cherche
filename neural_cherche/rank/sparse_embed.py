@@ -18,6 +18,8 @@ class SparseEmbed(SparseEmbedRetriever):
         Document texts.
     model
         SparseEmbed model.
+    device
+        Device to use, default is model device.
 
     Examples
     --------
@@ -76,12 +78,37 @@ class SparseEmbed(SparseEmbedRetriever):
       {'id': 0, 'similarity': 68.95827},
       {'id': 1, 'similarity': 63.872555}]]
 
+    >>> scores = ranker(
+    ...     documents=[documents, [], documents],
+    ...     queries_embeddings=queries_embeddings,
+    ...     documents_embeddings=documents_embeddings,
+    ...     k=3,
+    ...     batch_size=32
+    ... )
+
+    >>> pprint(scores)
+    [[{'id': 0, 'similarity': 650.8815},
+      {'id': 2, 'similarity': 63.361893},
+      {'id': 1, 'similarity': 55.061672}],
+     [],
+     [{'id': 2, 'similarity': 158.86716},
+      {'id': 0, 'similarity': 68.95827},
+      {'id': 1, 'similarity': 63.872555}]]
+
     >>> documents_embeddings = ranker.encode_documents(
     ...     documents=[documents for _ in queries],
     ...     batch_size=3,
     ... )
 
     >>> assert len(documents_embeddings) == len(documents)
+
+    >>> documents_embeddings = ranker.encode_candidates_documents(
+    ...     documents=documents,
+    ...     candidates=[[{"id": 0}, {"id": 1}], [{"id": 1}], []],
+    ...     batch_size=3,
+    ... )
+
+    >>> assert len(documents_embeddings) == 2
 
     """
 
@@ -107,6 +134,7 @@ class SparseEmbed(SparseEmbedRetriever):
         batch_size: int = 32,
         tqdm_bar: bool = True,
         query_mode: bool = False,
+        desc: str = "documents embeddings",
         **kwargs,
     ) -> dict[str, dict[str, torch.Tensor]]:
         """Encode documents.
@@ -137,6 +165,49 @@ class SparseEmbed(SparseEmbedRetriever):
 
         return super().encode_documents(
             documents=documents,
+            batch_size=batch_size,
+            tqdm_bar=tqdm_bar,
+            query_mode=query_mode,
+            desc=desc,
+            **kwargs,
+        )
+
+    def encode_candidates_documents(
+        self,
+        documents: list[dict],
+        candidates: list[list[dict]],
+        batch_size: int = 32,
+        tqdm_bar: bool = True,
+        query_mode: bool = False,
+        **kwargs,
+    ) -> dict[str, torch.Tensor]:
+        """Map documents contents to candidates and encode them.
+        This method is useful when you have a list of candidates for each query without
+        their contents and you want to encode them.
+
+        Parameters
+        ----------
+        documents
+            Documents.
+        candidates
+            List of candidates for each query.
+        batch_size
+            Batch size.
+        tqdm_bar
+            Show tqdm bar.
+        query_mode
+            Query mode.
+        """
+        mapping_documents = {document[self.key]: document for document in documents}
+
+        candidates = [
+            {**candidate, **mapping_documents[candidate[self.key]]}
+            for query_candidates in candidates
+            for candidate in query_candidates
+        ]
+
+        return self.encode_documents(
+            documents=candidates,
             batch_size=batch_size,
             tqdm_bar=tqdm_bar,
             query_mode=query_mode,
@@ -175,7 +246,7 @@ class SparseEmbed(SparseEmbedRetriever):
             utils.batchify(
                 X=list(queries_embeddings.values()),
                 batch_size=batch_size,
-                desc=f"{self.__class__.__name__} retriever",
+                desc=f"{self.__class__.__name__} ranker",
                 tqdm_bar=tqdm_bar,
             ),
             utils.batchify(
@@ -303,6 +374,10 @@ class SparseEmbed(SparseEmbedRetriever):
         ranked = []
 
         for query_scores, query_documents in zip(dense_scores, documents):
+            if not query_documents:
+                ranked.append([])
+                continue
+
             query_scores, query_matchs = torch.topk(
                 input=query_scores,
                 k=min(k, query_scores.shape[0]),

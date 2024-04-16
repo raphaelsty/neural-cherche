@@ -1,4 +1,7 @@
-__all__ = ["evaluate", "load_beir"]
+import random
+from typing import Dict
+
+__all__ = ["evaluate", "load_beir", "get_beir_triples"]
 
 
 def load_beir(dataset_name: str, split: str = "test") -> tuple[list, list, dict]:
@@ -14,8 +17,8 @@ def load_beir(dataset_name: str, split: str = "test") -> tuple[list, list, dict]
     from beir.datasets.data_loader import GenericDataLoader
 
     data_path = util.download_and_unzip(
-        f"https://public.ukp.informatik.tu-darmstadt.de/thakur/BEIR/datasets/{dataset_name}.zip",
-        "./evaluation_datasets/",
+        url=f"https://public.ukp.informatik.tu-darmstadt.de/thakur/BEIR/datasets/{dataset_name}.zip",
+        out_dir="./evaluation_datasets/",
     )
 
     documents, queries, qrels = GenericDataLoader(data_folder=data_path).load(
@@ -34,12 +37,70 @@ def load_beir(dataset_name: str, split: str = "test") -> tuple[list, list, dict]
     return documents, list(queries.keys()), list(queries.values()), qrels
 
 
+def get_beir_triples(
+    key: str, on: list[str] | str, documents: list, queries: list[str], qrels: dict
+) -> list:
+    """Build BEIR triples.
+
+    Parameters
+    ----------
+    key
+        Key.
+    on
+        Fields to use.
+    documents
+        Documents.
+    queries
+        Queries.
+
+    Examples
+    --------
+    >>> from neural_cherche import utils
+
+    >>> documents, queries_ids, queries, qrels = utils.load_beir(
+    ...     "scifact",
+    ...     split="test",
+    ... )
+
+    >>> triples = utils.get_beir_triples(
+    ...     key="id",
+    ...     on=["title", "text"],
+    ...     documents=documents,
+    ...     queries=queries,
+    ...     qrels=qrels
+    ... )
+
+    >>> len(triples)
+    339
+
+    """
+    on = on if isinstance(on, list) else [on]
+
+    mapping_documents = {
+        document[key]: " ".join([document[field] for field in on])
+        for document in documents
+    }
+
+    X = []
+    for query, (_, query_documents) in zip(queries, qrels.items()):
+        for query_document in list(query_documents.keys()):
+            # Building triples, query, positive document, random negative document
+            X.append(
+                (
+                    query,
+                    mapping_documents[query_document],
+                    random.choice(seq=list(mapping_documents.values())),
+                )
+            )
+    return X
+
+
 def evaluate(
     scores: list[list[dict]],
     qrels: dict,
     queries_ids: list[str],
     metrics: list = [],
-):
+) -> Dict[str, float]:
     """Evaluate candidates matchs.
 
     Parameters
@@ -111,24 +172,24 @@ def evaluate(
     """
     from ranx import Qrels, Run, evaluate
 
-    qrels = Qrels(qrels)
+    qrels = Qrels(qrels=qrels)
 
     run_dict = {
         id_query: {
             match["id"]: 1 - (rank / len(query_matchs))
-            for rank, match in enumerate(query_matchs)
+            for rank, match in enumerate(iterable=query_matchs)
         }
         for id_query, query_matchs in zip(queries_ids, scores)
     }
 
-    run = Run(run_dict)
+    run = Run(run=run_dict)
 
     if not metrics:
         metrics = ["ndcg@10"] + [f"hits@{k}" for k in [1, 2, 3, 4, 5, 10]]
 
     return evaluate(
-        qrels,
-        run,
-        metrics,
+        qrels=qrels,
+        run=run,
+        metrics=metrics,
         make_comparable=True,
     )

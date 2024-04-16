@@ -120,7 +120,9 @@ class TfIdf:
             matrix = self.vectorizer.transform(raw_documents=content)
         return {document[self.key]: row for document, row in zip(documents, matrix)}
 
-    def encode_queries(self, queries: list[str]) -> dict[str, csr_matrix]:
+    def encode_queries(
+        self, queries: list[str], warn_duplicates: bool = True
+    ) -> dict[str, csr_matrix]:
         """Encode queries into sparse matrix.
 
         Parameters
@@ -136,7 +138,7 @@ class TfIdf:
         matrix = self.vectorizer.transform(raw_documents=queries)
         embeddings = {query: row for query, row in zip(queries, matrix)}
 
-        if len(embeddings) != len(queries):
+        if len(embeddings) != len(queries) and warn_duplicates:
             utils.duplicates_queries_warning()
 
         return embeddings

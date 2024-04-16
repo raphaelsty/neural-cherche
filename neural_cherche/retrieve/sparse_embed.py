@@ -113,6 +113,8 @@ class SparseEmbed(TfIdf):
         batch_size: int = 32,
         tqdm_bar: bool = True,
         query_mode: bool = True,
+        warn_duplicates: bool = True,
+        desc: str = "embeddings queries",
         **kwargs,
     ) -> dict[str, dict[str, torch.Tensor]]:
         """Encode queries.
@@ -131,7 +133,7 @@ class SparseEmbed(TfIdf):
         for batch in utils.batchify(
             queries,
             batch_size=batch_size,
-            desc=f"{self.__class__.__name__} encoder",
+            desc=f"{self.__class__.__name__} {desc}",
             tqdm_bar=tqdm_bar,
         ):
             queries_embeddings = self.model.encode(
@@ -159,7 +161,7 @@ class SparseEmbed(TfIdf):
                 embeddings[query]["activations"] = activations
                 embeddings[query]["embeddings"] = tokens_embeddings
 
-        if len(embeddings) != len(queries):
+        if len(embeddings) != len(queries) and warn_duplicates:
             utils.duplicates_queries_warning()
 
         return embeddings
@@ -170,6 +172,7 @@ class SparseEmbed(TfIdf):
         batch_size: int = 32,
         tqdm_bar: bool = True,
         query_mode: bool = False,
+        desc: str = "embeddings documents",
         **kwargs,
     ) -> dict[str, dict[str, torch.Tensor]]:
         """Encode documents.
@@ -182,9 +185,10 @@ class SparseEmbed(TfIdf):
         embeddings = collections.defaultdict(dict)
 
         for batch in utils.batchify(
-            documents,
+            X=documents,
             batch_size=batch_size,
             tqdm_bar=tqdm_bar,
+            desc=f"{self.__class__.__name__} {desc}",
         ):
             documents_embeddings = self.model.encode(
                 texts=[
@@ -400,6 +404,10 @@ class SparseEmbed(TfIdf):
                 dim=-1,
             )
 
+            if len(query_scores) == 0:
+                ranked.append([])
+                continue
+
             query_matchs = np.take(
                 a=query_sparse_matchs, indices=query_matchs.cpu().detach().numpy()
             )
@@ -494,6 +502,10 @@ class SparseEmbed(TfIdf):
                     query_documents_scores.append(
                         torch.tensor(data=0.0, device=self.device)
                     )
+
+            if not query_documents_scores:
+                queries_documents_scores.append([])
+                continue
 
             queries_documents_scores.append(
                 torch.stack(tensors=query_documents_scores, dim=0)
