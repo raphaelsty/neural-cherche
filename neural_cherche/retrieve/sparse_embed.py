@@ -249,9 +249,10 @@ class SparseEmbed(TfIdf):
         for key, embeddings in documents_embeddings.items():
             self.documents_embeddings.append(
                 {
-                    token.item(): token_embedding
+                    token: token_embedding
                     for token, token_embedding in zip(
-                        embeddings["activations"], embeddings["embeddings"]
+                        embeddings["activations"],
+                        embeddings["embeddings"],
                     )
                 }
             )
@@ -359,11 +360,11 @@ class SparseEmbed(TfIdf):
 
         queries_embeddings = [
             {
-                token.item(): token_embedding
+                token: token_embedding
                 for token, token_embedding in zip(query_activations, query_embeddings)
             }
             for query_activations, query_embeddings in zip(
-                embeddings["activations"],
+                embeddings["activations"].tolist(),
                 embeddings["embeddings"],
             )
         ]
