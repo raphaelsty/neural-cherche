@@ -17,10 +17,8 @@ There are other dataset available from the [BEIR Benchmark](https://github.com/b
 which can be used with the `utils.load_beir` function such as `scifact`, `trec-covid`, `cord19`, `fiqa`, `hotpotqa`, `natural-questions`, `msmarco`, `eli5`, `quora`. Of course, we can use our own dataset by providing triples. Then, by building queries, documents and qrels, we can evaluate the model using the `utils.evaluate` function.
 
 ```python
-import random
-
 import torch
-from neural_cherche import models, retrieve, rank, train, utils
+from neural_cherche import models, rank, retrieve, train, utils
 
 dataset_name = "scifact"
 
@@ -37,11 +35,7 @@ model = models.ColBERT(
 optimizer = torch.optim.AdamW(model.parameters(), lr=3e-5)
 
 triples = utils.get_beir_triples(
-    key="id",
-    on=["title", "text"],
-    documents=documents,
-    queries=queries,
-    qrels=qrels
+    key="id", on=["title", "text"], documents=documents, queries=queries, qrels=qrels
 )
 
 # Training loop
@@ -68,7 +62,7 @@ for step, (anchor, positive, negative) in enumerate(
             split="test",
         )
 
-        # Setting up the retriever 
+        # Setting up the retriever
         retriever = retrieve.BM25(
             key="id",
             on=["title", "text"],
@@ -85,7 +79,6 @@ for step, (anchor, positive, negative) in enumerate(
         queries_embeddings = retriever.encode_queries(
             queries=queries,
         )
-        
 
         candidates = retriever(
             queries_embeddings=queries_embeddings,

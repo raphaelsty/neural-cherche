@@ -338,11 +338,11 @@ class SparseEmbed(SparseEmbedRetriever):
 
         queries_tokens_embeddings = [
             {
-                token.item(): token_embedding
+                token: token_embedding
                 for token, token_embedding in zip(query_activations, query_embeddings)
             }
             for query_activations, query_embeddings in zip(
-                queries_embeddings["activations"],
+                queries_embeddings["activations"].cpu().detach().tolist(),
                 queries_embeddings["embeddings"],
             )
         ]
@@ -350,9 +350,9 @@ class SparseEmbed(SparseEmbedRetriever):
         documents_tokens_embeddings = [
             [
                 {
-                    token.item(): token_embedding
+                    token: token_embedding
                     for token, token_embedding in zip(
-                        document_activations,
+                        document_activations.cpu().detach().tolist(),
                         documents_embeddings[document[self.key]]["embeddings"],
                     )
                 }
