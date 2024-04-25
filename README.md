@@ -159,7 +159,7 @@ scores
 Please note that neural-cherche provide documentation to use [ColBERT as a ranker](https://raphaelsty.github.io/neural-cherche/retrieve/colbert/) which is much more efficient.
 
 
-Neural-Cherche also provides a `SparseEmbed`, a `SPLADE`, a `TFIDF` retriever and a `ColBERT` ranker which can be used to re-order output of a retriever. For more information, please refer to the [documentation](https://raphaelsty.github.io/neural-cherche/).
+Neural-Cherche also provides a `SparseEmbed`, a `SPLADE`, a `TFIDF` retriever, a `BM25` retriever and a `ColBERT` ranker which can be used to re-order output of a retriever. For more information, please refer to the [documentation](https://raphaelsty.github.io/neural-cherche/).
 
 ### Pre-trained Models
 
@@ -189,6 +189,13 @@ We provide pre-trained checkpoints specifically designed for neural-cherche: [ra
     <td class="tg-c3ow">0,47</td>
   </tr>
   <tr>
+    <td class="tg-c3ow">BM25</td>
+    <td class="tg-c3ow">-</td>
+    <td class="tg-c3ow">0,65</td>
+    <td class="tg-c3ow">0,85</td>
+    <td class="tg-c3ow">0,54</td>
+  </tr>
+  <tr>
     <td class="tg-c3ow">SparseEmbed</td>
     <td class="tg-c3ow">raphaelsty/neural-cherche-sparse-embed</td>
     <td class="tg-c3ow">0,62</td>
@@ -210,11 +217,18 @@ We provide pre-trained checkpoints specifically designed for neural-cherche: [ra
     <td class="tg-7btt">0,58</td>
   </tr>
   <tr>
-    <td class="tg-c3ow">TfIDF Retriever + ColBERT Ranker</td>
+    <td class="tg-c3ow">TfIDF Retriever, ColBERT Ranker</td>
     <td class="tg-c3ow">raphaelsty/neural-cherche-colbert</td>
     <td class="tg-7btt">0,71</td>
     <td class="tg-7btt">0,94</td>
     <td class="tg-7btt">0,59</td>
+  </tr>
+  <tr>
+    <td class="tg-c3ow">BM25 Retriever, ColBERT Ranker</td>
+    <td class="tg-c3ow">raphaelsty/neural-cherche-colbert</td>
+    <td class="tg-7btt">0,71</td>
+    <td class="tg-7btt">0,94</td>
+    <td class="tg-7btt">0,60</td>
   </tr>
 </tbody>
 </table>

@@ -162,3 +162,44 @@ scores
   {'id': 'doc1', 'similarity': 74.993576},
   {'id': 'doc2', 'similarity': 33.37598}]]
 ```
+
+If we don't want to pre-compute the whole set of documents embeddings in order to re-rank documents,
+we can call the `encode_candidates_documents` methods to only compute the embeddings of the candidates
+documents.
+
+```python
+queries = [
+    "What is the capital of France?",
+    "What is the largest city in Quebec?",
+    "Where is Bordeaux?",
+]
+
+retriever_queries_embeddings = retriever.encode_queries(
+    queries=queries,
+)
+
+ranker_queries_embeddings = ranker.encode_queries(
+    queries=queries,
+    batch_size=batch_size,
+)
+
+candidates = retriever(
+    queries_embeddings=retriever_queries_embeddings,
+    k=1000,
+)
+
+# Only compute the embeddings of the candidates documents
+ranker_documents_embeddings = ranker.encode_candidates_documents(
+    documents=documents,
+    candidates=candidates,
+    batch_size=batch_size,
+)
+
+scores = ranker(
+    documents=candidates,
+    queries_embeddings=ranker_queries_embeddings,
+    documents_embeddings=ranker_documents_embeddings,
+    k=100,
+    batch_size=32,
+)
+```

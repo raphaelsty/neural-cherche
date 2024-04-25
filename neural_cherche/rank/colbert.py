@@ -138,23 +138,31 @@ class ColBERT:
         if not documents:
             return {}
 
-        embeddings = self.encode_queries(
-            queries=[
-                " ".join([document[field] for field in self.on])
-                for document in documents
-            ],
+        embeddings = {}
+
+        for batch_documents in utils.batchify(
+            X=documents,
             batch_size=batch_size,
             tqdm_bar=tqdm_bar,
-            query_mode=query_mode,
-            desc=desc,
-            warn_duplicates=False,
-            **kwargs,
-        )
+            desc=f"{self.__class__.__name__} {desc}",
+        ):
+            batch_embeddings = self.model.encode(
+                texts=[
+                    " ".join([document[field] for field in self.on])
+                    for document in batch_documents
+                ],
+                query_mode=query_mode,
+                **kwargs,
+            )
 
-        return {
-            document[self.key]: embedding
-            for document, embedding in zip(documents, embeddings.values())
-        }
+            batch_embeddings = (
+                batch_embeddings["embeddings"].cpu().detach().numpy().astype("float32")
+            )
+
+            for document, embedding in zip(batch_documents, batch_embeddings):
+                embeddings[document[self.key]] = embedding
+
+        return embeddings
 
     def encode_candidates_documents(
         self,
