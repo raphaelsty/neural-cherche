@@ -1,6 +1,7 @@
 import numpy as np
 from scipy.sparse import csr_matrix, hstack, vstack
 from sklearn.feature_extraction.text import CountVectorizer
+from sklearn.utils.sparsefuncs_fast import inplace_csr_row_normalize_l2
 
 from .tfidf import TfIdf
 
@@ -68,12 +69,12 @@ class BM25(TfIdf):
     ... )
 
     >>> pprint(scores)
-    [[{'id': 0, 'similarity': 4.0525277853012085}],
-     [{'id': 1, 'similarity': 8.626796007156372}],
-     [{'id': 1, 'similarity': 8.626796007156372},
-      {'id': 2, 'similarity': 8.626796007156372},
-      {'id': 0, 'similarity': 4.0525277853012085}],
-     [{'id': 2, 'similarity': 8.626796007156372}]]
+    [[{'id': 0, 'similarity': 3.0}],
+     [{'id': 1, 'similarity': 10.0}],
+     [{'id': 1, 'similarity': 10.0},
+      {'id': 2, 'similarity': 10.0},
+      {'id': 0, 'similarity': 3.0}],
+     [{'id': 2, 'similarity': 10.0}]]
 
     >>> documents = [
     ...     {"id": 3, "document": "Food"},
@@ -95,16 +96,16 @@ class BM25(TfIdf):
     ... )
 
     >>> pprint(scores)
-    [[{'id': 3, 'similarity': 4.254116535186768},
-      {'id': 0, 'similarity': 4.0525277853012085}],
-     [{'id': 4, 'similarity': 9.055926203727722},
-      {'id': 1, 'similarity': 8.626796007156372}],
-     [{'id': 5, 'similarity': 9.055926203727722},
-      {'id': 4, 'similarity': 9.055926203727722},
-      {'id': 2, 'similarity': 8.626796007156372},
-      {'id': 1, 'similarity': 8.626796007156372}],
-     [{'id': 5, 'similarity': 9.055926203727722},
-      {'id': 2, 'similarity': 8.626796007156372}]]
+    [[{'id': 3, 'similarity': 2.451692283153534},
+      {'id': 0, 'similarity': 1.728931725025177}],
+     [{'id': 1, 'similarity': 7.412293553352356},
+      {'id': 4, 'similarity': 6.712518334388733}],
+     [{'id': 2, 'similarity': 7.412293553352356},
+      {'id': 1, 'similarity': 7.412293553352356},
+      {'id': 5, 'similarity': 6.712518334388733},
+      {'id': 4, 'similarity': 6.712518334388733}],
+     [{'id': 2, 'similarity': 7.412293553352356},
+      {'id': 5, 'similarity': 6.712518334388733}]]
 
     References
     ----------
@@ -189,4 +190,5 @@ class BM25(TfIdf):
             matrix if self.matrix is None else hstack(blocks=(self.matrix, matrix))
         )
 
+        inplace_csr_row_normalize_l2(X=self.matrix)
         return self
