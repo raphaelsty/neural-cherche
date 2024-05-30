@@ -5,6 +5,7 @@ using TfIdf retriever to fit the vectorizer, otherwise the system will raise an 
 
 ```python
 from neural_cherche import retrieve
+from lenlp import sparse
 
 documents = [
     {"id": "doc1", "title": "Paris", "text": "Paris is the capital of France."},
@@ -15,6 +16,7 @@ documents = [
 retriever = retrieve.TfIdf(
     key="id",
     on=["title", "text"],
+    tfidf=sparse.TfidfVectorizer(normalize=True, ngram_range=(3, 5), analyzer="char_wb"),
 )
 
 documents_embeddings = retriever.encode_documents(

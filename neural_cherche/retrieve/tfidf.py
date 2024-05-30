@@ -1,6 +1,6 @@
 import numpy as np
+from lenlp import sparse
 from scipy.sparse import csc_matrix, csr_matrix, hstack, vstack
-from sklearn.feature_extraction.text import TfidfVectorizer
 
 from .. import utils
 
@@ -80,14 +80,14 @@ class TfIdf:
         self,
         key: str,
         on: list[str],
-        tfidf: TfidfVectorizer = None,
+        tfidf: sparse.TfidfVectorizer = None,
         fit: bool = True,
     ) -> None:
         self.key = key
         self.on = [on] if isinstance(on, str) else on
 
         self.vectorizer = (
-            TfidfVectorizer(lowercase=True, ngram_range=(3, 7), analyzer="char")
+            sparse.TfidfVectorizer(normalize=True, ngram_range=(3, 5), analyzer="char")
             if tfidf is None
             else tfidf
         )

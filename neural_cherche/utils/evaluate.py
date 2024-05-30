@@ -1,7 +1,27 @@
 import random
+from collections import defaultdict
 from typing import Dict
 
 __all__ = ["evaluate", "load_beir", "get_beir_triples"]
+
+
+def add_duplicates(queries: list[str], scores: list[list[dict]]) -> list:
+    """Add back duplicates scores to the set of candidates."""
+    query_counts = defaultdict(int)
+    for query in queries:
+        query_counts[query] += 1
+
+    query_to_result = {}
+    for i, query in enumerate(iterable=queries):
+        if query not in query_to_result:
+            query_to_result[query] = scores[i]
+
+    duplicated_scores = []
+    for query in queries:
+        if query in query_to_result:
+            duplicated_scores.append(query_to_result[query])
+
+    return duplicated_scores
 
 
 def load_beir(dataset_name: str, split: str = "test") -> tuple[list, list, dict]:
@@ -34,7 +54,12 @@ def load_beir(dataset_name: str, split: str = "test") -> tuple[list, list, dict]
         for document_id, document in documents.items()
     ]
 
-    return documents, list(queries.keys()), list(queries.values()), qrels
+    qrels = {
+        queries[query_id]: query_documents
+        for query_id, query_documents in qrels.items()
+    }
+
+    return documents, list(qrels.keys()), qrels
 
 
 def get_beir_triples(
@@ -57,7 +82,7 @@ def get_beir_triples(
     --------
     >>> from neural_cherche import utils
 
-    >>> documents, queries_ids, queries, qrels = utils.load_beir(
+    >>> documents, queries, qrels = utils.load_beir(
     ...     "scifact",
     ...     split="test",
     ... )
@@ -98,7 +123,7 @@ def get_beir_triples(
 def evaluate(
     scores: list[list[dict]],
     qrels: dict,
-    queries_ids: list[str],
+    queries: list[str],
     metrics: list = [],
 ) -> Dict[str, float]:
     """Evaluate candidates matchs.
@@ -128,7 +153,7 @@ def evaluate(
     ...     device="cpu",
     ... )
 
-    >>> documents, queries_ids, queries, qrels = utils.load_beir(
+    >>> documents, queries, qrels = utils.load_beir(
     ...     "scifact",
     ...     split="test",
     ... )
@@ -164,7 +189,7 @@ def evaluate(
     >>> utils.evaluate(
     ...     scores=scores,
     ...     qrels=qrels,
-    ...     queries_ids=queries_ids,
+    ...     queries=queries,
     ...     metrics=["map", "ndcg@10", "ndcg@100", "recall@10", "recall@100"]
     ... )
     {'map': 0.0033333333333333335, 'ndcg@10': 0.0033333333333333335, 'ndcg@100': 0.0033333333333333335, 'recall@10': 0.0033333333333333335, 'recall@100': 0.0033333333333333335}
@@ -172,14 +197,17 @@ def evaluate(
     """
     from ranx import Qrels, Run, evaluate
 
+    if len(queries) > len(scores):
+        scores = add_duplicates(queries=queries, results=scores)
+
     qrels = Qrels(qrels=qrels)
 
     run_dict = {
-        id_query: {
+        query: {
             match["id"]: 1 - (rank / len(query_matchs))
             for rank, match in enumerate(iterable=query_matchs)
         }
-        for id_query, query_matchs in zip(queries_ids, scores)
+        for query, query_matchs in zip(queries, scores)
     }
 
     run = Run(run=run_dict)

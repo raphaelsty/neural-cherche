@@ -1,6 +1,6 @@
 import numpy as np
+from lenlp import sparse
 from scipy.sparse import csr_matrix, hstack, vstack
-from sklearn.feature_extraction.text import CountVectorizer
 from sklearn.utils.sparsefuncs_fast import inplace_csr_row_normalize_l2
 
 from .tfidf import TfIdf
@@ -70,11 +70,11 @@ class BM25(TfIdf):
 
     >>> pprint(scores)
     [[{'id': 0, 'similarity': 3.0}],
-     [{'id': 1, 'similarity': 10.0}],
-     [{'id': 1, 'similarity': 10.0},
-      {'id': 2, 'similarity': 10.0},
+     [{'id': 1, 'similarity': 9.0}],
+     [{'id': 2, 'similarity': 9.0},
+      {'id': 1, 'similarity': 9.0},
       {'id': 0, 'similarity': 3.0}],
-     [{'id': 2, 'similarity': 10.0}]]
+     [{'id': 2, 'similarity': 9.0}]]
 
     >>> documents = [
     ...     {"id": 3, "document": "Food"},
@@ -96,16 +96,17 @@ class BM25(TfIdf):
     ... )
 
     >>> pprint(scores)
-    [[{'id': 3, 'similarity': 2.451692283153534},
-      {'id': 0, 'similarity': 1.728931725025177}],
-     [{'id': 1, 'similarity': 7.412293553352356},
-      {'id': 4, 'similarity': 6.712518334388733}],
-     [{'id': 2, 'similarity': 7.412293553352356},
-      {'id': 1, 'similarity': 7.412293553352356},
-      {'id': 5, 'similarity': 6.712518334388733},
-      {'id': 4, 'similarity': 6.712518334388733}],
-     [{'id': 2, 'similarity': 7.412293553352356},
-      {'id': 5, 'similarity': 6.712518334388733}]]
+    [[{'id': 3, 'similarity': 2.432886242866516},
+      {'id': 0, 'similarity': 1.7552960515022278}],
+     [{'id': 1, 'similarity': 6.648760557174683},
+      {'id': 4, 'similarity': 6.065804421901703}],
+     [{'id': 1, 'similarity': 6.648760557174683},
+      {'id': 2, 'similarity': 6.648760557174683},
+      {'id': 4, 'similarity': 6.065804421901703},
+      {'id': 5, 'similarity': 6.065804421901703}],
+     [{'id': 2, 'similarity': 6.648760557174683},
+      {'id': 5, 'similarity': 6.065804421901703}]]
+
 
     References
     ----------
@@ -118,7 +119,7 @@ class BM25(TfIdf):
         self,
         key: str,
         on: list[str],
-        count_vectorizer: CountVectorizer = None,
+        count_vectorizer: sparse.CountVectorizer = None,
         b: float = 0.75,
         k1: float = 1.5,
         epsilon: float = 0,
@@ -128,7 +129,9 @@ class BM25(TfIdf):
             key=key,
             on=on,
             tfidf=(
-                CountVectorizer(lowercase=True, ngram_range=(3, 7), analyzer="char")
+                sparse.CountVectorizer(
+                    normalize=True, ngram_range=(3, 5), analyzer="char_wb"
+                )
                 if count_vectorizer is None
                 else count_vectorizer
             ),

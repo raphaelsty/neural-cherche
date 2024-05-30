@@ -7,69 +7,6 @@ ColBERT can either act as a retriever or as a ranker. While it has the capabilit
 
 In practical terms, if your document collection is relatively small, ColBERT can effectively function as a retriever. However, if you're dealing with a big document collection, ColBERT is better suited to operate as a ranker. In this case, you should use a retriever such as TF IDF, BM25, Sentence Transformers, Splade to pre-filter the documents and then use ColBERT to re-rank the documents.
 
-## Colbert retriever
-
-```python
-from neural_cherche import models, retrieve
-import torch
-
-device = "cuda" if torch.cuda.is_available() else "cpu"
-batch_size = 32
-
-documents = [
-    {"id": 0, "document": "Food"},
-    {"id": 1, "document": "Sports"},
-    {"id": 2, "document": "Cinema"},
-]
-
-queries = ["Food", "Sports", "Cinema"]
-
-model = models.ColBERT(
-    model_name_or_path="raphaelsty/neural-cherche-colbert",
-    device=device,
-)
-
-retriever = retrieve.ColBERT(
-    key="id",
-    on=["document"],
-    model=model,
-)
-
-documents_embeddings = retriever.encode_documents(
-    documents=documents,
-    batch_size=batch_size,
-)
-
-retriever = retriever.add(
-    documents_embeddings=documents_embeddings,
-)
-
-queries_embeddings = retriever.encode_queries(
-    queries=queries,
-    batch_size=batch_size,
-)
-
-scores = retriever(
-    queries_embeddings=queries_embeddings,
-    batch_size=batch_size,
-    k=3,
-)
-
-scores
-```
-
-```python
-[[{'id': 0, 'similarity': 22.825355529785156},
-  {'id': 1, 'similarity': 11.201947212219238},
-  {'id': 2, 'similarity': 10.748161315917969}],
- [{'id': 1, 'similarity': 23.21628189086914},
-  {'id': 0, 'similarity': 9.9658203125},
-  {'id': 2, 'similarity': 7.308732509613037}],
- [{'id': 1, 'similarity': 6.4031805992126465},
-  {'id': 0, 'similarity': 5.601611137390137},
-  {'id': 2, 'similarity': 5.599479675292969}]]
-```
-
 ## Colbert ranker with BM25 retriever
 
 ColBERT ranker can be used to re-rank candidates in output of a retriever following the
@@ -79,7 +16,7 @@ code below. We can use a TfIdf retriever, a Splade retriever or a SparseEmbed re
 from neural_cherche import models, rank, retrieve
 import torch
 
-device = "cuda" if torch.cuda.is_available() else "cpu"
+device = "cuda" if torch.cuda.is_available() else "cpu" # or mps
 batch_size = 32
 
 documents = [
@@ -111,11 +48,6 @@ retriever_documents_embeddings = retriever.encode_documents(
 retriever.add(
     documents_embeddings=retriever_documents_embeddings,
 )
-
-ranker_documents_embeddings = ranker.encode_documents(
-    documents=documents,
-    batch_size=batch_size,
-)
 ```
 
 Once we have created our indexes, we can use the ranker to re-rank the candidates retrieved by the retriever.
@@ -141,6 +73,13 @@ candidates = retriever(
     k=1000,
 )
 
+# Compute the embeddings of the candidates with the ranker model:
+ranker_documents_embeddings = ranker.encode_candidates_documents(
+    documents=documents,
+    candidates=candidates,
+    batch_size=batch_size,
+)
+
 scores = ranker(
     documents=candidates,
     queries_embeddings=ranker_queries_embeddings,
@@ -153,13 +92,23 @@ scores
 ```
 
 ```python
-[[{'id': 'doc1', 'similarity': 20.224000930786133},
-  {'id': 'doc2', 'similarity': 15.980965614318848},
-  {'id': 'doc3', 'similarity': 9.628191947937012}],
- [{'id': 'doc2', 'similarity': 25.223176956176758},
-  {'id': 'doc1', 'similarity': 17.255863189697266},
-  {'id': 'doc3', 'similarity': 10.55866813659668}],
- [{'id': 'doc3', 'similarity': 20.619739532470703},
-  {'id': 'doc1', 'similarity': 13.072492599487305},
-  {'id': 'doc2', 'similarity': 12.057984352111816}]]
+[[{'id': 'doc1', 'similarity': 9.37690258026123},
+  {'id': 'doc3', 'similarity': 6.458564758300781},
+  {'id': 'doc2', 'similarity': 6.071964263916016}],
+ [{'id': 'doc2', 'similarity': 10.65597915649414},
+  {'id': 'doc3', 'similarity': 6.5705132484436035},
+  {'id': 'doc1', 'similarity': 5.962393283843994}],
+ [{'id': 'doc3', 'similarity': 6.877983570098877},
+  {'id': 'doc2', 'similarity': 4.163510799407959},
+  {'id': 'doc1', 'similarity': 3.5986523628234863}]]
+```
+
+
+Note, we could also use the `encode_documents` method which allows to pre-compute all the embeddings of the documents. This is useful when we have a large number of documents and we want to pre-compute the embeddings of the documents to save time later.
+
+```python
+ranker_documents_embeddings = ranker.encode_documents(
+    documents=documents,
+    batch_size=batch_size,
+)
 ```

@@ -2,7 +2,7 @@ import setuptools
 
 from neural_cherche.__version__ import __version__
 
-with open("README.md", "r", encoding="utf-8") as fh:
+with open(file="README.md", mode="r", encoding="utf-8") as fh:
     long_description = fh.read()
 
 base_packages = [
@@ -10,7 +10,9 @@ base_packages = [
     "tqdm >= 4.66",
     "transformers >= 4.34.0",
     "sentence-transformers >= 2.2.2",
+    "lenlp >= 1.0.3",
 ]
+
 
 eval = ["ranx >= 0.3.16", "beir >= 2.0.0"]
 

@@ -22,7 +22,7 @@ from neural_cherche import models, rank, retrieve, train, utils
 
 dataset_name = "scifact"
 
-documents, queries_ids, queries, qrels = utils.load_beir(
+documents, queries, qrels = utils.load_beir(
     dataset_name=dataset_name,
     split="train",
 )
@@ -57,7 +57,7 @@ for step, (anchor, positive, negative) in enumerate(
 
     # Eval the model every 512 steps
     if (step + 1) % 512 == 0:
-        test_documents, queries_ids, queries, qrels = utils.load_beir(
+        test_documents, test_queries, qrels = utils.load_beir(
             dataset_name=dataset_name,
             split="test",
         )
@@ -77,7 +77,7 @@ for step, (anchor, positive, negative) in enumerate(
         )
 
         queries_embeddings = retriever.encode_queries(
-            queries=queries,
+            queries=test_queries,
         )
 
         candidates = retriever(
@@ -88,14 +88,14 @@ for step, (anchor, positive, negative) in enumerate(
         # Setting up the ranker
         ranker = rank.ColBERT(key="id", on=["title", "text"], model=model)
 
-        ranker_documents_embeddings = ranker.encode_candidates_documents(
-            documents=test_documents,
-            candidates=candidates,
+        ranker_queries_embeddings = ranker.encode_queries(
+            queries=test_queries,
             batch_size=batch_size,
         )
 
-        ranker_queries_embeddings = ranker.encode_queries(
-            queries=queries,
+        ranker_documents_embeddings = ranker.encode_candidates_documents(
+            documents=test_documents,
+            candidates=candidates,
             batch_size=batch_size,
         )
 
@@ -110,7 +110,7 @@ for step, (anchor, positive, negative) in enumerate(
         scores = utils.evaluate(
             scores=scores,
             qrels=qrels,
-            queries_ids=queries_ids,
+            queries=test_queries,
             metrics=["ndcg@10"] + [f"hits@{k}" for k in range(1, 10)],
         )
 

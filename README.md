@@ -92,37 +92,47 @@ for step, (anchor, positive, negative) in enumerate(utils.iter(
 
 ## Retrieval
 
-Here is how to use the fine-tuned ColBERT model to retrieve documents:
+Here is how to use the fine-tuned ColBERT model to re-rank documents:
 
 ```python
-from neural_cherche import models, retrieve
 import torch
+from lenlp import sparse
 
-batch_size = 32
+from neural_cherche import models, rank, retrieve
 
 documents = [
-    {"id": 0, "document": "Food"},
-    {"id": 1, "document": "Sports"},
-    {"id": 2, "document": "Cinema"},
+    {"id": "doc1", "title": "Paris", "text": "Paris is the capital of France."},
+    {"id": "doc2", "title": "Montreal", "text": "Montreal is the largest city in Quebec."},
+    {"id": "doc3", "title": "Bordeaux", "text": "Bordeaux in Southwestern France."},
 ]
+
+retriever = retrieve.BM25(
+    key="id",
+    on=["title", "text"],
+    count_vectorizer=sparse.CountVectorizer(
+        normalize=True, ngram_range=(3, 5), analyzer="char_wb", stop_words=[]
+    ),
+    k1=1.5,
+    b=0.75,
+    epsilon=0.0,
+)
 
 model = models.ColBERT(
     model_name_or_path="raphaelsty/neural-cherche-colbert",
-    device="cuda" if torch.cuda.is_available() else "cpu", # or mps
+    device="cuda" if torch.cuda.is_available() else "cpu",  # or mps
 )
 
-retriever = retrieve.ColBERT(
+ranker = rank.ColBERT(
     key="id",
-    on=["document"], # the field to search on, can be a list of fields
+    on=["title", "text"],
     model=model,
 )
 
 documents_embeddings = retriever.encode_documents(
     documents=documents,
-    batch_size=batch_size,
 )
 
-retriever = retriever.add(
+retriever.add(
     documents_embeddings=documents_embeddings,
 )
 ```
@@ -130,15 +140,35 @@ retriever = retriever.add(
 Now we can retrieve documents using the fine-tuned model:
 
 ```python
+queries = ["Paris", "Montreal", "Bordeaux"]
+
 queries_embeddings = retriever.encode_queries(
-    queries=["Food", "Sports", "Cinema"], # list of queries
-    batch_size=batch_size,
+    queries=queries,
 )
 
-scores = retriever(
+ranker_queries_embeddings = ranker.encode_queries(
+    queries=queries,
+)
+
+candidates = retriever(
     queries_embeddings=queries_embeddings,
-    batch_size=batch_size,
-    k=10, # number of documents to retrieve
+    batch_size=32,
+    k=100,  # number of documents to retrieve
+)
+
+# Compute embeddings of the candidates with the ranker model.
+# Note, we could also pre-compute all the embeddings.
+ranker_documents_embeddings = ranker.encode_candidates_documents(
+    candidates=candidates,
+    documents=documents,
+    batch_size=32,
+)
+
+scores = ranker(
+    queries_embeddings=ranker_queries_embeddings,
+    documents_embeddings=ranker_documents_embeddings,
+    documents=candidates,
+    batch_size=32,
 )
 
 scores
@@ -156,10 +186,7 @@ scores
   {'id': 2, 'similarity': 5.599479675292969}]]
 ```
 
-Please note that neural-cherche provide documentation to use [ColBERT as a ranker](https://raphaelsty.github.io/neural-cherche/retrieve/colbert/) which is much more efficient.
-
-
-Neural-Cherche also provides a `SparseEmbed`, a `SPLADE`, a `TFIDF` retriever and a `ColBERT` ranker which can be used to re-order output of a retriever. For more information, please refer to the [documentation](https://raphaelsty.github.io/neural-cherche/).
+Neural-Cherche provides a `SparseEmbed`, a `SPLADE`, a `TFIDF`, a `BM25` retriever and a `ColBERT` ranker which can be used to re-order output of a retriever. For more information, please refer to the [documentation](https://raphaelsty.github.io/neural-cherche/).
 
 ### Pre-trained Models
 
@@ -184,9 +211,16 @@ We provide pre-trained checkpoints specifically designed for neural-cherche: [ra
   <tr>
     <td class="tg-c3ow">TfIdf</td>
     <td class="tg-c3ow">-</td>
-    <td class="tg-c3ow">0,61</td>
-    <td class="tg-c3ow">0,85</td>
-    <td class="tg-c3ow">0,47</td>
+    <td class="tg-c3ow">0,62</td>
+    <td class="tg-c3ow">0,86</td>
+    <td class="tg-c3ow">0,50</td>
+  </tr>
+  <tr>
+    <td class="tg-c3ow">BM25</td>
+    <td class="tg-c3ow">-</td>
+    <td class="tg-c3ow">0,69</td>
+    <td class="tg-c3ow">0,92</td>
+    <td class="tg-c3ow">0,56</td>
   </tr>
   <tr>
     <td class="tg-c3ow">SparseEmbed</td>
@@ -214,6 +248,13 @@ We provide pre-trained checkpoints specifically designed for neural-cherche: [ra
     <td class="tg-c3ow">raphaelsty/neural-cherche-colbert</td>
     <td class="tg-7btt">0,71</td>
     <td class="tg-7btt">0,94</td>
+    <td class="tg-7btt">0,59</td>
+  </tr>
+  <tr>
+    <td class="tg-c3ow">BM25 Retriever + ColBERT Ranker</td>
+    <td class="tg-c3ow">raphaelsty/neural-cherche-colbert</td>
+    <td class="tg-7btt">0,72</td>
+    <td class="tg-7btt">0,95</td>
     <td class="tg-7btt">0,59</td>
   </tr>
 </tbody>
