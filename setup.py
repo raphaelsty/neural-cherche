@@ -16,7 +16,11 @@ base_packages = [
 
 eval = ["ranx >= 0.3.16", "beir >= 2.0.0"]
 
-dev = ["mkdocs-material == 9.2.8"]
+dev = [
+    "mkdocs-material == 9.2.8",
+    "mkdocs-awesome-pages-plugin == 2.9.2",
+    " mkdocs-jupyter == 0.24.7",
+]
 
 setuptools.setup(
     name="neural_cherche",
