@@ -12,28 +12,28 @@
         <meta name="author" content="Raphael Sourty">
       
       
-        <link rel="canonical" href="https://raphaelsty.github.io/neural-cherche/api/utils/colbert-scores/">
+        <link rel="canonical" href="https://raphaelsty.github.io/neural-cherche/retrieve/bm25/">
       
       
-        <link rel="prev" href="../batchify/">
+        <link rel="prev" href="../sparse_embed/">
       
       
-        <link rel="next" href="../dense-scores/">
+        <link rel="next" href="../tfidf/">
       
       
-      <link rel="icon" href="../../../img/favicon.ico">
+      <link rel="icon" href="../../img/favicon.ico">
       <meta name="generator" content="mkdocs-1.6.0, mkdocs-material-9.2.8">
     
     
       
-        <title>colbert_scores - neural-cherche</title>
+        <title>BM25 - neural-cherche</title>
       
     
     
-      <link rel="stylesheet" href="../../../assets/stylesheets/main.046329b4.min.css">
+      <link rel="stylesheet" href="../../assets/stylesheets/main.046329b4.min.css">
       
         
-        <link rel="stylesheet" href="../../../assets/stylesheets/palette.85d0ee34.min.css">
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.85d0ee34.min.css">
       
       
 
@@ -52,11 +52,11 @@
       
     
     
-      <link rel="stylesheet" href="../../../stylesheets/extra.css">
+      <link rel="stylesheet" href="../../stylesheets/extra.css">
     
-      <link rel="stylesheet" href="../../../css/version-select.css">
+      <link rel="stylesheet" href="../../css/version-select.css">
     
-    <script>__md_scope=new URL("../../..",location),__md_hash=e=>[...e].reduce((e,_)=>(e<<5)-e+_.charCodeAt(0),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce((e,_)=>(e<<5)-e+_.charCodeAt(0),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
     
       
 
@@ -81,7 +81,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#colbert_scores" class="md-skip">
+        <a href="#bm25" class="md-skip">
           Skip to content
         </a>
       
@@ -95,7 +95,7 @@
 
 <header class="md-header" data-md-component="header">
   <nav class="md-header__inner md-grid" aria-label="Header">
-    <a href="../../.." title="neural-cherche" class="md-header__button md-logo" aria-label="neural-cherche" data-md-component="logo">
+    <a href="../.." title="neural-cherche" class="md-header__button md-logo" aria-label="neural-cherche" data-md-component="logo">
       
   
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54Z"/></svg>
@@ -115,7 +115,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              colbert_scores
+              BM25
             
           </span>
         </div>
@@ -197,7 +197,7 @@
     
     
       <li class="md-tabs__item">
-        <a href="../../../fine_tune/colbert/" class="md-tabs__link">
+        <a href="../../fine_tune/colbert/" class="md-tabs__link">
           
   
   Fine-tune
@@ -211,11 +211,13 @@
         
   
   
+    
+  
   
     
     
-      <li class="md-tabs__item">
-        <a href="../../../retrieve/colbert/" class="md-tabs__link">
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="../colbert/" class="md-tabs__link">
           
   
   Retrieve
@@ -233,7 +235,7 @@
     
     
       <li class="md-tabs__item">
-        <a href="../../../evaluate/evaluate/" class="md-tabs__link">
+        <a href="../../evaluate/evaluate/" class="md-tabs__link">
           
   
   Evaluate
@@ -251,7 +253,7 @@
     
     
       <li class="md-tabs__item">
-        <a href="../../../scoring/scoring/" class="md-tabs__link">
+        <a href="../../scoring/scoring/" class="md-tabs__link">
           
   
   Scoring
@@ -269,7 +271,7 @@
     
     
       <li class="md-tabs__item">
-        <a href="../../../pre_trained_models/pre_trained_models/" class="md-tabs__link">
+        <a href="../../pre_trained_models/pre_trained_models/" class="md-tabs__link">
           
   
   Pre-trained Models
@@ -283,13 +285,11 @@
         
   
   
-    
-  
   
     
     
-      <li class="md-tabs__item md-tabs__item--active">
-        <a href="../../overview/" class="md-tabs__link">
+      <li class="md-tabs__item">
+        <a href="../../api/overview/" class="md-tabs__link">
           
   
   API reference
@@ -322,7 +322,7 @@
 
 <nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
   <label class="md-nav__title" for="__drawer">
-    <a href="../../.." title="neural-cherche" class="md-nav__button md-logo" aria-label="neural-cherche" data-md-component="logo">
+    <a href="../.." title="neural-cherche" class="md-nav__button md-logo" aria-label="neural-cherche" data-md-component="logo">
       
   
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54Z"/></svg>
@@ -387,7 +387,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../fine_tune/colbert/" class="md-nav__link">
+      <a href="../../fine_tune/colbert/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -407,7 +407,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../fine_tune/splade/" class="md-nav__link">
+      <a href="../../fine_tune/splade/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -427,7 +427,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../fine_tune/sparse_embed/" class="md-nav__link">
+      <a href="../../fine_tune/sparse_embed/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -452,19 +452,19 @@
       
   
   
+    
+  
   
     
     
     
-    <li class="md-nav__item md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
       
         
         
         
         
-          
-        
-        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_2" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" checked>
         
           <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
             
@@ -477,7 +477,7 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="true">
           <label class="md-nav__title" for="__nav_2">
             <span class="md-nav__icon md-icon"></span>
             Retrieve
@@ -490,7 +490,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../retrieve/colbert/" class="md-nav__link">
+      <a href="../colbert/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -510,7 +510,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../retrieve/splade/" class="md-nav__link">
+      <a href="../splade/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -530,7 +530,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../retrieve/sparse_embed/" class="md-nav__link">
+      <a href="../sparse_embed/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -548,9 +548,18 @@
                 
   
   
+    
   
-    <li class="md-nav__item">
-      <a href="../../../retrieve/bm25/" class="md-nav__link">
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
         
   
   <span class="md-ellipsis">
@@ -559,6 +568,7 @@
   
 
       </a>
+      
     </li>
   
 
@@ -570,7 +580,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../retrieve/tfidf/" class="md-nav__link">
+      <a href="../tfidf/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -633,7 +643,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../evaluate/evaluate/" class="md-nav__link">
+      <a href="../../evaluate/evaluate/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -696,7 +706,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../scoring/scoring/" class="md-nav__link">
+      <a href="../../scoring/scoring/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -759,7 +769,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../pre_trained_models/pre_trained_models/" class="md-nav__link">
+      <a href="../../pre_trained_models/pre_trained_models/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -784,19 +794,19 @@
       
   
   
-    
-  
   
     
     
     
-    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--nested">
       
         
         
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6" checked>
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_6" >
         
           <label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="0">
             
@@ -809,7 +819,7 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="true">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="false">
           <label class="md-nav__title" for="__nav_6">
             <span class="md-nav__icon md-icon"></span>
             API reference
@@ -822,7 +832,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../overview/" class="md-nav__link">
+      <a href="../../api/overview/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -878,7 +888,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../losses/Flops/" class="md-nav__link">
+      <a href="../../api/losses/Flops/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -898,7 +908,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../losses/FlopsScheduler/" class="md-nav__link">
+      <a href="../../api/losses/FlopsScheduler/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -918,7 +928,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../losses/Ranking/" class="md-nav__link">
+      <a href="../../api/losses/Ranking/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -982,7 +992,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../models/ColBERT/" class="md-nav__link">
+      <a href="../../api/models/ColBERT/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -1002,7 +1012,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../models/SparseEmbed/" class="md-nav__link">
+      <a href="../../api/models/SparseEmbed/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -1022,7 +1032,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../models/Splade/" class="md-nav__link">
+      <a href="../../api/models/Splade/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -1086,7 +1096,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../rank/ColBERT/" class="md-nav__link">
+      <a href="../../api/rank/ColBERT/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -1150,7 +1160,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../retrieve/SparseEmbed/" class="md-nav__link">
+      <a href="../../api/retrieve/SparseEmbed/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -1170,7 +1180,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../retrieve/Splade/" class="md-nav__link">
+      <a href="../../api/retrieve/Splade/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -1190,7 +1200,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../retrieve/TfIdf/" class="md-nav__link">
+      <a href="../../api/retrieve/TfIdf/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -1254,7 +1264,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../train/train-colbert/" class="md-nav__link">
+      <a href="../../api/train/train-colbert/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -1274,7 +1284,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../train/train-sparse-embed/" class="md-nav__link">
+      <a href="../../api/train/train-sparse-embed/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -1294,7 +1304,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../train/train-splade/" class="md-nav__link">
+      <a href="../../api/train/train-splade/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -1320,19 +1330,19 @@
                 
   
   
-    
-  
   
     
     
     
-    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--nested">
       
         
         
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6_7" checked>
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_6_7" >
         
           <label class="md-nav__link" for="__nav_6_7" id="__nav_6_7_label" tabindex="0">
             
@@ -1345,7 +1355,7 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_6_7_label" aria-expanded="true">
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_6_7_label" aria-expanded="false">
           <label class="md-nav__title" for="__nav_6_7">
             <span class="md-nav__icon md-icon"></span>
             utils
@@ -1358,7 +1368,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../batchify/" class="md-nav__link">
+      <a href="../../api/utils/batchify/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -1376,29 +1386,9 @@
                 
   
   
-    
   
-  
-    <li class="md-nav__item md-nav__item--active">
-      
-      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
-      
-      
-        
-      
-      
-        <label class="md-nav__link md-nav__link--active" for="__toc">
-          
-  
-  <span class="md-ellipsis">
-    colbert_scores
-  </span>
-  
-
-          <span class="md-nav__icon md-icon"></span>
-        </label>
-      
-      <a href="./" class="md-nav__link md-nav__link--active">
+    <li class="md-nav__item">
+      <a href="../../api/utils/colbert-scores/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -1407,40 +1397,6 @@
   
 
       </a>
-      
-        
-
-<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
-  
-  
-  
-    
-  
-  
-    <label class="md-nav__title" for="__toc">
-      <span class="md-nav__icon md-icon"></span>
-      Table of contents
-    </label>
-    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
-      
-        <li class="md-nav__item">
-  <a href="#parameters" class="md-nav__link">
-    Parameters
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#examples" class="md-nav__link">
-    Examples
-  </a>
-  
-</li>
-      
-    </ul>
-  
-</nav>
-      
     </li>
   
 
@@ -1452,7 +1408,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../dense-scores/" class="md-nav__link">
+      <a href="../../api/utils/dense-scores/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -1472,7 +1428,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../evaluate/" class="md-nav__link">
+      <a href="../../api/utils/evaluate/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -1492,7 +1448,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../in-batch-sparse-scores/" class="md-nav__link">
+      <a href="../../api/utils/in-batch-sparse-scores/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -1512,7 +1468,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../iter/" class="md-nav__link">
+      <a href="../../api/utils/iter/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -1532,7 +1488,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../load-beir/" class="md-nav__link">
+      <a href="../../api/utils/load-beir/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -1552,7 +1508,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../pairs-dense-scores/" class="md-nav__link">
+      <a href="../../api/utils/pairs-dense-scores/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -1572,7 +1528,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../sparse-scores/" class="md-nav__link">
+      <a href="../../api/utils/sparse-scores/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -1621,28 +1577,6 @@
     
   
   
-    <label class="md-nav__title" for="__toc">
-      <span class="md-nav__icon md-icon"></span>
-      Table of contents
-    </label>
-    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
-      
-        <li class="md-nav__item">
-  <a href="#parameters" class="md-nav__link">
-    Parameters
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#examples" class="md-nav__link">
-    Examples
-  </a>
-  
-</li>
-      
-    </ul>
-  
 </nav>
                   </div>
                 </div>
@@ -1656,61 +1590,67 @@
                   
 
 
-<h1 id="colbert_scores">colbert_scores<a class="headerlink" href="#colbert_scores" title="Permanent link">&para;</a></h1>
-<p>ColBERT scoring function for training.</p>
-<h2 id="parameters">Parameters<a class="headerlink" href="#parameters" title="Permanent link">&para;</a></h2>
-<ul>
-<li>
-<p><strong>anchor_embeddings</strong> (<em>torch.Tensor</em>)</p>
-<p>Anchor embeddings.</p>
-</li>
-<li>
-<p><strong>positive_embeddings</strong> (<em>torch.Tensor</em>)</p>
-<p>Positive embeddings.</p>
-</li>
-<li>
-<p><strong>negative_embeddings</strong> (<em>torch.Tensor</em>)</p>
-<p>Negative embeddings.</p>
-</li>
-<li>
-<p><strong>in_batch_negatives</strong> (<em>bool</em>) – defaults to <code>False</code></p>
-<p>Whether to use in batch negatives or not. Defaults to False.</p>
-</li>
-</ul>
-<h2 id="examples">Examples<a class="headerlink" href="#examples" title="Permanent link">&para;</a></h2>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="o">&gt;&gt;&gt;</span> <span class="kn">from</span> <span class="nn">neural_cherche</span> <span class="kn">import</span> <span class="n">models</span><span class="p">,</span> <span class="n">utils</span>
-</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="o">&gt;&gt;&gt;</span> <span class="kn">import</span> <span class="nn">torch</span>
+<h1 id="bm25">BM25<a class="headerlink" href="#bm25" title="Permanent link">&para;</a></h1>
+<p>Retrieving documents using BM25. We must always encode documents before queries when 
+using BM25 retriever in order to fit the vectorizer, otherwise the system will raise an error.
+BM25 takes as input two distinct parameters, <code>b</code> and <code>k1</code>. b is a float value that determines
+the impact of document length normalization. The default value is <code>0.75</code>. The higher the value, the
+more penalized longer documents will be. k1 is a float value that determines how quickly the impact
+of term frequency saturates. The default value is <code>1.5</code>. The higher the value, the more influential
+term frequency will be.</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kn">from</span> <span class="nn">neural_cherche</span> <span class="kn">import</span> <span class="n">retrieve</span>
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="kn">from</span> <span class="nn">lenlp</span> <span class="kn">import</span> <span class="n">sparse</span>
 </span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>
-</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="o">&gt;&gt;&gt;</span> <span class="n">_</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">manual_seed</span><span class="p">(</span><span class="mi">42</span><span class="p">)</span>
-</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>
-</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a><span class="o">&gt;&gt;&gt;</span> <span class="n">model</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">ColBERT</span><span class="p">(</span>
-</span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a><span class="o">...</span>     <span class="n">model_name_or_path</span><span class="o">=</span><span class="s2">&quot;raphaelsty/neural-cherche-colbert&quot;</span><span class="p">,</span>
-</span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a><span class="o">...</span>     <span class="n">device</span><span class="o">=</span><span class="s2">&quot;mps&quot;</span><span class="p">,</span>
-</span><span id="__span-0-9"><a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a><span class="o">...</span> <span class="p">)</span>
-</span><span id="__span-0-10"><a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a>
-</span><span id="__span-0-11"><a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a><span class="o">&gt;&gt;&gt;</span> <span class="n">anchor_embeddings</span> <span class="o">=</span> <span class="n">model</span><span class="p">(</span>
-</span><span id="__span-0-12"><a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a><span class="o">...</span>     <span class="p">[</span><span class="s2">&quot;Paris&quot;</span><span class="p">,</span> <span class="s2">&quot;Toulouse&quot;</span><span class="p">],</span>
-</span><span id="__span-0-13"><a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a><span class="o">...</span>     <span class="n">query_mode</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-</span><span id="__span-0-14"><a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a><span class="o">...</span> <span class="p">)</span>
-</span><span id="__span-0-15"><a id="__codelineno-0-15" name="__codelineno-0-15" href="#__codelineno-0-15"></a>
-</span><span id="__span-0-16"><a id="__codelineno-0-16" name="__codelineno-0-16" href="#__codelineno-0-16"></a><span class="o">&gt;&gt;&gt;</span> <span class="n">positive_embeddings</span> <span class="o">=</span> <span class="n">model</span><span class="p">(</span>
-</span><span id="__span-0-17"><a id="__codelineno-0-17" name="__codelineno-0-17" href="#__codelineno-0-17"></a><span class="o">...</span>    <span class="p">[</span><span class="s2">&quot;Paris&quot;</span><span class="p">,</span> <span class="s2">&quot;Toulouse&quot;</span><span class="p">],</span>
-</span><span id="__span-0-18"><a id="__codelineno-0-18" name="__codelineno-0-18" href="#__codelineno-0-18"></a><span class="o">...</span>    <span class="n">query_mode</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
-</span><span id="__span-0-19"><a id="__codelineno-0-19" name="__codelineno-0-19" href="#__codelineno-0-19"></a><span class="o">...</span> <span class="p">)</span>
-</span><span id="__span-0-20"><a id="__codelineno-0-20" name="__codelineno-0-20" href="#__codelineno-0-20"></a>
-</span><span id="__span-0-21"><a id="__codelineno-0-21" name="__codelineno-0-21" href="#__codelineno-0-21"></a><span class="o">&gt;&gt;&gt;</span> <span class="n">negative_embeddings</span> <span class="o">=</span> <span class="n">model</span><span class="p">(</span>
-</span><span id="__span-0-22"><a id="__codelineno-0-22" name="__codelineno-0-22" href="#__codelineno-0-22"></a><span class="o">...</span>    <span class="p">[</span><span class="s2">&quot;Toulouse&quot;</span><span class="p">,</span> <span class="s2">&quot;Paris&quot;</span><span class="p">],</span>
-</span><span id="__span-0-23"><a id="__codelineno-0-23" name="__codelineno-0-23" href="#__codelineno-0-23"></a><span class="o">...</span>    <span class="n">query_mode</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
-</span><span id="__span-0-24"><a id="__codelineno-0-24" name="__codelineno-0-24" href="#__codelineno-0-24"></a><span class="o">...</span> <span class="p">)</span>
-</span><span id="__span-0-25"><a id="__codelineno-0-25" name="__codelineno-0-25" href="#__codelineno-0-25"></a>
-</span><span id="__span-0-26"><a id="__codelineno-0-26" name="__codelineno-0-26" href="#__codelineno-0-26"></a><span class="o">&gt;&gt;&gt;</span> <span class="n">scores</span> <span class="o">=</span> <span class="n">utils</span><span class="o">.</span><span class="n">colbert_scores</span><span class="p">(</span>
-</span><span id="__span-0-27"><a id="__codelineno-0-27" name="__codelineno-0-27" href="#__codelineno-0-27"></a><span class="o">...</span>     <span class="n">anchor_embeddings</span><span class="o">=</span><span class="n">anchor_embeddings</span><span class="p">[</span><span class="s2">&quot;embeddings&quot;</span><span class="p">],</span>
-</span><span id="__span-0-28"><a id="__codelineno-0-28" name="__codelineno-0-28" href="#__codelineno-0-28"></a><span class="o">...</span>     <span class="n">positive_embeddings</span><span class="o">=</span><span class="n">positive_embeddings</span><span class="p">[</span><span class="s2">&quot;embeddings&quot;</span><span class="p">],</span>
-</span><span id="__span-0-29"><a id="__codelineno-0-29" name="__codelineno-0-29" href="#__codelineno-0-29"></a><span class="o">...</span>     <span class="n">negative_embeddings</span><span class="o">=</span><span class="n">negative_embeddings</span><span class="p">[</span><span class="s2">&quot;embeddings&quot;</span><span class="p">],</span>
-</span><span id="__span-0-30"><a id="__codelineno-0-30" name="__codelineno-0-30" href="#__codelineno-0-30"></a><span class="o">...</span> <span class="p">)</span>
-</span><span id="__span-0-31"><a id="__codelineno-0-31" name="__codelineno-0-31" href="#__codelineno-0-31"></a>
-</span><span id="__span-0-32"><a id="__codelineno-0-32" name="__codelineno-0-32" href="#__codelineno-0-32"></a><span class="o">&gt;&gt;&gt;</span> <span class="n">scores</span>
-</span><span id="__span-0-33"><a id="__codelineno-0-33" name="__codelineno-0-33" href="#__codelineno-0-33"></a><span class="p">{</span><span class="s1">&#39;positive_scores&#39;</span><span class="p">:</span> <span class="n">tensor</span><span class="p">([</span><span class="mf">24.7555</span><span class="p">,</span> <span class="mf">26.4455</span><span class="p">],</span> <span class="n">device</span><span class="o">=</span><span class="s1">&#39;mps:0&#39;</span><span class="p">,</span> <span class="n">grad_fn</span><span class="o">=&lt;</span><span class="n">SumBackward1</span><span class="o">&gt;</span><span class="p">),</span> <span class="s1">&#39;negative_scores&#39;</span><span class="p">:</span> <span class="n">tensor</span><span class="p">([</span><span class="mf">18.3089</span><span class="p">,</span> <span class="mf">17.1017</span><span class="p">],</span> <span class="n">device</span><span class="o">=</span><span class="s1">&#39;mps:0&#39;</span><span class="p">,</span> <span class="n">grad_fn</span><span class="o">=&lt;</span><span class="n">SumBackward1</span><span class="o">&gt;</span><span class="p">)}</span>
+</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="n">documents</span> <span class="o">=</span> <span class="p">[</span>
+</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>    <span class="p">{</span><span class="s2">&quot;id&quot;</span><span class="p">:</span> <span class="s2">&quot;doc1&quot;</span><span class="p">,</span> <span class="s2">&quot;title&quot;</span><span class="p">:</span> <span class="s2">&quot;Paris&quot;</span><span class="p">,</span> <span class="s2">&quot;text&quot;</span><span class="p">:</span> <span class="s2">&quot;Paris is the capital of France.&quot;</span><span class="p">},</span>
+</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>    <span class="p">{</span><span class="s2">&quot;id&quot;</span><span class="p">:</span> <span class="s2">&quot;doc2&quot;</span><span class="p">,</span> <span class="s2">&quot;title&quot;</span><span class="p">:</span> <span class="s2">&quot;Montreal&quot;</span><span class="p">,</span> <span class="s2">&quot;text&quot;</span><span class="p">:</span> <span class="s2">&quot;Montreal is the largest city in Quebec.&quot;</span><span class="p">},</span>
+</span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>    <span class="p">{</span><span class="s2">&quot;id&quot;</span><span class="p">:</span> <span class="s2">&quot;doc3&quot;</span><span class="p">,</span> <span class="s2">&quot;title&quot;</span><span class="p">:</span> <span class="s2">&quot;Bordeaux&quot;</span><span class="p">,</span> <span class="s2">&quot;text&quot;</span><span class="p">:</span> <span class="s2">&quot;Bordeaux in Southwestern France.&quot;</span><span class="p">},</span>
+</span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a><span class="p">]</span>
+</span><span id="__span-0-9"><a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>
+</span><span id="__span-0-10"><a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a><span class="n">retriever</span> <span class="o">=</span> <span class="n">retrieve</span><span class="o">.</span><span class="n">BM25</span><span class="p">(</span>
+</span><span id="__span-0-11"><a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a>    <span class="n">key</span><span class="o">=</span><span class="s2">&quot;id&quot;</span><span class="p">,</span>
+</span><span id="__span-0-12"><a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a>    <span class="n">on</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;title&quot;</span><span class="p">,</span> <span class="s2">&quot;text&quot;</span><span class="p">],</span>
+</span><span id="__span-0-13"><a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a>    <span class="n">count_vectorizer</span><span class="o">=</span><span class="n">sparse</span><span class="o">.</span><span class="n">CountVectorizer</span><span class="p">(</span><span class="n">normalize</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">ngram_range</span><span class="o">=</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="mi">5</span><span class="p">),</span> <span class="n">analyzer</span><span class="o">=</span><span class="s2">&quot;char_wb&quot;</span><span class="p">),</span>
+</span><span id="__span-0-14"><a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a>    <span class="n">k1</span><span class="o">=</span><span class="mf">1.5</span><span class="p">,</span>
+</span><span id="__span-0-15"><a id="__codelineno-0-15" name="__codelineno-0-15" href="#__codelineno-0-15"></a>    <span class="n">b</span><span class="o">=</span><span class="mf">0.75</span><span class="p">,</span>
+</span><span id="__span-0-16"><a id="__codelineno-0-16" name="__codelineno-0-16" href="#__codelineno-0-16"></a>    <span class="n">epsilon</span><span class="o">=</span><span class="mf">0.</span><span class="p">,</span>
+</span><span id="__span-0-17"><a id="__codelineno-0-17" name="__codelineno-0-17" href="#__codelineno-0-17"></a><span class="p">)</span>
+</span><span id="__span-0-18"><a id="__codelineno-0-18" name="__codelineno-0-18" href="#__codelineno-0-18"></a>
+</span><span id="__span-0-19"><a id="__codelineno-0-19" name="__codelineno-0-19" href="#__codelineno-0-19"></a><span class="n">documents_embeddings</span> <span class="o">=</span> <span class="n">retriever</span><span class="o">.</span><span class="n">encode_documents</span><span class="p">(</span>
+</span><span id="__span-0-20"><a id="__codelineno-0-20" name="__codelineno-0-20" href="#__codelineno-0-20"></a>    <span class="n">documents</span><span class="o">=</span><span class="n">documents</span><span class="p">,</span>
+</span><span id="__span-0-21"><a id="__codelineno-0-21" name="__codelineno-0-21" href="#__codelineno-0-21"></a><span class="p">)</span>
+</span><span id="__span-0-22"><a id="__codelineno-0-22" name="__codelineno-0-22" href="#__codelineno-0-22"></a>
+</span><span id="__span-0-23"><a id="__codelineno-0-23" name="__codelineno-0-23" href="#__codelineno-0-23"></a><span class="n">retriever</span><span class="o">.</span><span class="n">add</span><span class="p">(</span>
+</span><span id="__span-0-24"><a id="__codelineno-0-24" name="__codelineno-0-24" href="#__codelineno-0-24"></a>    <span class="n">documents_embeddings</span><span class="o">=</span><span class="n">documents_embeddings</span><span class="p">,</span>
+</span><span id="__span-0-25"><a id="__codelineno-0-25" name="__codelineno-0-25" href="#__codelineno-0-25"></a><span class="p">)</span>
+</span></code></pre></div>
+<p>Once we have created our index, we can use the retriever to retrieve the candidates.</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="n">queries</span> <span class="o">=</span> <span class="p">[</span>
+</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>    <span class="s2">&quot;What is the capital of France?&quot;</span><span class="p">,</span>
+</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>    <span class="s2">&quot;What is the largest city in Quebec?&quot;</span><span class="p">,</span>
+</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>    <span class="s2">&quot;Where is Bordeaux?&quot;</span><span class="p">,</span>
+</span><span id="__span-1-5"><a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a><span class="p">]</span>
+</span><span id="__span-1-6"><a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a>
+</span><span id="__span-1-7"><a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a><span class="n">queries_embeddings</span> <span class="o">=</span> <span class="n">retriever</span><span class="o">.</span><span class="n">encode_queries</span><span class="p">(</span>
+</span><span id="__span-1-8"><a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a>    <span class="n">queries</span><span class="o">=</span><span class="n">queries</span><span class="p">,</span>
+</span><span id="__span-1-9"><a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a><span class="p">)</span>
+</span><span id="__span-1-10"><a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a>
+</span><span id="__span-1-11"><a id="__codelineno-1-11" name="__codelineno-1-11" href="#__codelineno-1-11"></a><span class="n">scores</span> <span class="o">=</span> <span class="n">retriever</span><span class="p">(</span>
+</span><span id="__span-1-12"><a id="__codelineno-1-12" name="__codelineno-1-12" href="#__codelineno-1-12"></a>    <span class="n">queries_embeddings</span><span class="o">=</span><span class="n">queries_embeddings</span><span class="p">,</span>
+</span><span id="__span-1-13"><a id="__codelineno-1-13" name="__codelineno-1-13" href="#__codelineno-1-13"></a>    <span class="n">k</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span>
+</span><span id="__span-1-14"><a id="__codelineno-1-14" name="__codelineno-1-14" href="#__codelineno-1-14"></a><span class="p">)</span>
+</span><span id="__span-1-15"><a id="__codelineno-1-15" name="__codelineno-1-15" href="#__codelineno-1-15"></a>
+</span><span id="__span-1-16"><a id="__codelineno-1-16" name="__codelineno-1-16" href="#__codelineno-1-16"></a><span class="n">scores</span>
+</span></code></pre></div>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="p">[[{</span><span class="s1">&#39;id&#39;</span><span class="p">:</span> <span class="s1">&#39;doc1&#39;</span><span class="p">,</span> <span class="s1">&#39;similarity&#39;</span><span class="p">:</span> <span class="mf">88.86143220961094</span><span class="p">},</span>
+</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>  <span class="p">{</span><span class="s1">&#39;id&#39;</span><span class="p">:</span> <span class="s1">&#39;doc2&#39;</span><span class="p">,</span> <span class="s1">&#39;similarity&#39;</span><span class="p">:</span> <span class="mf">8.409232541918755</span><span class="p">},</span>
+</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>  <span class="p">{</span><span class="s1">&#39;id&#39;</span><span class="p">:</span> <span class="s1">&#39;doc3&#39;</span><span class="p">,</span> <span class="s1">&#39;similarity&#39;</span><span class="p">:</span> <span class="mf">7.134543210268021</span><span class="p">}],</span>
+</span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a> <span class="p">[{</span><span class="s1">&#39;id&#39;</span><span class="p">:</span> <span class="s1">&#39;doc2&#39;</span><span class="p">,</span> <span class="s1">&#39;similarity&#39;</span><span class="p">:</span> <span class="mf">107.05374336242676</span><span class="p">},</span>
+</span><span id="__span-2-5"><a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a>  <span class="p">{</span><span class="s1">&#39;id&#39;</span><span class="p">:</span> <span class="s1">&#39;doc1&#39;</span><span class="p">,</span> <span class="s1">&#39;similarity&#39;</span><span class="p">:</span> <span class="mf">9.28911879658699</span><span class="p">},</span>
+</span><span id="__span-2-6"><a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a>  <span class="p">{</span><span class="s1">&#39;id&#39;</span><span class="p">:</span> <span class="s1">&#39;doc3&#39;</span><span class="p">,</span> <span class="s1">&#39;similarity&#39;</span><span class="p">:</span> <span class="mf">1.9025448560714722</span><span class="p">}],</span>
+</span><span id="__span-2-7"><a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a> <span class="p">[{</span><span class="s1">&#39;id&#39;</span><span class="p">:</span> <span class="s1">&#39;doc3&#39;</span><span class="p">,</span> <span class="s1">&#39;similarity&#39;</span><span class="p">:</span> <span class="mf">18.506150543689728</span><span class="p">},</span>
+</span><span id="__span-2-8"><a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a>  <span class="p">{</span><span class="s1">&#39;id&#39;</span><span class="p">:</span> <span class="s1">&#39;doc1&#39;</span><span class="p">,</span> <span class="s1">&#39;similarity&#39;</span><span class="p">:</span> <span class="mf">0.7961864173412323</span><span class="p">},</span>
+</span><span id="__span-2-9"><a id="__codelineno-2-9" name="__codelineno-2-9" href="#__codelineno-2-9"></a>  <span class="p">{</span><span class="s1">&#39;id&#39;</span><span class="p">:</span> <span class="s1">&#39;doc2&#39;</span><span class="p">,</span> <span class="s1">&#39;similarity&#39;</span><span class="p">:</span> <span class="mf">0.7676786482334137</span><span class="p">}]]</span>
 </span></code></pre></div>
 
 
@@ -1768,18 +1708,18 @@
       <div class="md-dialog__inner md-typeset"></div>
     </div>
     
-    <script id="__config" type="application/json">{"base": "../../..", "features": ["navigation.tabs", "navigation.instant", "navigation.expand", "content.code.copy"], "search": "../../../assets/javascripts/workers/search.dfff1995.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}}</script>
+    <script id="__config" type="application/json">{"base": "../..", "features": ["navigation.tabs", "navigation.instant", "navigation.expand", "content.code.copy"], "search": "../../assets/javascripts/workers/search.dfff1995.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}}</script>
     
     
-      <script src="../../../assets/javascripts/bundle.dff1b7c8.min.js"></script>
+      <script src="../../assets/javascripts/bundle.dff1b7c8.min.js"></script>
       
-        <script src="../../../javascripts/config.js"></script>
+        <script src="../../javascripts/config.js"></script>
       
         <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
       
         <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
       
-        <script src="../../../js/version-select.js"></script>
+        <script src="../../js/version-select.js"></script>
       
     
   </body>
