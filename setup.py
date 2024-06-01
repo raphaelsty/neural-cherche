@@ -10,7 +10,7 @@ base_packages = [
     "tqdm >= 4.66",
     "transformers >= 4.34.0",
     "sentence-transformers >= 2.2.2",
-    "lenlp >= 1.0.3",
+    "lenlp == 1.0.5",
 ]
 
 
