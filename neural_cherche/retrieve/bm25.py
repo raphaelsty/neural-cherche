@@ -193,5 +193,5 @@ class BM25(TfIdf):
             matrix if self.matrix is None else hstack(blocks=(self.matrix, matrix))
         )
 
-        inplace_csr_row_normalize_l2(X=self.matrix)
+        inplace_csr_row_normalize_l2(self.matrix)
         return self

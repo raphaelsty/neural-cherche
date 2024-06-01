@@ -9,8 +9,8 @@ base_packages = [
     "torch >= 1.13",
     "tqdm >= 4.66",
     "transformers >= 4.34.0",
-    "sentence-transformers >= 2.2.2",
-    "lenlp == 1.0.5",
+    "lenlp >= 1.1.0",
+    "scikit-learn >= 1.5.0",
 ]
 
 
