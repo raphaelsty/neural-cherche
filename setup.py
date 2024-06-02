@@ -9,10 +9,9 @@ base_packages = [
     "torch >= 1.13",
     "tqdm >= 4.66",
     "transformers >= 4.34.0",
-    "lenlp >= 1.1.0",
+    "lenlp >= 1.1.1",
     "scikit-learn >= 1.5.0",
 ]
-
 
 eval = ["ranx >= 0.3.16", "beir >= 2.0.0"]
 
