@@ -165,16 +165,17 @@ class BM25(TfIdf):
                 (
                     self.k1
                     * (1 - self.b + self.b * (len_documents / average_len_documents))
-                ).flatten()
+                ).flatten(),
+                dtype=np.float32,
             )
         )
 
-        numerator = matrix.copy()
-        denominator = matrix.copy().tocsc()
-
-        numerator.data = numerator.data * (self.k1 + 1)
+        denominator = matrix.tocsc()
         denominator.data += np.take(a=regularization, indices=denominator.indices)
-        matrix.data = (numerator.data / denominator.tocsr().data) + self.epsilon
+
+        matrix.data = (
+            (matrix.data * (self.k1 + 1)) / denominator.tocsr().data
+        ) + self.epsilon
 
         for document_key in documents_embeddings:
             self.documents.append({self.key: document_key})
@@ -183,15 +184,14 @@ class BM25(TfIdf):
 
         idf = np.squeeze(
             a=np.asarray(
-                a=np.log((self.n_documents - self.tf + 0.5) / (self.tf + 0.5) + 1)
-            )
+                a=np.log((self.n_documents - self.tf + 0.5) / (self.tf + 0.5) + 1),
+                dtype=np.float32,
+            ),
         )
 
         matrix = matrix.multiply(idf).T.tocsr()
-
+        inplace_csr_row_normalize_l2(matrix)
         self.matrix = (
             matrix if self.matrix is None else hstack(blocks=(self.matrix, matrix))
         )
-
-        inplace_csr_row_normalize_l2(self.matrix)
         return self
