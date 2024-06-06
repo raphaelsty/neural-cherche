@@ -138,11 +138,12 @@ class ColBERT:
         if not documents:
             return {}
 
+        documents_content = [
+            " ".join([document[field] for field in self.on]) for document in documents
+        ]
+
         embeddings = self.encode_queries(
-            queries=[
-                " ".join([document[field] for field in self.on])
-                for document in documents
-            ],
+            queries=documents_content,
             batch_size=batch_size,
             tqdm_bar=tqdm_bar,
             query_mode=query_mode,
@@ -152,8 +153,8 @@ class ColBERT:
         )
 
         return {
-            document[self.key]: embedding
-            for document, embedding in zip(documents, embeddings.values())
+            document[self.key]: embeddings[content]
+            for document, content in zip(documents, documents_content)
         }
 
     def encode_candidates_documents(
