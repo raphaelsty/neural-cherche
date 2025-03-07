@@ -13,7 +13,7 @@ def freeze_layers(
             trainable_layers += 1
 
     for index, (name, param) in enumerate(iterable=model.named_parameters()):
-        if index < (trainable_layers - 5):
+        if index < (trainable_layers - n_layers):
             param.requires_grad = False
 
     return model
