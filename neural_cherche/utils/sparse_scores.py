@@ -20,7 +20,7 @@ def sparse_scores(
     negative_activations
         Activations of the negative documents.
     in_batch_negatives
-        Whether to use in batch negatives or not. Defaults to True.
+        Whether to use in batch negatives or not. Defaults to False.
         Sum up with negative scores the dot product.
 
     Examples
